@@ -1,0 +1,203 @@
+<%- include('partials/header') %>
+
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2><i class="bi bi-speedometer2"></i> Tableau de bord</h2>
+      <p class="text-muted">Vue d'ensemble du système de formation</p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Statistics Cards -->
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title mb-0">Formateurs Certifiés</h6>
+              <h2 class="mb-0 mt-2" id="certified-count">-</h2>
+            </div>
+            <i class="bi bi-award-fill" style="font-size: 3rem; opacity: 0.3;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title mb-0">En Formation</h6>
+              <h2 class="mb-0 mt-2" id="pending-count">-</h2>
+            </div>
+            <i class="bi bi-hourglass-split" style="font-size: 3rem; opacity: 0.3;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title mb-0">Sessions Actives</h6>
+              <h2 class="mb-0 mt-2" id="active-sessions">-</h2>
+            </div>
+            <i class="bi bi-calendar-check-fill" style="font-size: 3rem; opacity: 0.3;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="card-title mb-0">Total Formateurs</h6>
+              <h2 class="mb-0 mt-2" id="total-count">-</h2>
+            </div>
+            <i class="bi bi-people-fill" style="font-size: 3rem; opacity: 0.3;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-4">
+    <!-- Quick Actions -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-white">
+          <h5 class="mb-0"><i class="bi bi-lightning-fill"></i> Actions Rapides</h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            <a href="/trainers/new" class="list-group-item list-group-item-action">
+              <i class="bi bi-plus-circle text-primary"></i>
+              Ajouter un nouveau formateur
+            </a>
+            <a href="/training/new" class="list-group-item list-group-item-action">
+              <i class="bi bi-calendar-plus text-success"></i>
+              Créer une session de formation
+            </a>
+            <a href="/sharepoint/export/excel" class="list-group-item list-group-item-action">
+              <i class="bi bi-file-earmark-excel text-success"></i>
+              Exporter vers Excel
+            </a>
+            <% if (user.role === 'admin') { %>
+            <a href="/admin/settings" class="list-group-item list-group-item-action">
+              <i class="bi bi-sliders text-warning"></i>
+              Configurer l'application
+            </a>
+            <a href="/sharepoint/sync" class="list-group-item list-group-item-action">
+              <i class="bi bi-cloud-arrow-up text-info"></i>
+              Synchroniser avec SharePoint
+            </a>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-white">
+          <h5 class="mb-0"><i class="bi bi-clock-history"></i> Activité Récente</h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush" id="recent-activity">
+            <div class="text-center text-muted py-3">
+              <i class="bi bi-hourglass"></i> Chargement...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-4">
+    <!-- Process Overview -->
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header bg-white">
+          <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Processus "Former les Formateurs"</h5>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-md-2">
+              <div class="p-3 border rounded">
+                <i class="bi bi-search text-primary" style="font-size: 2rem;"></i>
+                <p class="mb-0 mt-2 small"><strong>1. Identification</strong></p>
+                <p class="mb-0 text-muted" style="font-size: 0.8rem;">Sélection des candidats</p>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="p-3 border rounded">
+                <i class="bi bi-book text-info" style="font-size: 2rem;"></i>
+                <p class="mb-0 mt-2 small"><strong>2. Formation</strong></p>
+                <p class="mb-0 text-muted" style="font-size: 0.8rem;">Session TWI</p>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="p-3 border rounded">
+                <i class="bi bi-calendar text-success" style="font-size: 2rem;"></i>
+                <p class="mb-0 mt-2 small"><strong>3. Planification</strong></p>
+                <p class="mb-0 text-muted" style="font-size: 0.8rem;">Organisation</p>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="p-3 border rounded">
+                <i class="bi bi-clipboard-check text-warning" style="font-size: 2rem;"></i>
+                <p class="mb-0 mt-2 small"><strong>4. Évaluation</strong></p>
+                <p class="mb-0 text-muted" style="font-size: 0.8rem;">Grille de compétences</p>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="p-3 border rounded">
+                <i class="bi bi-award text-danger" style="font-size: 2rem;"></i>
+                <p class="mb-0 mt-2 small"><strong>5. Certification</strong></p>
+                <p class="mb-0 text-muted" style="font-size: 0.8rem;">Certificat interne</p>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="p-3 border rounded">
+                <i class="bi bi-arrow-repeat text-secondary" style="font-size: 2rem;"></i>
+                <p class="mb-0 mt-2 small"><strong>6. Amélioration</strong></p>
+                <p class="mb-0 text-muted" style="font-size: 0.8rem;">Suivi continu</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Fetch dashboard statistics
+fetch('/api/dashboard/stats')
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById('certified-count').textContent = data.certified || 0;
+    document.getElementById('pending-count').textContent = data.pending || 0;
+    document.getElementById('active-sessions').textContent = data.activeSessions || 0;
+    document.getElementById('total-count').textContent = data.total || 0;
+  })
+  .catch(err => console.error('Error loading stats:', err));
+
+// Load recent activity (placeholder)
+setTimeout(() => {
+  document.getElementById('recent-activity').innerHTML = `
+    <div class="text-center text-muted py-3">
+      <i class="bi bi-inbox"></i> Aucune activité récente
+    </div>
+  `;
+}, 1000);
+</script>
+
+<%- include('partials/footer') %>

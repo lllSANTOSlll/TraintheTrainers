@@ -1,0 +1,81 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-list-check"></i> Modèles de Checklist</h2>
+    <% if (user.role === 'admin') { %>
+      <div>
+        <a href="/checklists/template-download" class="btn btn-outline-info">
+          <i class="bi bi-file-earmark-word"></i> Télécharger Template
+        </a>
+        <a href="/checklists/import" class="btn btn-success">
+          <i class="bi bi-file-earmark-arrow-up"></i> Importer Word
+        </a>
+        <a href="/checklists/new" class="btn btn-primary">
+          <i class="bi bi-plus-circle"></i> Nouveau Modèle
+        </a>
+      </div>
+    <% } %>
+  </div>
+
+  <% if (message) { %>
+    <div class="alert alert-success alert-dismissible fade show">
+      <i class="bi bi-check-circle"></i> <%= message %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <div class="row">
+    <% if (templates.length === 0) { %>
+      <div class="col-12">
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i>
+          <strong>Aucun modèle de checklist.</strong>
+          <% if (user.role === 'admin') { %>
+            <br>Créez votre premier modèle (Water Spider, Opérateur, QA, etc.)
+          <% } %>
+        </div>
+      </div>
+    <% } else { %>
+      <% templates.forEach(t => { %>
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title">
+                <i class="bi bi-file-earmark-check"></i>
+                <%= t.title %>
+              </h5>
+              <p class="card-text text-muted">
+                <%= t.description || 'Aucune description' %>
+              </p>
+              <span class="badge bg-primary">
+                <%= t.item_count %> éléments
+              </span>
+            </div>
+            <div class="card-footer bg-white">
+              <div class="btn-group btn-group-sm w-100">
+                <a href="/checklists/<%= t.id %>/items" class="btn btn-primary">
+                  <i class="bi bi-pencil-square"></i> Gérer Items
+                </a>
+                <% if (user.role === 'admin') { %>
+                  <a href="/checklists/<%= t.id %>/edit" class="btn btn-warning" title="Modifier titre">
+                    <i class="bi bi-gear"></i>
+                  </a>
+                  <form method="POST" action="/checklists/<%= t.id %>?_method=DELETE" 
+                        style="display: inline; margin: 0;"
+                        onsubmit="return confirm('Supprimer ce modèle?')">
+                    <button type="submit" class="btn btn-danger" title="Supprimer">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

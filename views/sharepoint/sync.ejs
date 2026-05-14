@@ -1,0 +1,177 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="mb-4">
+    <h2><i class="bi bi-cloud-arrow-up"></i> Synchronisation SharePoint</h2>
+    <p class="text-muted">Importez et exportez vos données vers SharePoint</p>
+  </div>
+
+  <% if (message) { %>
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+      <%= message %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <div class="row">
+    <!-- Export Section -->
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-cloud-upload"></i> Exporter</h5>
+        </div>
+        <div class="card-body">
+          <p>Exportez vos formateurs vers SharePoint ou Excel</p>
+          
+          <div class="d-grid gap-2">
+            <a href="/sharepoint/export/excel" class="btn btn-success btn-lg">
+              <i class="bi bi-file-earmark-excel"></i> Exporter vers Excel
+            </a>
+            
+            <button id="exportSharePoint" class="btn btn-primary btn-lg">
+              <i class="bi bi-microsoft"></i> Exporter vers SharePoint
+            </button>
+          </div>
+
+          <div id="exportResult" class="mt-3"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import Section -->
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="bi bi-cloud-download"></i> Importer</h5>
+        </div>
+        <div class="card-body">
+          <p>Importez des formateurs depuis SharePoint</p>
+          
+          <div class="d-grid gap-2">
+            <button id="importSharePoint" class="btn btn-info btn-lg">
+              <i class="bi bi-microsoft"></i> Importer depuis SharePoint
+            </button>
+          </div>
+
+          <div id="importResult" class="mt-3"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Configuration Info -->
+  <div class="card">
+    <div class="card-header bg-light">
+      <h5 class="mb-0"><i class="bi bi-gear"></i> Configuration SharePoint</h5>
+    </div>
+    <div class="card-body">
+      <p>Pour utiliser l'intégration SharePoint, configurez les variables d'environnement suivantes dans le fichier <code>.env</code>:</p>
+      
+      <ul>
+        <li><code>SHAREPOINT_CLIENT_ID</code> - Application (client) ID de votre app Azure AD</li>
+        <li><code>SHAREPOINT_CLIENT_SECRET</code> - Secret de l'application</li>
+        <li><code>SHAREPOINT_TENANT_ID</code> - Directory (tenant) ID</li>
+        <li><code>SHAREPOINT_SITE_URL</code> - URL de votre site SharePoint</li>
+        <li><code>SHAREPOINT_LIST_NAME</code> - Nom de la liste SharePoint</li>
+      </ul>
+
+      <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        <strong>Astuce:</strong> Consultez le README.md pour des instructions détaillées sur la configuration Azure AD.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Export to SharePoint
+document.getElementById('exportSharePoint').addEventListener('click', async function() {
+  const btn = this;
+  const resultDiv = document.getElementById('exportResult');
+  
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Export en cours...';
+  resultDiv.innerHTML = '';
+
+  try {
+    const response = await fetch('/sharepoint/export/sharepoint', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      resultDiv.innerHTML = `
+        <div class="alert alert-success">
+          <i class="bi bi-check-circle"></i> ${data.message}
+        </div>
+      `;
+    } else {
+      resultDiv.innerHTML = `
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle"></i> Erreur: ${data.message}
+        </div>
+      `;
+    }
+  } catch (err) {
+    resultDiv.innerHTML = `
+      <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle"></i> Erreur: ${err.message}
+      </div>
+    `;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-microsoft"></i> Exporter vers SharePoint';
+  }
+});
+
+// Import from SharePoint
+document.getElementById('importSharePoint').addEventListener('click', async function() {
+  const btn = this;
+  const resultDiv = document.getElementById('importResult');
+  
+  if (!confirm('Êtes-vous sûr de vouloir importer depuis SharePoint? Cela ajoutera de nouveaux formateurs à la base de données.')) {
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Import en cours...';
+  resultDiv.innerHTML = '';
+
+  try {
+    const response = await fetch('/sharepoint/import/sharepoint', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      resultDiv.innerHTML = `
+        <div class="alert alert-success">
+          <i class="bi bi-check-circle"></i> ${data.message}
+        </div>
+      `;
+      setTimeout(() => window.location.reload(), 2000);
+    } else {
+      resultDiv.innerHTML = `
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle"></i> Erreur: ${data.message}
+        </div>
+      `;
+    }
+  } catch (err) {
+    resultDiv.innerHTML = `
+      <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle"></i> Erreur: ${err.message}
+      </div>
+    `;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-microsoft"></i> Importer depuis SharePoint';
+  }
+});
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,181 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="mb-4">
+    <h2>
+      <i class="bi <%= editUser ? 'bi-pencil' : 'bi-plus-circle' %>"></i>
+      <%= editUser ? 'Modifier' : 'Nouvel' %> Utilisateur
+    </h2>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-md-10">
+      <div class="card">
+        <div class="card-body">
+          <form method="POST" action="<%= action %>">
+            <div class="mb-3">
+              <label for="username" class="form-label">Nom d'utilisateur *</label>
+              <input type="text" class="form-control" id="username" name="username" 
+                     value="<%= editUser ? editUser.username : '' %>" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="password" class="form-label">
+                Mot de passe <%= editUser ? '(laisser vide pour ne pas changer)' : '*' %>
+              </label>
+              <input type="password" class="form-control" id="password" name="password" 
+                     <%= editUser ? '' : 'required' %>>
+            </div>
+
+            <div class="mb-3">
+              <label for="full_name" class="form-label">Nom complet</label>
+              <input type="text" class="form-control" id="full_name" name="full_name" 
+                     value="<%= editUser ? editUser.full_name || '' : '' %>">
+            </div>
+
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" class="form-control" id="email" name="email" 
+                     value="<%= editUser ? editUser.email || '' : '' %>">
+            </div>
+
+            <div class="mb-3">
+              <label for="role" class="form-label">Rôle *</label>
+              <select class="form-select" id="role" name="role" required onchange="updateRoleDescription()">
+                <option value="user" <%= editUser && editUser.role === 'user' ? 'selected' : '' %>>
+                  👤 Utilisateur (Opérateur/Technicien)
+                </option>
+                <option value="trainer" <%= editUser && editUser.role === 'trainer' ? 'selected' : '' %>>
+                  🎓 Formateur (Trainer)
+                </option>
+                <option value="supervisor" <%= editUser && editUser.role === 'supervisor' ? 'selected' : '' %>>
+                  👔 Superviseur
+                </option>
+                <option value="admin" <%= editUser && editUser.role === 'admin' ? 'selected' : '' %>>
+                  ⭐ Administrateur
+                </option>
+              </select>
+              <div class="form-text" id="role-description">
+                <!-- Set by JavaScript -->
+              </div>
+            </div>
+
+            <!-- Role permissions table -->
+            <div class="card bg-light mb-3">
+              <div class="card-body p-3">
+                <h6 class="mb-2"><i class="bi bi-shield-check"></i> Permissions par Rôle</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm mb-0" style="font-size: 0.85rem;">
+                    <thead>
+                      <tr>
+                        <th>Action</th>
+                        <th class="text-center">👤 User</th>
+                        <th class="text-center">🎓 Formateur</th>
+                        <th class="text-center">👔 Superviseur</th>
+                        <th class="text-center">⭐ Admin</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Voir sessions assignées</td>
+                        <td class="text-center">✅</td>
+                        <td class="text-center">✅</td>
+                        <td class="text-center">✅</td>
+                        <td class="text-center">✅</td>
+                      </tr>
+                      <tr>
+                        <td>Voir TOUTES les sessions</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">✅</td>
+                        <td class="text-center">✅</td>
+                      </tr>
+                      <tr>
+                        <td>Cocher checklist (sessions)</td>
+                        <td class="text-center">✅</td>
+                        <td class="text-center">✅</td>
+                        <td class="text-center">✅</td>
+                        <td class="text-center">✅</td>
+                      </tr>
+                      <tr>
+                        <td>Créer sessions / assigner</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">✅</td>
+                        <td class="text-center">✅</td>
+                      </tr>
+                      <tr>
+                        <td>Créer/Modifier modèles checklist</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">✅</td>
+                        <td class="text-center">✅</td>
+                      </tr>
+                      <tr>
+                        <td>Importer Word</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">✅</td>
+                        <td class="text-center">✅</td>
+                      </tr>
+                      <tr>
+                        <td>Supprimer modèles</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">✅</td>
+                      </tr>
+                      <tr>
+                        <td>Gérer utilisateurs</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">✅</td>
+                      </tr>
+                      <tr>
+                        <td>Configuration SharePoint/Thème</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">❌</td>
+                        <td class="text-center">✅</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <a href="/admin/users" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Retour
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i> Enregistrer
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
+
+<script>
+function updateRoleDescription() {
+  const role = document.getElementById('role').value;
+  const desc = document.getElementById('role-description');
+  
+  const descriptions = {
+    'user': '👤 <strong>Utilisateur</strong> - Voit uniquement les sessions qui lui sont assignées. Idéal pour: opérateurs, water spiders, techniciens.',
+    'trainer': '🎓 <strong>Formateur</strong> - Voit uniquement les sessions qui lui sont assignées. Idéal pour: formateurs qui forment d\'autres employés.',
+    'supervisor': '👔 <strong>Superviseur</strong> - Voit TOUTES les sessions, peut créer et assigner aux formateurs, gérer les modèles. Idéal pour: superviseurs, chef d\'équipe.',
+    'admin': '⭐ <strong>Administrateur</strong> - Accès complet: gestion utilisateurs, suppressions, configuration. Idéal pour: managers, responsables formation.'
+  };
+  
+  desc.innerHTML = descriptions[role] || '';
+}
+
+updateRoleDescription();
+</script>

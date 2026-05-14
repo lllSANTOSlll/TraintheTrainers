@@ -1,0 +1,65 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-people-fill"></i> Liste des Formateurs</h2>
+    <a href="/trainers/new" class="btn btn-primary">
+      <i class="bi bi-plus-circle"></i> Nouveau Formateur
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Nom et Prénom</th>
+              <th>Poste</th>
+              <th>Département</th>
+              <th>Domaine d'expertise</th>
+              <th>Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (trainers.length === 0) { %>
+              <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                  <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                  <p class="mb-0 mt-2">Aucun formateur enregistré</p>
+                </td>
+              </tr>
+            <% } else { %>
+              <% trainers.forEach(trainer => { %>
+                <tr>
+                  <td><strong><%= trainer.nom_prenom %></strong></td>
+                  <td><%= trainer.poste_actuel || '-' %></td>
+                  <td><%= trainer.departement || '-' %></td>
+                  <td><%= trainer.domaine_expertise || '-' %></td>
+                  <td>
+                    <% if (trainer.statut_validation === 'Validé') { %>
+                      <span class="badge bg-success">Validé</span>
+                    <% } else { %>
+                      <span class="badge bg-warning">Non validé</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <a href="/trainers/<%= trainer.id %>" class="btn btn-sm btn-info" title="Voir">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="/trainers/<%= trainer.id %>/edit" class="btn btn-sm btn-warning" title="Modifier">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                  </td>
+                </tr>
+              <% }); %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
