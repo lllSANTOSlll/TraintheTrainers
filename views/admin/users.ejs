@@ -24,6 +24,7 @@
               <th>Nom d'utilisateur</th>
               <th>Nom complet</th>
               <th>Email</th>
+              <th>Département</th>
               <th>Rôle</th>
               <th>Créé le</th>
               <th>Actions</th>
@@ -35,6 +36,17 @@
                 <td><strong><%= u.username %></strong></td>
                 <td><%= u.full_name || '-' %></td>
                 <td><%= u.email || '-' %></td>
+                <td>
+                  <% if (u.department === 'Operations') { %>
+                    <span class="badge bg-info">Opérations</span>
+                  <% } else if (u.department === 'Technicians') { %>
+                    <span class="badge bg-secondary">Techniciens</span>
+                  <% } else if (u.department === 'Logistics') { %>
+                    <span class="badge bg-warning text-dark">Logistique</span>
+                  <% } else { %>
+                    <span class="text-muted small">—</span>
+                  <% } %>
+                </td>
                 <td>
                   <% if (u.role === 'admin') { %>
                     <span class="badge bg-danger">⭐ Admin</span>
