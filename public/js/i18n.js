@@ -342,12 +342,13 @@
   }
 
   function applyLang(lang) {
-    cacheTextNodes(document.body);   // catch any freshly rendered nodes
+    // Cache BEFORE any translation so we always store the original French text
+    cacheTextNodes(document.body);
 
     const dict    = lang === 'fr' ? null : DICT[lang];
     const entries = dict ? buildEntries(dict) : [];
 
-    // ── Text nodes ──
+    // ── Text nodes (covers all elements including <option> children) ──
     origCache.forEach((origText, node) => {
       if (!node.parentNode) return;
       const tag = node.parentElement ? node.parentElement.tagName : '';
@@ -356,20 +357,14 @@
       if (node.textContent !== newText) node.textContent = newText;
     });
 
-    // ── Placeholders ──
+    // ── Placeholders (attribute value — not a text node, needs separate handling) ──
     document.querySelectorAll('[placeholder]').forEach(el => {
+      // Save original French placeholder once, never overwrite
       if (!el.dataset.i18nPh) el.dataset.i18nPh = el.placeholder;
       el.placeholder = dict ? translateText(el.dataset.i18nPh, entries) : el.dataset.i18nPh;
     });
 
-    // ── Select <option> text ──
-    document.querySelectorAll('option').forEach(opt => {
-      if (opt.dataset.i18nOpt === undefined) opt.dataset.i18nOpt = opt.textContent.trim();
-      const t = dict ? translateText(opt.dataset.i18nOpt, entries) : opt.dataset.i18nOpt;
-      if (opt.textContent.trim() !== t) opt.textContent = t;
-    });
-
-    // ── Page title (<title>) ──
+    // ── Page title ──
     if (!document._i18nOrigTitle) document._i18nOrigTitle = document.title;
     document.title = dict ? translateText(document._i18nOrigTitle, entries) : document._i18nOrigTitle;
 
