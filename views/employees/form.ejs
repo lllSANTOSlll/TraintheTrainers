@@ -196,21 +196,6 @@
     </div>
   </div>
 
-  <!-- Plans de formation -->
-  <div class="card mb-4">
-    <div class="card-header fw-bold">Plans de formation</div>
-    <div class="card-body">
-      <div class="row g-3">
-        <% [['Système','plan_systeme'],['Processus','plan_processus'],['Général','plan_general'],['Water Spider','plan_waterspider']].forEach(([label,key]) => { %>
-        <div class="col-md-3">
-          <label class="form-label fw-medium small"><%= label %></label>
-          <input type="text" class="form-control form-control-sm" name="<%= key %>" value="<%= employee ? (employee[key] || '') : '' %>">
-        </div>
-        <% }); %>
-      </div>
-    </div>
-  </div>
-
   <div class="d-flex gap-2">
     <button type="submit" class="btn btn-primary">
       <i class="bi bi-check-lg me-1"></i><%= employee ? 'Enregistrer' : "Créer l'employé" %>
