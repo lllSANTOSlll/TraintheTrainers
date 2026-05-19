@@ -227,6 +227,18 @@ db.serialize(() => {
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
     UNIQUE(week_start, employee_id)
   )`, (err) => { if (err) console.error('schedule_weeks table:', err); else console.log('✓ schedule_weeks table ready'); });
+
+  db.run(`CREATE TABLE IF NOT EXISTS role_permissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    role TEXT NOT NULL,
+    permission_key TEXT NOT NULL,
+    allowed INTEGER DEFAULT 0,
+    UNIQUE(role, permission_key)
+  )`, (err) => {
+    if (err) { console.error('role_permissions table:', err); return; }
+    console.log('✓ role_permissions table ready');
+    require('./config/permissions').load(() => console.log('✓ permissions cache loaded'));
+  });
 });
 app.get('/api/dashboard/stats', (req, res) => {
   if (!req.session.user) {

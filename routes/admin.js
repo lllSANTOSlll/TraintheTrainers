@@ -123,4 +123,44 @@ router.delete('/users/:id', (req, res) => {
   });
 });
 
+// ── Permissions editor ────────────────────────────────────────────────
+const perms = require('../config/permissions');
+
+router.get('/permissions', (req, res) => {
+  res.render('admin/permissions', {
+    title: 'Éditeur de Permissions',
+    permsData: perms.getAll(),
+    labels:    perms.getLabels(),
+    message:   req.query.message || null,
+  });
+});
+
+router.post('/permissions', (req, res) => {
+  const roles = ['user', 'trainer', 'supervisor', 'admin'];
+  const keys  = perms.getLabels().map(l => l.key);
+  const rows  = [];
+
+  roles.forEach(role => {
+    keys.forEach(key => {
+      // Admin always keeps admin_* permissions ON
+      const forced = (role === 'admin' && key.startsWith('admin_'));
+      const allowed = forced ? 1 : (req.body[`${role}__${key}`] === '1' ? 1 : 0);
+      rows.push([role, key, allowed]);
+    });
+  });
+
+  db.run('DELETE FROM role_permissions', [], () => {
+    let done = 0;
+    rows.forEach(([role, key, allowed]) => {
+      db.run('INSERT INTO role_permissions (role, permission_key, allowed) VALUES (?,?,?)',
+        [role, key, allowed], () => {
+          done++;
+          if (done === rows.length) {
+            perms.load(() => res.redirect('/admin/permissions?message=Permissions sauvegardées avec succès'));
+          }
+        });
+    });
+  });
+});
+
 module.exports = router;

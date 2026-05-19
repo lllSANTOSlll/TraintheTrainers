@@ -44,10 +44,25 @@ function getDeptFilter(req) {
   return user.department || '__no_dept__';
 }
 
+function requirePermission(permKey) {
+  return function (req, res, next) {
+    const user = req.session && req.session.user;
+    if (!user) return res.redirect('/login');
+    const perms = require('../config/permissions');
+    if (perms.can(user.role, permKey)) return next();
+    res.status(403).render('error', {
+      title: 'Accès refusé',
+      message: 'Vous n\'avez pas la permission d\'accéder à cette page.',
+      error: { status: 403 }
+    });
+  };
+}
+
 module.exports = {
   isAuthenticated,
   isAdmin,
   isSupervisorOrAdmin,
+  requirePermission,
   canManage,
   getDeptFilter
 };
