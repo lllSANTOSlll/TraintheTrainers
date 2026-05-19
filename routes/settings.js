@@ -117,6 +117,42 @@ router.post('/theme', (req, res) => {
   });
 });
 
+// Update UI colors (sidebar, navbar, page bg, card header)
+router.post('/ui-colors', (req, res) => {
+  const keys = ['ui_sidebar_bg','ui_sidebar_deep','ui_sidebar_hover','ui_navbar_bg','ui_navbar_border','ui_navbar_text','ui_page_bg','ui_card_header_bg'];
+  let completed = 0;
+  keys.forEach(key => {
+    const value = req.body[key] || '';
+    if (!value) { completed++; if (completed === keys.length) res.redirect('/admin/settings?message=Couleurs UI mises à jour'); return; }
+    db.run('INSERT OR REPLACE INTO settings (key,value,category,updated_at) VALUES (?,?,?,CURRENT_TIMESTAMP)',
+      [key, value, 'ui'], (err) => {
+        if (err) console.error(err);
+        completed++;
+        if (completed === keys.length) res.redirect('/admin/settings?message=Couleurs UI mises à jour');
+      });
+  });
+});
+
+// Update department accent colors
+router.post('/dept-colors', (req, res) => {
+  const depts = ['Operations', 'Technicians', 'Logistics'];
+  let completed = 0;
+  depts.forEach(dept => {
+    const value = req.body[`dept_color_${dept}`] || '#009ADA';
+    db.run(
+      'INSERT OR REPLACE INTO settings (key, value, category, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
+      [`dept_color_${dept}`, value, 'dept_colors'],
+      (err) => {
+        if (err) console.error(err);
+        completed++;
+        if (completed === depts.length) {
+          res.redirect('/admin/settings?message=Couleurs des départements mises à jour');
+        }
+      }
+    );
+  });
+});
+
 // Reset to defaults
 router.post('/reset', (req, res) => {
   const { category } = req.body;
@@ -162,3 +198,4 @@ router.get('/json', (req, res) => {
 });
 
 module.exports = router;
+module.exports.getSettings = getSettings;

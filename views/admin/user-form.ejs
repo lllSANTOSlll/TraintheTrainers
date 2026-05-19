@@ -39,6 +39,17 @@
                      value="<%= editUser ? editUser.email || '' : '' %>">
             </div>
 
+            <div class="mb-3" id="dept-field">
+              <label for="department" class="form-label">Département</label>
+              <select class="form-select" id="department" name="department">
+                <option value="" <%= !editUser || !editUser.department ? 'selected' : '' %>>— Aucun (Admin uniquement) —</option>
+                <option value="Operations"  <%= editUser && editUser.department === 'Operations'  ? 'selected' : '' %>>Opérations</option>
+                <option value="Technicians" <%= editUser && editUser.department === 'Technicians' ? 'selected' : '' %>>Techniciens</option>
+                <option value="Logistics"   <%= editUser && editUser.department === 'Logistics'   ? 'selected' : '' %>>Logistique</option>
+              </select>
+              <div class="form-text">Requis pour Superviseur, Formateur et Utilisateur. L'Admin n'a pas de département.</div>
+            </div>
+
             <div class="mb-3">
               <label for="role" class="form-label">Rôle *</label>
               <select class="form-select" id="role" name="role" required onchange="updateRoleDescription()">
@@ -76,68 +87,112 @@
                       </tr>
                     </thead>
                     <tbody>
+                      <tr class="table-primary">
+                        <td colspan="5" class="fw-bold small py-1" style="font-size:0.75rem;">EMPLOYÉS &amp; PLANIFICATION</td>
+                      </tr>
                       <tr>
-                        <td>Voir sessions assignées</td>
-                        <td class="text-center">✅</td>
-                        <td class="text-center">✅</td>
-                        <td class="text-center">✅</td>
-                        <td class="text-center">✅</td>
+                        <td>Voir la liste des employés</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
+                      </tr>
+                      <tr>
+                        <td>Ajouter / Modifier un employé</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
+                      </tr>
+                      <tr>
+                        <td>Importer CSV employés</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
+                      </tr>
+                      <tr>
+                        <td>Matrice de formation</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
+                      </tr>
+                      <tr>
+                        <td>Planification hebdomadaire</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
+                      </tr>
+                      <tr class="table-secondary">
+                        <td colspan="5" class="fw-bold small py-1" style="font-size:0.75rem;">SESSIONS DE FORMATION</td>
+                      </tr>
+                      <tr>
+                        <td>Voir ses sessions assignées</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
                       </tr>
                       <tr>
                         <td>Voir TOUTES les sessions</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">✅</td>
-                        <td class="text-center">✅</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
                       </tr>
                       <tr>
-                        <td>Cocher checklist (sessions)</td>
-                        <td class="text-center">✅</td>
-                        <td class="text-center">✅</td>
-                        <td class="text-center">✅</td>
-                        <td class="text-center">✅</td>
+                        <td>Cocher la checklist</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
                       </tr>
                       <tr>
                         <td>Créer sessions / assigner</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">✅</td>
-                        <td class="text-center">✅</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
                       </tr>
                       <tr>
-                        <td>Créer/Modifier modèles checklist</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">✅</td>
-                        <td class="text-center">✅</td>
+                        <td>Créer / modifier modèles checklist</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
                       </tr>
                       <tr>
                         <td>Importer Word</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">✅</td>
-                        <td class="text-center">✅</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-success">✅</td>
+                        <td class="text-center text-success">✅</td>
+                      </tr>
+                      <tr class="table-warning">
+                        <td colspan="5" class="fw-bold small py-1" style="font-size:0.75rem;">ADMINISTRATION</td>
                       </tr>
                       <tr>
-                        <td>Supprimer modèles</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">✅</td>
+                        <td>Supprimer modèles / sessions</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-success">✅</td>
                       </tr>
                       <tr>
-                        <td>Gérer utilisateurs</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">✅</td>
+                        <td>Gérer les utilisateurs</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-success">✅</td>
                       </tr>
                       <tr>
-                        <td>Configuration SharePoint/Thème</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">❌</td>
-                        <td class="text-center">✅</td>
+                        <td>Configuration SharePoint / Thème</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-danger">❌</td>
+                        <td class="text-center text-success">✅</td>
                       </tr>
                     </tbody>
                   </table>
@@ -165,15 +220,26 @@
 <script>
 function updateRoleDescription() {
   const role = document.getElementById('role').value;
+  const deptField = document.getElementById('dept-field');
+  const deptSelect = document.getElementById('department');
   const desc = document.getElementById('role-description');
-  
+
+  if (role === 'admin') {
+    deptField.style.opacity = '0.4';
+    deptField.style.pointerEvents = 'none';
+    deptSelect.value = '';
+  } else {
+    deptField.style.opacity = '1';
+    deptField.style.pointerEvents = 'auto';
+  }
+
   const descriptions = {
     'user': '👤 <strong>Utilisateur</strong> - Voit uniquement les sessions qui lui sont assignées. Idéal pour: opérateurs, water spiders, techniciens.',
     'trainer': '🎓 <strong>Formateur</strong> - Voit uniquement les sessions qui lui sont assignées. Idéal pour: formateurs qui forment d\'autres employés.',
     'supervisor': '👔 <strong>Superviseur</strong> - Voit TOUTES les sessions, peut créer et assigner aux formateurs, gérer les modèles. Idéal pour: superviseurs, chef d\'équipe.',
     'admin': '⭐ <strong>Administrateur</strong> - Accès complet: gestion utilisateurs, suppressions, configuration. Idéal pour: managers, responsables formation.'
   };
-  
+
   desc.innerHTML = descriptions[role] || '';
 }
 

@@ -33,9 +33,21 @@ function canManage(user) {
   return user.role === 'admin' || user.role === 'supervisor';
 }
 
+// Returns the department to filter queries by.
+// Admin with no selection: null (show all).
+// Non-admin with dept set: their department string.
+// Non-admin with NO dept set: '__no_dept__' (matches nothing — shows 0 rows).
+function getDeptFilter(req) {
+  const user = req.session && req.session.user;
+  if (!user) return null;
+  if (user.role === 'admin') return req.session.adminDept || null;
+  return user.department || '__no_dept__';
+}
+
 module.exports = {
   isAuthenticated,
   isAdmin,
   isSupervisorOrAdmin,
-  canManage
+  canManage,
+  getDeptFilter
 };

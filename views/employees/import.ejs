@@ -1,0 +1,63 @@
+<%- include('../partials/header') %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0"><i class="bi bi-upload me-2"></i>Importer les employés (CSV)</h2>
+  <a href="/employees" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<% if (count !== null) { %>
+  <div class="alert alert-success">
+    <i class="bi bi-check-circle me-2"></i>
+    <strong><%= count %> employé(s)</strong> importé(s) avec succès.
+    <a href="/employees" class="ms-3 btn btn-sm btn-success">Voir les employés</a>
+  </div>
+<% } %>
+
+<% if (error) { %>
+  <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i><%= error %></div>
+<% } %>
+
+<div class="card mb-4">
+  <div class="card-header fw-bold">Instructions</div>
+  <div class="card-body text-muted small">
+    <p class="mb-1">Importez votre fichier <strong>Employé-Vue par tableur.csv</strong> exporté depuis Airtable.</p>
+    <p class="mb-1">Colonnes reconnues automatiquement : <em>Nom, Équipe, Shift, Poste, Horaire, Date d'embauche, IP VAV, Smartvue, Unitouch… Actif/Inactif, etc.</em></p>
+    <p class="mb-0"><strong>Note :</strong> Les employés existants ne seront pas modifiés — chaque import ajoute de nouveaux enregistrements.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form action="/employees/import" method="POST" enctype="multipart/form-data">
+      <% if (userDept) { %>
+        <input type="hidden" name="department" value="<%= userDept %>">
+        <div class="mb-3 alert alert-info py-2">
+          <i class="bi bi-building me-1"></i>Les employés seront importés dans le département <strong><%= userDept %></strong>.
+        </div>
+      <% } else { %>
+        <div class="mb-3">
+          <label class="form-label fw-medium">Département <span class="text-danger">*</span></label>
+          <select class="form-select" name="department" required>
+            <option value="">— Choisir un département —</option>
+            <option value="Operations">Opérations</option>
+            <option value="Technicians">Techniciens</option>
+            <option value="Logistics">Logistique</option>
+          </select>
+        </div>
+      <% } %>
+      <div class="mb-4">
+        <label class="form-label fw-medium">Fichier CSV Airtable</label>
+        <input type="file" class="form-control" name="csvfile" accept=".csv,.txt" required>
+        <div class="form-text">Fichier exporté depuis Airtable — encodage UTF-8</div>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-upload me-1"></i>Importer
+        </button>
+        <a href="/employees" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

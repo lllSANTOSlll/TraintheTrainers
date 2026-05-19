@@ -1,0 +1,261 @@
+<%- include('../partials/header') %>
+
+<style>
+  .emp-avatar-lg { width:72px; height:72px; border-radius:50%; background:var(--primary-color); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:2rem; margin:0 auto 1rem; }
+  .station-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(130px,1fr)); gap:8px; }
+  .station-item { border:1px solid #e9ecef; border-radius:8px; padding:8px; text-align:center; }
+  .station-label { font-size:0.78rem; color:#555; margin-bottom:4px; font-weight:600; }
+  .s-badge { display:inline-block; border-radius:4px; padding:2px 8px; font-size:0.78rem; font-weight:600; }
+  .s-oui      { background:#d4edda; color:#155724; }
+  .s-form     { background:#fff3cd; color:#856404; }
+  .s-revoir   { background:#ffe5d0; color:#7d3c00; }
+  .s-empty    { background:#f1f3f5; color:#adb5bd; }
+  .stat-box { text-align:center; border-radius:12px; padding:16px; }
+  /* Attachments */
+  .att-drop { border:2px dashed #dee2e6; border-radius:12px; padding:32px; text-align:center; cursor:pointer; transition:border-color .2s, background .2s; }
+  .att-drop:hover, .att-drop.drag-over { border-color:var(--dc-blue,#009ADA); background:#f0f8ff; }
+  .att-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; border:1px solid #e9ecef; margin-bottom:6px; background:#fff; }
+  .att-item:hover { background:#f8f9fa; }
+  .att-icon { font-size:1.6rem; flex-shrink:0; }
+  .att-name { flex:1; min-width:0; font-weight:500; font-size:.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .att-meta { font-size:.75rem; color:#6c757d; white-space:nowrap; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h2 class="mb-0"><i class="bi bi-person-badge me-2"></i><%= employee.nom %></h2>
+  <div class="d-flex gap-2">
+    <a href="/employees/<%= employee.id %>/edit" class="btn btn-outline-warning btn-sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+    <a href="/employees" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left panel -->
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-body text-center pt-4">
+        <% if (employee.photo) { %>
+          <img src="<%= employee.photo %>" alt="<%= employee.nom %>"
+               style="width:90px;height:90px;border-radius:50%;object-fit:cover;margin:0 auto 1rem;display:block;border:3px solid var(--dc-blue, #009ADA);">
+        <% } else { %>
+          <div class="emp-avatar-lg"><%= (employee.nom || 'E').charAt(0).toUpperCase() %></div>
+        <% } %>
+        <h5 class="mb-1 fw-bold"><%= employee.nom %></h5>
+        <p class="text-muted small mb-1"><%= employee.poste || '—' %></p>
+        <p class="text-muted small mb-2"><%= employee.equipe || '—' %> · <%= employee.shift || '—' %></p>
+        <% if (employee.statut === 'Actif') { %>
+          <span class="badge bg-success">Actif</span>
+        <% } else { %>
+          <span class="badge bg-secondary"><%= employee.statut || 'Inactif' %></span>
+        <% } %>
+      </div>
+      <div class="card-body border-top pt-3 small">
+        <dl class="row mb-0">
+          <% if (employee.superviseur) { %><dt class="col-5 text-muted">Superviseur</dt><dd class="col-7"><i class="bi bi-person-badge me-1 text-muted"></i><%= employee.superviseur %></dd><% } %>
+          <% if (employee.horaire) { %><dt class="col-5 text-muted">Horaire</dt><dd class="col-7"><%= employee.horaire %></dd><% } %>
+          <% if (employee.date_naissance) { %><dt class="col-5 text-muted">Naissance</dt><dd class="col-7"><%= employee.date_naissance %></dd><% } %>
+          <% if (employee.date_embauche) { %><dt class="col-5 text-muted">Embauche</dt><dd class="col-7"><%= employee.date_embauche %></dd><% } %>
+          <% if (employee.date_fin) { %><dt class="col-5 text-muted">Fin</dt><dd class="col-7"><%= employee.date_fin %></dd><% } %>
+          <% if (employee.raison_depart) { %><dt class="col-5 text-muted">Raison</dt><dd class="col-7"><%= employee.raison_depart %></dd><% } %>
+          <% if (employee.anciennete) { %><dt class="col-5 text-muted">Ancienneté</dt><dd class="col-7"><%= employee.anciennete %></dd><% } %>
+          <% if (employee.taille_chandail) { %><dt class="col-5 text-muted">Chandail</dt><dd class="col-7"><%= employee.taille_chandail %></dd><% } %>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header py-2 small fw-bold"><i class="bi bi-telephone me-1"></i>Contact</div>
+      <div class="card-body small py-2">
+        <dl class="row mb-0">
+          <% if (employee.courriel) { %><dt class="col-4 text-muted">Courriel</dt><dd class="col-8"><a href="mailto:<%= employee.courriel %>"><%= employee.courriel %></a></dd><% } %>
+          <% if (employee.telephone) { %><dt class="col-4 text-muted">Tél.</dt><dd class="col-8"><%= employee.telephone %></dd><% } %>
+          <% if (employee.contact_urgence) { %><dt class="col-4 text-muted">Urgence</dt><dd class="col-8"><%= employee.contact_urgence %></dd><% } %>
+        </dl>
+      </div>
+    </div>
+
+    <% if (employee.passion || employee.ambition || employee.preoccupation || employee.restriction_alimentaire) { %>
+    <div class="card">
+      <div class="card-header py-2 small fw-bold"><i class="bi bi-heart me-1"></i>Profil personnel</div>
+      <div class="card-body small py-2">
+        <dl class="row mb-0">
+          <% if (employee.restriction_alimentaire) { %><dt class="col-5 text-muted">Restriction</dt><dd class="col-7"><%= employee.restriction_alimentaire %></dd><% } %>
+          <% if (employee.passion) { %><dt class="col-5 text-muted">Passion</dt><dd class="col-7"><%= employee.passion %></dd><% } %>
+          <% if (employee.ambition) { %><dt class="col-5 text-muted">Ambition</dt><dd class="col-7"><%= employee.ambition %></dd><% } %>
+          <% if (employee.preoccupation) { %><dt class="col-5 text-muted">Préoccupation</dt><dd class="col-7"><%= employee.preoccupation %></dd><% } %>
+          <% if (employee.why) { %><dt class="col-5 text-muted">Why</dt><dd class="col-7"><%= employee.why %></dd><% } %>
+        </dl>
+      </div>
+    </div>
+    <% } %>
+  </div>
+
+  <!-- Right panel -->
+  <div class="col-lg-8">
+    <!-- Stats row -->
+    <%
+      const oui = stations.filter(s => (employee[s.key] || '').trim() === 'Oui').length;
+      const form = stations.filter(s => (employee[s.key] || '').trim().startsWith('Formation')).length;
+      const rev  = stations.filter(s => (employee[s.key] || '').trim() === 'À revoir').length;
+    %>
+    <div class="row g-3 mb-4">
+      <div class="col-4">
+        <div class="stat-box" style="background:#d4edda;">
+          <div style="font-size:2rem; font-weight:700; color:#155724;"><%= oui %></div>
+          <div class="small text-muted">Formé(es)</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="stat-box" style="background:#fff3cd;">
+          <div style="font-size:2rem; font-weight:700; color:#856404;"><%= form %></div>
+          <div class="small text-muted">En formation</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="stat-box" style="background:#ffe5d0;">
+          <div style="font-size:2rem; font-weight:700; color:#7d3c00;"><%= rev %></div>
+          <div class="small text-muted">À revoir</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stations -->
+    <div class="card mb-4">
+      <div class="card-header fw-bold"><i class="bi bi-grid me-2"></i>Statut par station</div>
+      <div class="card-body">
+        <div class="station-grid">
+          <% stations.forEach(s => {
+            const val = (employee[s.key] || '').trim();
+            let cls = 's-empty', txt = '—';
+            if (val === 'Oui') { cls = 's-oui'; txt = 'Oui'; }
+            else if (val.startsWith('Formation')) { cls = 's-form'; txt = 'Formation'; }
+            else if (val === 'À revoir') { cls = 's-revoir'; txt = 'À revoir'; }
+          %>
+            <div class="station-item">
+              <div class="station-label"><%= s.label %></div>
+              <span class="s-badge <%= cls %>"><%= txt %></span>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Training plans -->
+    <div class="card mb-4">
+      <div class="card-header fw-bold"><i class="bi bi-journal-check me-2"></i>Plans de formation</div>
+      <div class="card-body">
+        <div class="row g-3 text-center">
+          <% [['Système', employee.plan_systeme], ['Processus', employee.plan_processus], ['Général', employee.plan_general], ['Water Spider', employee.plan_waterspider]].forEach(([label, val]) => { %>
+          <div class="col-6 col-md-3">
+            <div class="border rounded p-3">
+              <div class="fw-bold" style="font-size:1.1rem"><%= val || '—' %></div>
+              <div class="small text-muted"><%= label %></div>
+            </div>
+          </div>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attachments -->
+    <div class="card" id="attachments">
+      <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-paperclip me-2"></i>Pièces jointes
+          <% if (attachments.length > 0) { %><span class="badge bg-secondary ms-1"><%= attachments.length %></span><% } %>
+        </span>
+      </div>
+      <div class="card-body">
+
+        <!-- Upload zone -->
+        <form method="POST" action="/employees/<%= employee.id %>/attachments" enctype="multipart/form-data" id="att-form">
+          <div class="att-drop" id="att-drop" onclick="document.getElementById('att-input').click()">
+            <i class="bi bi-cloud-arrow-up" style="font-size:2rem;color:#adb5bd;"></i>
+            <div class="mt-2 text-muted">Glissez des fichiers ici ou <strong>cliquez pour parcourir</strong></div>
+            <div class="small text-muted mt-1">PDF, Word, Excel, Images, Vidéos… · max 100 Mo par fichier</div>
+            <input type="file" id="att-input" name="attachments" multiple style="display:none"
+                   onchange="showSelected(this)">
+          </div>
+          <div id="att-selected" class="mt-2" style="display:none;">
+            <div id="att-selected-list" class="small text-muted mb-2"></div>
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="bi bi-upload me-1"></i> Envoyer les fichiers
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm ms-1" onclick="clearSelected()">Annuler</button>
+          </div>
+        </form>
+
+        <!-- File list -->
+        <% if (attachments.length === 0) { %>
+          <div class="text-center text-muted small mt-3 py-2">Aucune pièce jointe pour l'instant</div>
+        <% } else { %>
+          <div class="mt-3">
+            <% attachments.forEach(att => {
+              const mime = att.mimetype || '';
+              let icon = 'bi-file-earmark text-secondary';
+              if (mime.includes('pdf'))                                          icon = 'bi-file-earmark-pdf text-danger';
+              else if (mime.includes('word') || mime.includes('msword') || mime.includes('officedocument.wordprocessing')) icon = 'bi-file-earmark-word text-primary';
+              else if (mime.includes('excel') || mime.includes('spreadsheet') || mime.includes('csv')) icon = 'bi-file-earmark-excel text-success';
+              else if (mime.includes('powerpoint') || mime.includes('presentation')) icon = 'bi-file-earmark-ppt text-warning';
+              else if (mime.startsWith('image/'))                                icon = 'bi-file-earmark-image text-info';
+              else if (mime.startsWith('video/'))                                icon = 'bi-file-earmark-play text-danger';
+              else if (mime.startsWith('audio/'))                                icon = 'bi-file-earmark-music text-warning';
+              else if (mime.includes('zip') || mime.includes('rar') || mime.includes('7z')) icon = 'bi-file-earmark-zip text-secondary';
+              const kb = att.size < 1024*1024 ? Math.round(att.size/1024) + ' Ko' : (att.size/(1024*1024)).toFixed(1) + ' Mo';
+              const date = new Date(att.created_at).toLocaleDateString('fr-CA');
+            %>
+            <div class="att-item">
+              <i class="bi <%= icon %> att-icon"></i>
+              <div class="att-name" title="<%= att.original_name %>"><%= att.original_name %></div>
+              <div class="att-meta me-2"><%= kb %> · <%= date %></div>
+              <a href="/employees/<%= employee.id %>/attachments/<%= att.id %>/download"
+                 class="btn btn-sm btn-outline-primary" title="Télécharger">
+                <i class="bi bi-download"></i>
+              </a>
+              <form method="POST" action="/employees/<%= employee.id %>/attachments/<%= att.id %>/delete"
+                    style="display:inline;" onsubmit="return confirm('Supprimer « <%= att.original_name %> » ?');">
+                <button type="submit" class="btn btn-sm btn-outline-danger ms-1" title="Supprimer">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Drag-and-drop
+const drop = document.getElementById('att-drop');
+const input = document.getElementById('att-input');
+
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+drop.addEventListener('drop', e => {
+  e.preventDefault();
+  drop.classList.remove('drag-over');
+  const dt = new DataTransfer();
+  [...e.dataTransfer.files].forEach(f => dt.items.add(f));
+  input.files = dt.files;
+  showSelected(input);
+});
+
+function showSelected(inp) {
+  const files = [...inp.files];
+  if (!files.length) return;
+  const list = document.getElementById('att-selected-list');
+  list.innerHTML = files.map(f => `<span class="badge bg-light text-dark border me-1 mb-1"><i class="bi bi-file-earmark me-1"></i>${f.name}</span>`).join('');
+  document.getElementById('att-selected').style.display = 'block';
+}
+
+function clearSelected() {
+  input.value = '';
+  document.getElementById('att-selected').style.display = 'none';
+  document.getElementById('att-selected-list').innerHTML = '';
+}
+</script>
+
+<%- include('../partials/footer') %>

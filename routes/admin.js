@@ -10,8 +10,8 @@ router.use(isAdmin);
 
 // List all users
 router.get('/users', (req, res) => {
-  const sql = 'SELECT id, username, email, full_name, role, created_at FROM users ORDER BY created_at DESC';
-  
+  const sql = 'SELECT id, username, email, full_name, role, department, created_at FROM users ORDER BY created_at DESC';
+
   db.all(sql, [], (err, users) => {
     if (err) {
       console.error(err);
@@ -36,18 +36,19 @@ router.get('/users/new', (req, res) => {
 
 // Create user
 router.post('/users', async (req, res) => {
-  const { username, password, email, full_name, role } = req.body;
+  const { username, password, email, full_name, role, department } = req.body;
 
   if (!username || !password) {
     return res.redirect('/admin/users/new?error=Nom d\'utilisateur et mot de passe requis');
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  
-  const sql = `INSERT INTO users (username, password, email, full_name, role) 
-               VALUES (?, ?, ?, ?, ?)`;
+  const dept = role === 'admin' ? '' : (department || '');
 
-  db.run(sql, [username, hashedPassword, email, full_name, role || 'user'], function(err) {
+  const sql = `INSERT INTO users (username, password, email, full_name, role, department)
+               VALUES (?, ?, ?, ?, ?, ?)`;
+
+  db.run(sql, [username, hashedPassword, email, full_name, role || 'user', dept], function(err) {
     if (err) {
       console.error(err);
       if (err.message.includes('UNIQUE')) {
@@ -61,7 +62,7 @@ router.post('/users', async (req, res) => {
 
 // Edit user form
 router.get('/users/:id/edit', (req, res) => {
-  const sql = 'SELECT id, username, email, full_name, role FROM users WHERE id = ?';
+  const sql = 'SELECT id, username, email, full_name, role, department FROM users WHERE id = ?';
   
   db.get(sql, [req.params.id], (err, editUser) => {
     if (err || !editUser) {
@@ -77,19 +78,20 @@ router.get('/users/:id/edit', (req, res) => {
 
 // Update user
 router.put('/users/:id', async (req, res) => {
-  const { username, password, email, full_name, role } = req.body;
-  
+  const { username, password, email, full_name, role, department } = req.body;
+  const dept = role === 'admin' ? '' : (department || '');
+
   let sql, params;
-  
+
   if (password && password.trim() !== '') {
     const hashedPassword = await bcrypt.hash(password, 10);
-    sql = `UPDATE users SET username = ?, password = ?, email = ?, full_name = ?, role = ?, 
+    sql = `UPDATE users SET username = ?, password = ?, email = ?, full_name = ?, role = ?, department = ?,
            updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-    params = [username, hashedPassword, email, full_name, role, req.params.id];
+    params = [username, hashedPassword, email, full_name, role, dept, req.params.id];
   } else {
-    sql = `UPDATE users SET username = ?, email = ?, full_name = ?, role = ?, 
+    sql = `UPDATE users SET username = ?, email = ?, full_name = ?, role = ?, department = ?,
            updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-    params = [username, email, full_name, role, req.params.id];
+    params = [username, email, full_name, role, dept, req.params.id];
   }
 
   db.run(sql, params, function(err) {

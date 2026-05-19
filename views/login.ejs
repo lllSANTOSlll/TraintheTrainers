@@ -86,6 +86,16 @@
         </div>
       <% } %>
       
+      <% if (ssoEnabled) { %>
+        <a href="/auth/sso" class="btn btn-lg w-100 mb-3 d-flex align-items-center justify-content-center gap-2" style="background:#fff;border:1.5px solid #dee2e6;color:#444;font-weight:600;border-radius:10px;padding:.75rem;">
+          <img src="https://learn.microsoft.com/favicon.ico" style="width:20px;height:20px;" alt="">
+          Se connecter avec Microsoft SSO
+        </a>
+        <div class="d-flex align-items-center mb-3 gap-2">
+          <hr class="flex-grow-1 m-0"><span class="text-muted small">ou</span><hr class="flex-grow-1 m-0">
+        </div>
+      <% } %>
+
       <form method="POST" action="/login">
         <div class="mb-3">
           <label for="username" class="form-label">
@@ -93,24 +103,23 @@
           </label>
           <input type="text" class="form-control form-control-lg" id="username" name="username" required autofocus>
         </div>
-        
+
         <div class="mb-4">
           <label for="password" class="form-label">
             <i class="bi bi-lock"></i> Mot de passe
           </label>
           <input type="password" class="form-control form-control-lg" id="password" name="password" required>
         </div>
-        
+
         <button type="submit" class="btn btn-primary btn-login btn-lg w-100">
           <i class="bi bi-box-arrow-in-right"></i> Se connecter
         </button>
       </form>
-      
+
       <div class="mt-4 text-center">
         <small class="text-muted">
-          <strong>Created by:</strong><br>
-          Admin: HD001@acuitysso.com<br>
-                  </small>
+          <strong>Created by:</strong> HD001@acuitysso.com
+        </small>
       </div>
     </div>
   </div>

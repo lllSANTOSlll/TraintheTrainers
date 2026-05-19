@@ -1,57 +1,54 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { isAuthenticated } = require('../middleware/auth');
+const { isAuthenticated, getDeptFilter } = require('../middleware/auth');
 
 // All routes require authentication
 router.use(isAuthenticated);
 
 // List all trainers
 router.get('/', (req, res) => {
-  const sql = `SELECT * FROM trainers ORDER BY created_at DESC`;
-  
-  db.all(sql, [], (err, trainers) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).send('Erreur serveur');
-    }
-    res.render('trainers/list', { 
-      title: 'Liste des Formateurs',
-      trainers 
-    });
+  const dept = getDeptFilter(req);
+  let sql = 'SELECT * FROM trainers';
+  const params = [];
+  if (dept !== null) { sql += ' WHERE department = ?'; params.push(dept); }
+  sql += ' ORDER BY created_at DESC';
+
+  db.all(sql, params, (err, trainers) => {
+    if (err) { console.error(err); return res.status(500).send('Erreur serveur'); }
+    res.render('trainers/list', { title: 'Liste des Formateurs', trainers });
   });
 });
 
 // New trainer form
 router.get('/new', (req, res) => {
-  res.render('trainers/form', { 
+  res.render('trainers/form', {
     title: 'Nouveau Formateur',
     trainer: null,
-    action: '/trainers'
+    action: '/trainers',
+    userDept: getDeptFilter(req) || ''
   });
 });
 
 // Create trainer
 router.post('/', (req, res) => {
-  const { 
-    nom_prenom, poste_actuel, departement, domaine_expertise, 
-    superviseur, commentaires, statut_validation 
+  const {
+    nom_prenom, poste_actuel, departement, domaine_expertise,
+    superviseur, commentaires, statut_validation
   } = req.body;
+  const dept = getDeptFilter(req) || req.body.department || '';
 
-  const sql = `INSERT INTO trainers 
-    (nom_prenom, poste_actuel, departement, domaine_expertise, superviseur, 
-     commentaires, statut_validation, created_by) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+  const sql = `INSERT INTO trainers
+    (nom_prenom, poste_actuel, departement, domaine_expertise, superviseur,
+     commentaires, statut_validation, created_by, department)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
   db.run(sql, [
-    nom_prenom, poste_actuel, departement, domaine_expertise, 
+    nom_prenom, poste_actuel, departement, domaine_expertise,
     superviseur, commentaires, statut_validation || 'Non validé',
-    req.session.user.id
+    req.session.user.id, dept
   ], function(err) {
-    if (err) {
-      console.error(err);
-      return res.status(500).send('Erreur lors de la création');
-    }
+    if (err) { console.error(err); return res.status(500).send('Erreur lors de la création'); }
     res.redirect('/trainers');
   });
 });
@@ -93,7 +90,8 @@ router.get('/:id/edit', (req, res) => {
     res.render('trainers/form', {
       title: 'Modifier Formateur',
       trainer,
-      action: `/trainers/${trainer.id}?_method=PUT`
+      action: `/trainers/${trainer.id}?_method=PUT`,
+      userDept: getDeptFilter(req) || ''
     });
   });
 });

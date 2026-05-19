@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { isAuthenticated, isAdmin, isSupervisorOrAdmin } = require('../middleware/auth');
+const { isAuthenticated, isAdmin, isSupervisorOrAdmin, getDeptFilter } = require('../middleware/auth');
 const multer = require('multer');
 const mammoth = require('mammoth');
 const path = require('path');
@@ -30,18 +30,18 @@ router.use(isAuthenticated);
 
 // List all templates
 router.get('/', (req, res) => {
-  const sql = `SELECT t.*, 
+  const dept = getDeptFilter(req);
+  let sql = `SELECT t.*,
     (SELECT COUNT(*) FROM checklist_template_items WHERE template_id = t.id) as item_count
-    FROM checklist_templates t
-    ORDER BY t.created_at DESC`;
-  
-  db.all(sql, [], (err, templates) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).send('Erreur serveur');
-    }
-    res.render('checklists/list', { 
-      title: 'Modèles de Checklist', 
+    FROM checklist_templates t`;
+  const params = [];
+  if (dept !== null) { sql += ' WHERE t.department = ?'; params.push(dept); }
+  sql += ' ORDER BY t.created_at DESC';
+
+  db.all(sql, params, (err, templates) => {
+    if (err) { console.error(err); return res.status(500).send('Erreur serveur'); }
+    res.render('checklists/list', {
+      title: 'Modèles de Checklist',
       templates: templates || [],
       message: req.query.message
     });
@@ -60,14 +60,12 @@ router.get('/new', isSupervisorOrAdmin, (req, res) => {
 // Create template
 router.post('/', isSupervisorOrAdmin, (req, res) => {
   const { title, description } = req.body;
-  
-  db.run('INSERT INTO checklist_templates (title, description, created_by) VALUES (?, ?, ?)',
-    [title, description, req.session.user.id],
+  const dept = getDeptFilter(req) || '';
+
+  db.run('INSERT INTO checklist_templates (title, description, created_by, department) VALUES (?, ?, ?, ?)',
+    [title, description, req.session.user.id, dept],
     function(err) {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Erreur');
-      }
+      if (err) { console.error(err); return res.status(500).send('Erreur'); }
       res.redirect('/checklists/' + this.lastID + '/items?message=Modele cree');
     }
   );
@@ -87,9 +85,12 @@ router.get('/:id/edit', isSupervisorOrAdmin, (req, res) => {
 
 // Update template
 router.put('/:id', isSupervisorOrAdmin, (req, res) => {
-  const { title, description } = req.body;
-  db.run('UPDATE checklist_templates SET title=?, description=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
-    [title, description, req.params.id],
+  const { title, description, department } = req.body;
+  const dept = req.session.user.role === 'admin'
+    ? (department || '')
+    : (getDeptFilter(req) || '');
+  db.run('UPDATE checklist_templates SET title=?, description=?, department=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
+    [title, description, dept, req.params.id],
     () => res.redirect('/checklists/' + req.params.id + '/items?message=Mis a jour')
   );
 });
@@ -264,8 +265,9 @@ router.post('/import', isSupervisorOrAdmin, upload.single('docfile'), async (req
     }
 
     // Create the template
-    db.run('INSERT INTO checklist_templates (title, description, created_by) VALUES (?, ?, ?)',
-      [template_title, template_description || '', req.session.user.id],
+    const dept = getDeptFilter(req) || '';
+    db.run('INSERT INTO checklist_templates (title, description, created_by, department) VALUES (?, ?, ?, ?)',
+      [template_title, template_description || '', req.session.user.id, dept],
       function(err) {
         if (err) {
           console.error(err);

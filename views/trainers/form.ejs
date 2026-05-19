@@ -32,9 +32,25 @@
         <div class="row">
           <div class="col-md-6">
             <div class="mb-3">
-              <label for="departement" class="form-label">Département</label>
-              <input type="text" class="form-control" id="departement" name="departement" 
+              <label for="departement" class="form-label">Département (organisationnel)</label>
+              <input type="text" class="form-control" id="departement" name="departement"
                      value="<%= trainer ? trainer.departement || '' : '' %>">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label class="form-label">Section de l'app <span class="text-danger">*</span></label>
+              <% if (userDept && userDept !== '__no_dept__') { %>
+                <input type="hidden" name="department" value="<%= userDept %>">
+                <input type="text" class="form-control" value="<%= userDept %>" disabled>
+              <% } else { %>
+                <select class="form-select" name="department">
+                  <option value="">—</option>
+                  <option value="Operations"  <%= trainer && trainer.department === 'Operations'  ? 'selected' : '' %>>Opérations</option>
+                  <option value="Technicians" <%= trainer && trainer.department === 'Technicians' ? 'selected' : '' %>>Techniciens</option>
+                  <option value="Logistics"   <%= trainer && trainer.department === 'Logistics'   ? 'selected' : '' %>>Logistique</option>
+                </select>
+              <% } %>
             </div>
           </div>
 

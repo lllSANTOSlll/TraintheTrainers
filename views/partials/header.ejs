@@ -3,59 +3,349 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %> - Former les Formateurs</title>
+  <title><%= title %> - Train the Trainers</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary-color: <%= settings.theme_primary_color || '#0066cc' %>;
-      --sidebar-bg: <%= settings.theme_sidebar_bg || '#2c3e50' %>;
-      --sidebar-hover: <%= settings.theme_sidebar_hover || '#34495e' %>;
-      --success-color: <%= settings.theme_success_color || '#28a745' %>;
-      --danger-color: <%= settings.theme_danger_color || '#dc3545' %>;
-      --warning-color: <%= settings.theme_warning_color || '#ffc107' %>;
-      --info-color: <%= settings.theme_info_color || '#17a2b8' %>;
+      /* Dynamic UI colors (from DB settings) */
+      --dc-navy:       <%= settings.ui_sidebar_bg    || '#001743' %>;
+      --dc-navy-deep:  <%= settings.ui_sidebar_deep  || '#001030' %>;
+      --dc-navy-mid:   <%= settings.ui_sidebar_hover || '#002570' %>;
+      --dc-blue:       <%= typeof accentColor !== 'undefined' ? accentColor : '#009ADA' %>;
+      --dc-green:      #62BB46;
+      --dc-gray:       #474C55;
+      --dc-gray-light: <%= settings.ui_page_bg       || '#f4f6f8' %>;
+      --dc-border:     #e2e6ea;
+      --dc-navbar-bg:        <%= settings.ui_navbar_bg      || '#ffffff' %>;
+      --dc-navbar-border:    <%= settings.ui_navbar_border  || '#001743' %>;
+      --dc-navbar-text:      <%= settings.ui_navbar_text    || '#001743' %>;
+      --dc-card-header:      <%= settings.ui_card_header_bg || '#001743' %>;
+
+      /* Theme variables */
+      --primary-color:  var(--dc-blue);
+      --sidebar-bg:     var(--dc-navy);
+      --sidebar-hover:  var(--dc-navy-mid);
+      --success-color:  var(--dc-green);
+      --danger-color:   #dc3545;
+      --warning-color:  #ffc107;
+      --info-color:     var(--dc-blue);
     }
-    body {font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;}
-    .sidebar {position: fixed; top: 0; bottom: 0; left: 0; z-index: 100; padding: 48px 0 0; background-color: var(--sidebar-bg); width: 250px;}
-    .sidebar .nav-link {font-weight: 500; color: #ffffff; padding: 0.75rem 1rem; border-left: 3px solid transparent;}
-    .sidebar .nav-link:hover {background-color: var(--sidebar-hover); border-left-color: var(--primary-color);}
-    .sidebar .nav-link.active {background-color: var(--sidebar-hover); border-left-color: var(--primary-color);}
-    .sidebar .nav-link i {margin-right: 10px;}
-    main {margin-left: 250px; padding: 70px 20px 20px 20px;}
-    .navbar {position: fixed; top: 0; right: 0; left: 250px; z-index: 99; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
-    .card {border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;}
-    .logo-section {padding: 1rem; background-color: #1a252f; color: white; text-align: center; margin-bottom: 1rem;}
-    .logo-section h5 {margin: 0; font-size: 1.1rem; font-weight: 600;}
-    .btn-primary {background-color: var(--primary-color); border-color: var(--primary-color);}
-    .btn-primary:hover {opacity: 0.9;}
-    .bg-primary {background-color: var(--primary-color) !important;}
-    .bg-success {background-color: var(--success-color) !important;}
-    .bg-danger {background-color: var(--danger-color) !important;}
-    .bg-warning {background-color: var(--warning-color) !important;}
-    .bg-info {background-color: var(--info-color) !important;}
-    .badge.bg-primary {background-color: var(--primary-color) !important;}
-    .badge.bg-success {background-color: var(--success-color) !important;}
-    .badge.bg-danger {background-color: var(--danger-color) !important;}
-    .badge.bg-warning {background-color: var(--warning-color) !important;}
-    .badge.bg-info {background-color: var(--info-color) !important;}
+
+    /* ── Base ─────────────────────────────────────────────── */
+    body {
+      font-family: 'Figtree', 'Roboto', 'Segoe UI', sans-serif;
+      background-color: var(--dc-gray-light);
+      color: #1a1a2e;
+    }
+    /* ensure navbar & card header pick up dynamic vars */
+
+    /* ── Sidebar ─────────────────────────────────────────── */
+    .sidebar {
+      position: fixed;
+      top: 0; bottom: 0; left: 0;
+      z-index: 100;
+      width: 250px;
+      background-color: var(--dc-navy);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Logo area */
+    .logo-section {
+      padding: 0;
+      background-color: var(--dc-navy-deep);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+    .logo-inner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 18px;
+      text-decoration: none;
+    }
+    .logo-mark {
+      width: 44px;
+      height: 44px;
+      background: #ffffff;
+      border-radius: 6px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+    }
+    .logo-mark img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+    .logo-text .brand-name {
+      font-family: 'Figtree', sans-serif;
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .logo-text .brand-sub {
+      font-family: 'Figtree', sans-serif;
+      font-weight: 400;
+      font-size: 0.70rem;
+      color: rgba(255,255,255,0.55);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* Nav links */
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 0 16px;
+    }
+    .sidebar-nav::-webkit-scrollbar { width: 4px; }
+    .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+
+    .nav-section-label {
+      padding: 16px 18px 4px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+    }
+
+    .sidebar .nav-link {
+      font-family: 'Figtree', sans-serif;
+      font-weight: 500;
+      font-size: 0.875rem;
+      color: rgba(255,255,255,0.75);
+      padding: 9px 18px;
+      border-left: 3px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      border-radius: 0;
+    }
+    .sidebar .nav-link i {
+      font-size: 1rem;
+      width: 18px;
+      text-align: center;
+      flex-shrink: 0;
+      opacity: 0.8;
+    }
+    .sidebar .nav-link:hover {
+      background-color: rgba(255,255,255,0.07);
+      color: #ffffff;
+      border-left-color: var(--dc-blue);
+    }
+    .sidebar .nav-link:hover i { opacity: 1; }
+    .sidebar .nav-link.active {
+      background-color: rgba(0,154,218,0.15);
+      color: #ffffff;
+      border-left-color: var(--dc-blue);
+      font-weight: 600;
+    }
+    .sidebar .nav-link.active i { opacity: 1; }
+
+    /* ── Top Navbar ──────────────────────────────────────── */
+    main { margin-left: 250px; padding: 70px 24px 24px; }
+
+    .navbar {
+      position: fixed;
+      top: 0; right: 0; left: 250px;
+      z-index: 99;
+      background-color: var(--dc-navbar-bg);
+      border-bottom: 2px solid var(--dc-navbar-border);
+      box-shadow: 0 1px 6px rgba(0,23,67,0.08);
+      padding: 0 20px;
+      height: 56px;
+    }
+    .navbar-brand {
+      font-family: 'Figtree', sans-serif;
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: var(--dc-navbar-text) !important;
+    }
+
+    /* ── Cards ───────────────────────────────────────────── */
+    .card {
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,23,67,0.08);
+      margin-bottom: 20px;
+    }
+    .card-header {
+      background-color: var(--dc-card-header);
+      color: #fff;
+      font-family: 'Figtree', sans-serif;
+      font-weight: 600;
+      border-radius: 8px 8px 0 0 !important;
+      padding: 12px 18px;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn-primary {
+      background-color: var(--dc-navy);
+      border-color: var(--dc-navy);
+      font-family: 'Figtree', sans-serif;
+      font-weight: 500;
+    }
+    .btn-primary:hover, .btn-primary:focus {
+      background-color: var(--dc-navy-mid);
+      border-color: var(--dc-navy-mid);
+    }
+    .btn-outline-primary {
+      color: var(--dc-navy);
+      border-color: var(--dc-navy);
+    }
+    .btn-outline-primary:hover {
+      background-color: var(--dc-navy);
+      border-color: var(--dc-navy);
+      color: #fff;
+    }
+    .btn-success {
+      background-color: var(--dc-green);
+      border-color: var(--dc-green);
+    }
+    .btn-success:hover { filter: brightness(0.92); }
+    .btn-info {
+      background-color: var(--dc-blue);
+      border-color: var(--dc-blue);
+      color: #fff;
+    }
+    .btn-info:hover { filter: brightness(0.92); color: #fff; }
+
+    /* ── Badges & bg overrides ──────────────────────────── */
+    .bg-primary  { background-color: var(--dc-navy)  !important; }
+    .bg-success  { background-color: var(--dc-green) !important; }
+    .bg-info     { background-color: var(--dc-blue)  !important; }
+    .bg-secondary{ background-color: var(--dc-gray)  !important; }
+    .badge.bg-primary  { background-color: var(--dc-navy)  !important; }
+    .badge.bg-success  { background-color: var(--dc-green) !important; }
+    .badge.bg-info     { background-color: var(--dc-blue)  !important; }
+    .badge.bg-danger   { background-color: var(--danger-color) !important; }
+    .badge.bg-warning  { background-color: var(--warning-color) !important; }
+
+    /* ── Table headers ──────────────────────────────────── */
+    .table thead th {
+      background-color: var(--dc-navy);
+      color: #ffffff;
+      font-family: 'Figtree', sans-serif;
+      font-weight: 600;
+      font-size: 0.82rem;
+      letter-spacing: 0.03em;
+      border-color: var(--dc-navy-mid);
+    }
+    .table-hover tbody tr:hover { background-color: rgba(0,154,218,0.05); }
+
+    /* ── Links ───────────────────────────────────────────── */
+    a { color: var(--dc-navy); }
+    a:hover { color: var(--dc-blue); }
+
+    /* ── Form controls focus ─────────────────────────────── */
+    .form-control:focus, .form-select:focus {
+      border-color: var(--dc-blue);
+      box-shadow: 0 0 0 0.2rem rgba(0,154,218,0.2);
+    }
+
+    /* ── Page title ──────────────────────────────────────── */
+    h2, h3, h4 {
+      font-family: 'Figtree', sans-serif;
+      font-weight: 700;
+      color: var(--dc-navy);
+    }
+
+    /* ── Dept badge in navbar ─────────────────────────────── */
+    .dept-badge {
+      font-size: 0.75rem;
+      background: var(--dc-blue);
+      color: #fff;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    /* ── User info in navbar ─────────────────────────────── */
+    .user-info {
+      font-size: 0.85rem;
+      color: var(--dc-gray);
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────── -->
   <nav class="sidebar">
+
+    <!-- Logo -->
     <div class="logo-section">
-      <h5><i class="bi bi-mortarboard-fill"></i> Former les Formateurs</h5>
+      <a class="logo-inner" href="/dashboard">
+        <div class="logo-mark">
+          <img src="/images/logo.png" alt="Distech Controls">
+        </div>
+        <div class="logo-text">
+          <span class="brand-name">Distech Controls</span>
+          <span class="brand-sub">Train the Trainers</span>
+        </div>
+      </a>
     </div>
-    <div class="sidebar-sticky pt-3">
+
+    <!-- Nav -->
+    <div class="sidebar-nav">
       <ul class="nav flex-column">
+
         <li class="nav-item">
           <a class="nav-link <%= currentPath === '/dashboard' ? 'active' : '' %>" href="/dashboard">
             <i class="bi bi-speedometer2"></i> Tableau de bord
           </a>
         </li>
+
+        <% if (user.role === 'admin' || user.role === 'supervisor') { %>
+        <div class="nav-section-label">Opérations</div>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/employees') ? 'active' : '' %>" href="/employees">
+            <i class="bi bi-people-fill"></i> Employés
+          </a>
+        </li>
+
+        <% const showMatrix = (user.role === 'admin' && (adminDept === '' || adminDept === 'Operations' || adminDept === 'Technicians')) || ['Operations','Technicians'].includes(user.department); %>
+        <% const showSchedule = (user.role === 'admin' && (adminDept === '' || adminDept === 'Operations')) || user.department === 'Operations'; %>
+
+        <% if (showMatrix) { %>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/matrix') ? 'active' : '' %>" href="/matrix">
+            <i class="bi bi-grid-3x3"></i> Matrice de formation
+          </a>
+        </li>
+        <% } %>
+        <% if (showSchedule) { %>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/schedule') ? 'active' : '' %>" href="/schedule">
+            <i class="bi bi-calendar-week"></i> Planification
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/display') ? 'active' : '' %>" href="/display">
+            <i class="bi bi-display"></i> Stations Display
+          </a>
+        </li>
+        <% } %>
+        <% } %>
+
+        <div class="nav-section-label">Formation</div>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/trainers') ? 'active' : '' %>" href="/trainers">
-            <i class="bi bi-people-fill"></i> Formateurs
+            <i class="bi bi-mortarboard"></i> Formateurs
           </a>
         </li>
         <li class="nav-item">
@@ -68,10 +358,9 @@
             <i class="bi bi-list-check"></i> Checklists
           </a>
         </li>
+
         <% if (user.role === 'admin') { %>
-        <li class="nav-item mt-3">
-          <h6 class="px-3 mt-4 mb-1" style="color: #95a5a6; font-size: 0.75rem; text-transform: uppercase;">Administration</h6>
-        </li>
+        <div class="nav-section-label">Administration</div>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/admin/users') ? 'active' : '' %>" href="/admin/users">
             <i class="bi bi-person-gear"></i> Utilisateurs
@@ -84,34 +373,289 @@
         </li>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/sharepoint') ? 'active' : '' %>" href="/sharepoint/sync">
-            <i class="bi bi-cloud-arrow-up"></i> SharePoint
+            <i class="bi bi-cloud-arrow-up"></i> SharePoint / Export
           </a>
         </li>
         <% } %>
+
       </ul>
     </div>
   </nav>
 
-  <nav class="navbar navbar-light">
-    <div class="container-fluid">
-      <span class="navbar-brand mb-0 h1"><%= title %></span>
-      <div class="d-flex align-items-center">
-        <span class="me-3">
-          <i class="bi bi-person-circle"></i> <%= user.full_name || user.username %>
-          <% if (user.role === 'admin') { %>
-            <span class="badge bg-danger ms-2">⭐ Admin</span>
-          <% } else if (user.role === 'supervisor') { %>
-            <span class="badge bg-primary ms-2">👔 Superviseur</span>
-          <% } else if (user.role === 'trainer') { %>
-            <span class="badge bg-warning text-dark ms-2">🎓 Formateur</span>
-          <% } else { %>
-            <span class="badge bg-secondary ms-2">👤 User</span>
-          <% } %>
-        </span>
-        <a href="/logout" class="btn btn-outline-danger btn-sm">
-          <i class="bi bi-box-arrow-right"></i> Déconnexion
-        </a>
+  <!-- ── TOP NAVBAR ─────────────────────────────────────── -->
+  <nav class="navbar d-flex align-items-center">
+    <span class="navbar-brand mb-0"><%= title %></span>
+    <div class="d-flex align-items-center gap-2 ms-auto">
+
+      <% if (user.role === 'admin') { %>
+        <form method="POST" action="/set-dept" class="d-flex align-items-center gap-1">
+          <input type="hidden" name="returnTo" value="<%= currentPath %>">
+          <i class="bi bi-building small" style="color:var(--dc-gray)"></i>
+          <select name="dept" onchange="this.form.submit()"
+                  class="form-select form-select-sm"
+                  style="max-width:165px; font-size:0.82rem; border-color:#ced4da;">
+            <option value="" <%= adminDept === '' ? 'selected' : '' %>>Tous les départements</option>
+            <option value="Operations"  <%= adminDept === 'Operations'  ? 'selected' : '' %>>Opérations</option>
+            <option value="Technicians" <%= adminDept === 'Technicians' ? 'selected' : '' %>>Techniciens</option>
+            <option value="Logistics"   <%= adminDept === 'Logistics'   ? 'selected' : '' %>>Logistique</option>
+          </select>
+        </form>
+      <% } else if (user.department) { %>
+        <span class="dept-badge"><i class="bi bi-building me-1"></i><%= user.department %></span>
+      <% } %>
+
+      <span class="user-info">
+        <i class="bi bi-person-circle me-1"></i><%= user.full_name || user.username %>
+        <% if (user.role === 'admin') { %>
+          <span class="badge ms-1" style="background:var(--dc-navy);font-size:0.7rem;">Admin</span>
+        <% } else if (user.role === 'supervisor') { %>
+          <span class="badge ms-1" style="background:var(--dc-blue);font-size:0.7rem;">Superviseur</span>
+        <% } else if (user.role === 'trainer') { %>
+          <span class="badge ms-1" style="background:var(--dc-green);font-size:0.7rem;">Formateur</span>
+        <% } %>
+      </span>
+
+      <% if (false) { %>
+      <div class="dropdown" style="display:none!important">
+        <div class="dropdown-menu dropdown-menu-end p-0" style="min-width:320px;max-height:85vh;overflow-y:auto;">
+          <%
+            const qPalette = [
+              { name: 'DC Blue',     hex: '#009ADA' },
+              { name: 'DC Green',    hex: '#62BB46' },
+              { name: 'DC Navy',     hex: '#001743' },
+              { name: 'Resense',     hex: '#71d8a6' },
+              { name: 'KE2 Therm',  hex: '#74b4d6' },
+              { name: 'Eclypse',    hex: '#f47937' },
+              { name: 'Facilities', hex: '#a8aaad' },
+              { name: 'White',      hex: '#ffffff' },
+              { name: 'Light Gray', hex: '#f4f6f8' },
+              { name: 'Dark',       hex: '#1a1a2e'  },
+            ];
+            const cur = {
+              accent:       typeof accentColor !== 'undefined' ? accentColor : '#009ADA',
+              sidebar_bg:   settings.ui_sidebar_bg    || '#001743',
+              sidebar_deep: settings.ui_sidebar_deep  || '#001030',
+              sidebar_hover:settings.ui_sidebar_hover || '#002570',
+              navbar_bg:    settings.ui_navbar_bg     || '#ffffff',
+              navbar_border:settings.ui_navbar_border || '#001743',
+              navbar_text:  settings.ui_navbar_text   || '#001743',
+              page_bg:      settings.ui_page_bg       || '#f4f6f8',
+              card_header:  settings.ui_card_header_bg|| '#001743',
+            };
+          %>
+
+          <!-- Tabs -->
+          <div class="d-flex border-bottom" style="background:#f8f9fa;">
+            <button class="flex-fill btn btn-sm rounded-0 py-2 active" id="tab-accent" onclick="switchTab('accent')"
+                    style="font-size:0.75rem;font-weight:600;border:none;border-bottom:2px solid var(--dc-blue);">Accent</button>
+            <button class="flex-fill btn btn-sm rounded-0 py-2" id="tab-sidebar" onclick="switchTab('sidebar')"
+                    style="font-size:0.75rem;font-weight:600;border:none;border-bottom:2px solid transparent;">Sidebar</button>
+            <button class="flex-fill btn btn-sm rounded-0 py-2" id="tab-navbar" onclick="switchTab('navbar')"
+                    style="font-size:0.75rem;font-weight:600;border:none;border-bottom:2px solid transparent;">Navbar</button>
+            <button class="flex-fill btn btn-sm rounded-0 py-2" id="tab-page" onclick="switchTab('page')"
+                    style="font-size:0.75rem;font-weight:600;border:none;border-bottom:2px solid transparent;">Page</button>
+          </div>
+
+          <div class="p-3">
+            <!-- Palette (shared) -->
+            <div class="d-flex flex-wrap gap-1 mb-3" id="palette-row">
+              <% qPalette.forEach(c => { %>
+                <div title="<%= c.name %>"
+                     onclick="paletteClick('<%= c.hex %>')"
+                     style="width:26px;height:26px;background:<%= c.hex %>;border-radius:5px;cursor:pointer;border:1px solid rgba(0,0,0,0.1);transition:transform .1s;box-shadow:0 1px 2px rgba(0,0,0,0.1);"
+                     onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+                </div>
+              <% }); %>
+            </div>
+
+            <!-- TAB: Accent -->
+            <div id="panel-accent">
+              <div class="small fw-semibold mb-2" style="color:#474C55;">Couleur d'accent — boutons, liens actifs</div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <input type="color" id="qc_accent" value="<%= cur.accent %>"
+                       style="width:38px;height:30px;padding:2px;border-radius:5px;border:1px solid #dee2e6;cursor:pointer;"
+                       oninput="livePreview('accent', this.value)">
+                <span id="hex_accent" class="small" style="font-family:monospace;color:#666;"><%= cur.accent %></span>
+              </div>
+              <div class="small text-muted mt-1">S'applique au département: <strong><%= adminDept || 'Tous' %></strong></div>
+            </div>
+
+            <!-- TAB: Sidebar -->
+            <div id="panel-sidebar" style="display:none;">
+              <% [
+                ['sidebar_bg',    'ui_sidebar_bg',    'Fond sidebar',        cur.sidebar_bg],
+                ['sidebar_deep',  'ui_sidebar_deep',  'Logo area (fond)',     cur.sidebar_deep],
+                ['sidebar_hover', 'ui_sidebar_hover', 'Survol / actif',       cur.sidebar_hover],
+              ].forEach(([id, key, label, val]) => { %>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <input type="color" id="qc_<%= id %>" value="<%= val %>"
+                       style="width:32px;height:26px;padding:2px;border-radius:4px;border:1px solid #dee2e6;cursor:pointer;"
+                       oninput="livePreview('<%= id %>', this.value)">
+                <span class="small text-muted flex-fill"><%= label %></span>
+                <span id="hex_<%= id %>" class="small" style="font-family:monospace;color:#888;font-size:0.7rem;"><%= val %></span>
+              </div>
+              <% }); %>
+            </div>
+
+            <!-- TAB: Navbar -->
+            <div id="panel-navbar" style="display:none;">
+              <% [
+                ['navbar_bg',     'ui_navbar_bg',     'Fond navbar',          cur.navbar_bg],
+                ['navbar_border', 'ui_navbar_border', 'Bordure bas',          cur.navbar_border],
+                ['navbar_text',   'ui_navbar_text',   'Texte / titre',        cur.navbar_text],
+              ].forEach(([id, key, label, val]) => { %>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <input type="color" id="qc_<%= id %>" value="<%= val %>"
+                       style="width:32px;height:26px;padding:2px;border-radius:4px;border:1px solid #dee2e6;cursor:pointer;"
+                       oninput="livePreview('<%= id %>', this.value)">
+                <span class="small text-muted flex-fill"><%= label %></span>
+                <span id="hex_<%= id %>" class="small" style="font-family:monospace;color:#888;font-size:0.7rem;"><%= val %></span>
+              </div>
+              <% }); %>
+            </div>
+
+            <!-- TAB: Page -->
+            <div id="panel-page" style="display:none;">
+              <% [
+                ['page_bg',      'ui_page_bg',        'Fond de page',        cur.page_bg],
+                ['card_header',  'ui_card_header_bg', 'En-tête des cartes',  cur.card_header],
+              ].forEach(([id, key, label, val]) => { %>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <input type="color" id="qc_<%= id %>" value="<%= val %>"
+                       style="width:32px;height:26px;padding:2px;border-radius:4px;border:1px solid #dee2e6;cursor:pointer;"
+                       oninput="livePreview('<%= id %>', this.value)">
+                <span class="small text-muted flex-fill"><%= label %></span>
+                <span id="hex_<%= id %>" class="small" style="font-family:monospace;color:#888;font-size:0.7rem;"><%= val %></span>
+              </div>
+              <% }); %>
+            </div>
+
+            <hr class="my-2">
+
+            <!-- Save forms -->
+            <form method="POST" action="/admin/settings/ui-colors" id="formUI">
+              <input type="hidden" name="ui_sidebar_bg"     id="save_sidebar_bg"    value="<%= cur.sidebar_bg %>">
+              <input type="hidden" name="ui_sidebar_deep"   id="save_sidebar_deep"  value="<%= cur.sidebar_deep %>">
+              <input type="hidden" name="ui_sidebar_hover"  id="save_sidebar_hover" value="<%= cur.sidebar_hover %>">
+              <input type="hidden" name="ui_navbar_bg"      id="save_navbar_bg"     value="<%= cur.navbar_bg %>">
+              <input type="hidden" name="ui_navbar_border"  id="save_navbar_border" value="<%= cur.navbar_border %>">
+              <input type="hidden" name="ui_navbar_text"    id="save_navbar_text"   value="<%= cur.navbar_text %>">
+              <input type="hidden" name="ui_page_bg"        id="save_page_bg"       value="<%= cur.page_bg %>">
+              <input type="hidden" name="ui_card_header_bg" id="save_card_header"   value="<%= cur.card_header %>">
+            </form>
+            <form method="POST" action="/admin/settings/dept-colors" id="formAccent">
+              <input type="hidden" name="dept_color_Operations"  id="save_Operations"  value="<%= settings.dept_color_Operations  || '#009ADA' %>">
+              <input type="hidden" name="dept_color_Technicians" id="save_Technicians" value="<%= settings.dept_color_Technicians || '#009ADA' %>">
+              <input type="hidden" name="dept_color_Logistics"   id="save_Logistics"   value="<%= settings.dept_color_Logistics   || '#009ADA' %>">
+            </form>
+
+            <div class="d-flex gap-2">
+              <button type="button" onclick="saveAll()" class="btn btn-sm btn-primary flex-fill" style="font-size:0.8rem;">
+                <i class="bi bi-check2-circle"></i> Appliquer & Sauvegarder
+              </button>
+              <button type="button" onclick="resetDefaults()" class="btn btn-sm btn-outline-secondary" style="font-size:0.8rem;" title="Réinitialiser">
+                <i class="bi bi-arrow-counterclockwise"></i>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
+      <% } %>
+
+      <a href="/logout" class="btn btn-sm" style="border:1px solid var(--dc-navy);color:var(--dc-navy);font-size:0.82rem;">
+        <i class="bi bi-box-arrow-right"></i> Déconnexion
+      </a>
+
+      <script>
+      const _activeDept = '<%= adminDept || "" %>';
+      const _allDepts   = ['Operations','Technicians','Logistics'];
+      let _activeTab = 'accent';
+
+      // CSS var map: local id → CSS variable
+      const _cssMap = {
+        accent:        '--dc-blue',
+        sidebar_bg:    '--dc-navy',
+        sidebar_deep:  '--dc-navy-deep',
+        sidebar_hover: '--dc-navy-mid',
+        navbar_bg:     '--dc-navbar-bg',
+        navbar_border: '--dc-navbar-border',
+        navbar_text:   '--dc-navbar-text',
+        page_bg:       '--dc-gray-light',
+        card_header:   '--dc-card-header',
+      };
+      // save input map
+      const _saveMap = {
+        sidebar_bg:    'save_sidebar_bg',
+        sidebar_deep:  'save_sidebar_deep',
+        sidebar_hover: 'save_sidebar_hover',
+        navbar_bg:     'save_navbar_bg',
+        navbar_border: 'save_navbar_border',
+        navbar_text:   'save_navbar_text',
+        page_bg:       'save_page_bg',
+        card_header:   'save_card_header',
+      };
+
+      function switchTab(tab) {
+        ['accent','sidebar','navbar','page'].forEach(t => {
+          document.getElementById('panel-' + t).style.display = t === tab ? '' : 'none';
+          const btn = document.getElementById('tab-' + t);
+          btn.style.borderBottom = t === tab ? '2px solid var(--dc-blue)' : '2px solid transparent';
+          btn.style.fontWeight   = t === tab ? '700' : '600';
+        });
+        _activeTab = tab;
+      }
+
+      function paletteClick(hex) {
+        // Apply to the current active tab's first picker
+        const panelId = 'panel-' + _activeTab;
+        const firstPicker = document.querySelector('#' + panelId + ' input[type="color"]');
+        if (firstPicker) {
+          firstPicker.value = hex;
+          const id = firstPicker.id.replace('qc_', '');
+          livePreview(id, hex);
+        }
+      }
+
+      function livePreview(id, hex) {
+        document.getElementById('hex_' + id) && (document.getElementById('hex_' + id).textContent = hex);
+        // Apply CSS var
+        if (_cssMap[id]) document.documentElement.style.setProperty(_cssMap[id], hex);
+        // Update save hidden input
+        if (_saveMap[id]) {
+          const el = document.getElementById(_saveMap[id]);
+          if (el) el.value = hex;
+        }
+        // For accent, also update dept inputs + dot
+        if (id === 'accent') {
+          const dot = document.querySelector('.dropdown-toggle [style*="border-radius:50%"]');
+          if (dot) dot.style.background = hex;
+          if (_activeDept && _allDepts.includes(_activeDept)) {
+            document.getElementById('save_' + _activeDept).value = hex;
+          } else {
+            _allDepts.forEach(d => { document.getElementById('save_' + d).value = hex; });
+          }
+        }
+      }
+
+      function saveAll() {
+        document.getElementById('formUI').submit();
+        // accent form submit after short delay to avoid double navigation
+        setTimeout(() => document.getElementById('formAccent').submit(), 300);
+      }
+
+      function resetDefaults() {
+        if (!confirm('Réinitialiser les couleurs Distech Controls par défaut?')) return;
+        const defaults = {
+          sidebar_bg:'#001743', sidebar_deep:'#001030', sidebar_hover:'#002570',
+          navbar_bg:'#ffffff', navbar_border:'#001743', navbar_text:'#001743',
+          page_bg:'#f4f6f8', card_header:'#001743', accent:'#009ADA'
+        };
+        Object.entries(defaults).forEach(([id, hex]) => {
+          const el = document.getElementById('qc_' + id);
+          if (el) { el.value = hex; livePreview(id, hex); }
+        });
+      }
+      </script>
     </div>
   </nav>
 

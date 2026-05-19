@@ -1,0 +1,69 @@
+<%- include('../partials/header') %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0"><i class="bi bi-upc-scan me-2"></i>Stations Display</h2>
+  <div class="d-flex gap-2">
+    <a href="/display/scan" class="btn btn-outline-info btn-sm" target="_blank">
+      <i class="bi bi-fullscreen me-1"></i>Ouvrir le scanner
+    </a>
+    <a href="/display/new" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-circle me-1"></i>Nouvelle station
+    </a>
+  </div>
+</div>
+
+<% if (stations.length === 0) { %>
+  <div class="card">
+    <div class="card-body text-center py-5 text-muted">
+      <i class="bi bi-upc-scan" style="font-size:3rem;"></i>
+      <p class="mt-3 mb-3">Aucune station configurée</p>
+      <a href="/display/new" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>Créer la première station
+      </a>
+    </div>
+  </div>
+<% } else { %>
+  <div class="row g-3">
+    <% stations.forEach(s => { %>
+      <div class="col-md-6 col-xl-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <span class="badge bg-primary fs-6 me-2" style="letter-spacing:1px;"><%= s.station_code %></span>
+                <% if (s.label) { %><span class="text-muted small"><%= s.label %></span><% } %>
+              </div>
+              <span class="badge bg-secondary"><i class="bi bi-image me-1"></i><%= s.img_count %></span>
+            </div>
+            <% if (s.url) { %>
+              <div class="text-muted small text-truncate mb-2" title="<%= s.url %>">
+                <i class="bi bi-link-45deg me-1"></i><%= s.url %>
+              </div>
+            <% } else { %>
+              <div class="text-muted small mb-2"><i class="bi bi-exclamation-circle me-1 text-warning"></i>Aucune URL</div>
+            <% } %>
+            <div class="text-muted small mb-3">
+              <i class="bi bi-clock me-1"></i>Défilement : <%= s.carousel_interval %>s
+            </div>
+          </div>
+          <div class="card-footer d-flex gap-2 bg-transparent">
+            <a href="/display/show/<%= s.station_code %>" class="btn btn-sm btn-info" target="_blank" title="Afficher">
+              <i class="bi bi-fullscreen"></i>
+            </a>
+            <a href="/display/<%= s.id %>/edit" class="btn btn-sm btn-warning" title="Modifier">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form method="POST" action="/display/<%= s.id %>/delete" class="ms-auto"
+                  onsubmit="return confirm('Supprimer la station <%= s.station_code %> et toutes ses images ?')">
+              <button type="submit" class="btn btn-sm btn-danger" title="Supprimer">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

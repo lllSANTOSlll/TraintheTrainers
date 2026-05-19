@@ -20,6 +20,101 @@
     </div>
   <% } %>
 
+  <!-- Department Accent Colors -->
+  <div class="row mb-2">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-palette2"></i> Couleurs par Département</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">
+            Chaque département peut avoir sa propre couleur d'accent, choisie parmi la palette officielle Distech Controls.
+          </p>
+
+          <%
+            const brandPalette = [
+              { name: 'DC Blue',        hex: '#009ADA', label: 'Pantone 2925' },
+              { name: 'DC Green',       hex: '#62BB46', label: 'Pantone 368'  },
+              { name: 'Resense',        hex: '#71d8a6', label: 'Pantone 3385' },
+              { name: 'KE2 Therm',     hex: '#74b4d6', label: 'Pantone 298'  },
+              { name: 'Eclypse',       hex: '#f47937', label: 'Pantone 1655' },
+              { name: 'Facilities',    hex: '#a8aaad', label: 'Pantone 429'  },
+            ];
+            const deptColors = {
+              Operations:  settings.dept_color_Operations  || '#009ADA',
+              Technicians: settings.dept_color_Technicians || '#009ADA',
+              Logistics:   settings.dept_color_Logistics   || '#009ADA',
+            };
+          %>
+
+          <form method="POST" action="/admin/settings/dept-colors">
+            <div class="row g-4">
+              <% ['Operations','Technicians','Logistics'].forEach(dept => { %>
+              <div class="col-md-4">
+                <div class="p-3 rounded" style="border:2px solid <%= deptColors[dept] %>; background: #fafafa;">
+                  <div class="d-flex align-items-center gap-2 mb-3">
+                    <div style="width:16px;height:16px;border-radius:50%;background:<%= deptColors[dept] %>;flex-shrink:0;"></div>
+                    <strong style="font-family:'Figtree',sans-serif;color:#001743;"><%= dept %></strong>
+                  </div>
+
+                  <!-- Brand palette swatches -->
+                  <div class="d-flex flex-wrap gap-1 mb-3">
+                    <% brandPalette.forEach(c => { %>
+                      <div title="<%= c.name %> — <%= c.label %>"
+                           onclick="selectDeptColor('<%= dept %>','<%= c.hex %>')"
+                           style="width:28px;height:28px;background:<%= c.hex %>;border-radius:5px;cursor:pointer;border:2px solid <%= deptColors[dept]===c.hex ? '#001743' : 'transparent' %>;transition:border .15s;"
+                           data-dept="<%= dept %>" data-hex="<%= c.hex %>">
+                      </div>
+                    <% }); %>
+                  </div>
+
+                  <!-- Custom color picker -->
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="color" class="form-control form-control-color form-control-sm"
+                           id="dept_color_<%= dept %>"
+                           name="dept_color_<%= dept %>"
+                           value="<%= deptColors[dept] %>"
+                           style="width:40px;height:32px;padding:2px;border-radius:5px;"
+                           oninput="updateSwatch('<%= dept %>', this.value)">
+                    <span id="dept_hex_<%= dept %>" class="small text-muted" style="font-family:monospace;"><%= deptColors[dept] %></span>
+                  </div>
+                </div>
+              </div>
+              <% }); %>
+            </div>
+
+            <div class="mt-3">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i> Enregistrer les couleurs
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  function selectDeptColor(dept, hex) {
+    document.getElementById('dept_color_' + dept).value = hex;
+    document.getElementById('dept_hex_' + dept).textContent = hex;
+    updateSwatch(dept, hex);
+    // Update border highlights on swatches
+    document.querySelectorAll('[data-dept="' + dept + '"]').forEach(el => {
+      el.style.border = el.dataset.hex === hex ? '2px solid #001743' : '2px solid transparent';
+    });
+  }
+  function updateSwatch(dept, hex) {
+    document.getElementById('dept_hex_' + dept).textContent = hex;
+    // Update container border
+    const container = document.getElementById('dept_color_' + dept).closest('.rounded');
+    container.style.borderColor = hex;
+    container.querySelector('.rounded-circle, [style*="border-radius:50%"]')
+      && (container.querySelector('[style*="border-radius:50%"]').style.background = hex);
+  }
+  </script>
+
   <div class="row">
     <!-- SharePoint Configuration -->
     <div class="col-lg-6 mb-4">
@@ -104,106 +199,242 @@
       </div>
     </div>
 
-    <!-- Theme Configuration -->
+    <!-- Theme Customizer -->
     <div class="col-lg-6 mb-4">
       <div class="card">
-        <div class="card-header bg-info text-white">
+        <div class="card-header">
           <h5 class="mb-0"><i class="bi bi-palette"></i> Personnalisation du Thème</h5>
         </div>
-        <div class="card-body">
-          <form method="POST" action="/admin/settings/theme">
+        <div class="card-body p-0">
+          <%
+            const palette = [
+              { name: 'DC Blue',     hex: '#009ADA' },
+              { name: 'DC Green',    hex: '#62BB46' },
+              { name: 'DC Navy',     hex: '#001743' },
+              { name: 'Resense',     hex: '#71d8a6' },
+              { name: 'KE2 Therm',  hex: '#74b4d6' },
+              { name: 'Eclypse',    hex: '#f47937' },
+              { name: 'Facilities', hex: '#a8aaad' },
+              { name: 'White',      hex: '#ffffff' },
+              { name: 'Light Gray', hex: '#f4f6f8' },
+              { name: 'Dark',       hex: '#1a1a2e'  },
+            ];
+            const tc = {
+              accent:        typeof accentColor !== 'undefined' ? accentColor : '#009ADA',
+              sidebar_bg:    settings.ui_sidebar_bg     || '#001743',
+              sidebar_deep:  settings.ui_sidebar_deep   || '#001030',
+              sidebar_hover: settings.ui_sidebar_hover  || '#002570',
+              navbar_bg:     settings.ui_navbar_bg      || '#ffffff',
+              navbar_border: settings.ui_navbar_border  || '#001743',
+              navbar_text:   settings.ui_navbar_text    || '#001743',
+              page_bg:       settings.ui_page_bg        || '#f4f6f8',
+              card_header:   settings.ui_card_header_bg || '#001743',
+            };
+          %>
+
+          <!-- Tabs -->
+          <div class="d-flex border-bottom" style="background:#f8f9fa;">
+            <button class="flex-fill btn rounded-0 py-2" id="stab-accent"  onclick="sTab('accent')"
+                    style="font-size:0.8rem;font-weight:700;border:none;border-bottom:3px solid var(--dc-blue);">
+              <i class="bi bi-circle-half"></i> Accent
+            </button>
+            <button class="flex-fill btn rounded-0 py-2" id="stab-sidebar" onclick="sTab('sidebar')"
+                    style="font-size:0.8rem;font-weight:600;border:none;border-bottom:3px solid transparent;">
+              <i class="bi bi-layout-sidebar"></i> Sidebar
+            </button>
+            <button class="flex-fill btn rounded-0 py-2" id="stab-navbar"  onclick="sTab('navbar')"
+                    style="font-size:0.8rem;font-weight:600;border:none;border-bottom:3px solid transparent;">
+              <i class="bi bi-layout-text-window-reverse"></i> Navbar
+            </button>
+            <button class="flex-fill btn rounded-0 py-2" id="stab-page"   onclick="sTab('page')"
+                    style="font-size:0.8rem;font-weight:600;border:none;border-bottom:3px solid transparent;">
+              <i class="bi bi-file-earmark"></i> Page
+            </button>
+          </div>
+
+          <div class="p-3">
+            <!-- Shared palette -->
             <div class="mb-3">
-              <label for="theme_primary_color" class="form-label">
-                <i class="bi bi-circle-fill" style="color: <%= settings.theme_primary_color || '#0066cc' %>"></i> 
-                Couleur Principale
-              </label>
-              <input type="color" class="form-control form-control-color" 
-                     id="theme_primary_color" name="theme_primary_color" 
-                     value="<%= settings.theme_primary_color || '#0066cc' %>">
-            </div>
-
-            <div class="mb-3">
-              <label for="theme_sidebar_bg" class="form-label">
-                <i class="bi bi-circle-fill" style="color: <%= settings.theme_sidebar_bg || '#2c3e50' %>"></i> 
-                Couleur Barre Latérale
-              </label>
-              <input type="color" class="form-control form-control-color" 
-                     id="theme_sidebar_bg" name="theme_sidebar_bg" 
-                     value="<%= settings.theme_sidebar_bg || '#2c3e50' %>">
-            </div>
-
-            <div class="mb-3">
-              <label for="theme_sidebar_hover" class="form-label">
-                <i class="bi bi-circle-fill" style="color: <%= settings.theme_sidebar_hover || '#34495e' %>"></i> 
-                Couleur Survol Menu
-              </label>
-              <input type="color" class="form-control form-control-color" 
-                     id="theme_sidebar_hover" name="theme_sidebar_hover" 
-                     value="<%= settings.theme_sidebar_hover || '#34495e' %>">
-            </div>
-
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label for="theme_success_color" class="form-label">
-                  <i class="bi bi-circle-fill text-success"></i> Succès
-                </label>
-                <input type="color" class="form-control form-control-color" 
-                       id="theme_success_color" name="theme_success_color" 
-                       value="<%= settings.theme_success_color || '#28a745' %>">
-              </div>
-
-              <div class="col-md-6 mb-3">
-                <label for="theme_danger_color" class="form-label">
-                  <i class="bi bi-circle-fill text-danger"></i> Danger
-                </label>
-                <input type="color" class="form-control form-control-color" 
-                       id="theme_danger_color" name="theme_danger_color" 
-                       value="<%= settings.theme_danger_color || '#dc3545' %>">
-              </div>
-
-              <div class="col-md-6 mb-3">
-                <label for="theme_warning_color" class="form-label">
-                  <i class="bi bi-circle-fill text-warning"></i> Avertissement
-                </label>
-                <input type="color" class="form-control form-control-color" 
-                       id="theme_warning_color" name="theme_warning_color" 
-                       value="<%= settings.theme_warning_color || '#ffc107' %>">
-              </div>
-
-              <div class="col-md-6 mb-3">
-                <label for="theme_info_color" class="form-label">
-                  <i class="bi bi-circle-fill text-info"></i> Info
-                </label>
-                <input type="color" class="form-control form-control-color" 
-                       id="theme_info_color" name="theme_info_color" 
-                       value="<%= settings.theme_info_color || '#17a2b8' %>">
+              <div class="small text-muted mb-2">Palette Distech Controls — cliquez pour appliquer à l'onglet actif</div>
+              <div class="d-flex flex-wrap gap-2">
+                <% palette.forEach(c => { %>
+                  <div title="<%= c.name %> (<%= c.hex %>)"
+                       onclick="sPaletteClick('<%= c.hex %>')"
+                       style="width:34px;height:34px;background:<%= c.hex %>;border-radius:7px;cursor:pointer;border:1px solid rgba(0,0,0,0.12);transition:transform .1s;box-shadow:0 1px 3px rgba(0,0,0,0.12);"
+                       onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
+                  </div>
+                <% }); %>
               </div>
             </div>
 
-            <div class="d-flex justify-content-between">
-              <button type="submit" class="btn btn-info">
-                <i class="bi bi-save"></i> Enregistrer Thème
+            <hr class="my-2">
+
+            <!-- TAB: Accent -->
+            <div id="spanel-accent">
+              <div class="fw-semibold small mb-3" style="color:#474C55;">Couleur d'accent — boutons, liens actifs, badges</div>
+              <div class="d-flex align-items-center gap-3 mb-2">
+                <input type="color" id="sc_accent" value="<%= tc.accent %>"
+                       style="width:48px;height:38px;padding:3px;border-radius:7px;border:1px solid #dee2e6;cursor:pointer;"
+                       oninput="sLive('accent', this.value)">
+                <div>
+                  <span id="shex_accent" style="font-family:monospace;font-size:0.9rem;font-weight:600;"><%= tc.accent %></span>
+                  <div class="small text-muted">Département actif: <strong><%= settings.adminDept || 'Tous' %></strong></div>
+                </div>
+                <div id="spreview_accent" style="width:48px;height:38px;border-radius:7px;background:<%= tc.accent %>;"></div>
+              </div>
+            </div>
+
+            <!-- TAB: Sidebar -->
+            <div id="spanel-sidebar" style="display:none;">
+              <div class="fw-semibold small mb-3" style="color:#474C55;">Couleurs de la barre latérale</div>
+              <% [
+                ['sidebar_bg',    'Fond principal',    tc.sidebar_bg],
+                ['sidebar_deep',  'Zone logo (fond)',  tc.sidebar_deep],
+                ['sidebar_hover', 'Survol & actif',    tc.sidebar_hover],
+              ].forEach(([id, label, val]) => { %>
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <input type="color" id="sc_<%= id %>" value="<%= val %>"
+                       style="width:44px;height:34px;padding:3px;border-radius:6px;border:1px solid #dee2e6;cursor:pointer;"
+                       oninput="sLive('<%= id %>', this.value)">
+                <span class="flex-fill small"><%= label %></span>
+                <span id="shex_<%= id %>" style="font-family:monospace;font-size:0.78rem;color:#666;"><%= val %></span>
+                <div id="spreview_<%= id %>" style="width:34px;height:34px;border-radius:6px;background:<%= val %>;border:1px solid #dee2e6;"></div>
+              </div>
+              <% }); %>
+            </div>
+
+            <!-- TAB: Navbar -->
+            <div id="spanel-navbar" style="display:none;">
+              <div class="fw-semibold small mb-3" style="color:#474C55;">Couleurs de la barre de navigation</div>
+              <% [
+                ['navbar_bg',     'Fond navbar',    tc.navbar_bg],
+                ['navbar_border', 'Bordure basse',  tc.navbar_border],
+                ['navbar_text',   'Texte & titre',  tc.navbar_text],
+              ].forEach(([id, label, val]) => { %>
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <input type="color" id="sc_<%= id %>" value="<%= val %>"
+                       style="width:44px;height:34px;padding:3px;border-radius:6px;border:1px solid #dee2e6;cursor:pointer;"
+                       oninput="sLive('<%= id %>', this.value)">
+                <span class="flex-fill small"><%= label %></span>
+                <span id="shex_<%= id %>" style="font-family:monospace;font-size:0.78rem;color:#666;"><%= val %></span>
+                <div id="spreview_<%= id %>" style="width:34px;height:34px;border-radius:6px;background:<%= val %>;border:1px solid #dee2e6;"></div>
+              </div>
+              <% }); %>
+            </div>
+
+            <!-- TAB: Page -->
+            <div id="spanel-page" style="display:none;">
+              <div class="fw-semibold small mb-3" style="color:#474C55;">Couleurs de la page</div>
+              <% [
+                ['page_bg',     'Fond de page',        tc.page_bg],
+                ['card_header', 'En-tête des cartes',  tc.card_header],
+              ].forEach(([id, label, val]) => { %>
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <input type="color" id="sc_<%= id %>" value="<%= val %>"
+                       style="width:44px;height:34px;padding:3px;border-radius:6px;border:1px solid #dee2e6;cursor:pointer;"
+                       oninput="sLive('<%= id %>', this.value)">
+                <span class="flex-fill small"><%= label %></span>
+                <span id="shex_<%= id %>" style="font-family:monospace;font-size:0.78rem;color:#666;"><%= val %></span>
+                <div id="spreview_<%= id %>" style="width:34px;height:34px;border-radius:6px;background:<%= val %>;border:1px solid #dee2e6;"></div>
+              </div>
+              <% }); %>
+            </div>
+
+            <hr class="my-3">
+
+            <!-- Hidden forms -->
+            <form method="POST" action="/admin/settings/ui-colors" id="sformUI">
+              <input type="hidden" name="ui_sidebar_bg"     id="ssave_sidebar_bg"    value="<%= tc.sidebar_bg %>">
+              <input type="hidden" name="ui_sidebar_deep"   id="ssave_sidebar_deep"  value="<%= tc.sidebar_deep %>">
+              <input type="hidden" name="ui_sidebar_hover"  id="ssave_sidebar_hover" value="<%= tc.sidebar_hover %>">
+              <input type="hidden" name="ui_navbar_bg"      id="ssave_navbar_bg"     value="<%= tc.navbar_bg %>">
+              <input type="hidden" name="ui_navbar_border"  id="ssave_navbar_border" value="<%= tc.navbar_border %>">
+              <input type="hidden" name="ui_navbar_text"    id="ssave_navbar_text"   value="<%= tc.navbar_text %>">
+              <input type="hidden" name="ui_page_bg"        id="ssave_page_bg"       value="<%= tc.page_bg %>">
+              <input type="hidden" name="ui_card_header_bg" id="ssave_card_header"   value="<%= tc.card_header %>">
+            </form>
+            <form method="POST" action="/admin/settings/dept-colors" id="sformAccent">
+              <input type="hidden" name="dept_color_Operations"  id="ssave_Operations"  value="<%= settings.dept_color_Operations  || '#009ADA' %>">
+              <input type="hidden" name="dept_color_Technicians" id="ssave_Technicians" value="<%= settings.dept_color_Technicians || '#009ADA' %>">
+              <input type="hidden" name="dept_color_Logistics"   id="ssave_Logistics"   value="<%= settings.dept_color_Logistics   || '#009ADA' %>">
+            </form>
+
+            <div class="d-flex gap-2">
+              <button type="button" onclick="sSaveAll()" class="btn btn-primary flex-fill">
+                <i class="bi bi-check2-circle me-1"></i> Enregistrer le thème
               </button>
-              
-              <form method="POST" action="/admin/settings/reset" style="display: inline;">
-                <input type="hidden" name="category" value="theme">
-                <button type="submit" class="btn btn-outline-secondary"
-                        onclick="return confirm('Réinitialiser le thème aux couleurs par défaut?')">
-                  <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser
-                </button>
-              </form>
+              <button type="button" onclick="sReset()" class="btn btn-outline-secondary" title="Rétablir les couleurs Distech par défaut">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Réinitialiser
+              </button>
             </div>
-          </form>
 
-          <hr class="my-4">
-
-          <div class="alert alert-warning">
-            <i class="bi bi-exclamation-triangle"></i>
-            <strong>Note:</strong> Les changements de thème nécessitent un rechargement de la page.
+            <div class="mt-3 small text-muted">
+              <i class="bi bi-file-earmark-text me-1"></i>
+              Référence: <em>Distech Controls Brand Guidelines — September 2025</em>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+    <script>
+    let _sActiveTab = 'accent';
+    const _sCssMap = {
+      accent:'--dc-blue', sidebar_bg:'--dc-navy', sidebar_deep:'--dc-navy-deep',
+      sidebar_hover:'--dc-navy-mid', navbar_bg:'--dc-navbar-bg', navbar_border:'--dc-navbar-border',
+      navbar_text:'--dc-navbar-text', page_bg:'--dc-gray-light', card_header:'--dc-card-header',
+    };
+    const _sSaveMap = {
+      sidebar_bg:'ssave_sidebar_bg', sidebar_deep:'ssave_sidebar_deep', sidebar_hover:'ssave_sidebar_hover',
+      navbar_bg:'ssave_navbar_bg', navbar_border:'ssave_navbar_border', navbar_text:'ssave_navbar_text',
+      page_bg:'ssave_page_bg', card_header:'ssave_card_header',
+    };
+    const _sAllDepts = ['Operations','Technicians','Logistics'];
+
+    function sTab(tab) {
+      ['accent','sidebar','navbar','page'].forEach(t => {
+        document.getElementById('spanel-' + t).style.display = t === tab ? '' : 'none';
+        const btn = document.getElementById('stab-' + t);
+        btn.style.borderBottom = t === tab ? '3px solid var(--dc-blue)' : '3px solid transparent';
+        btn.style.fontWeight   = t === tab ? '700' : '600';
+      });
+      _sActiveTab = tab;
+    }
+
+    function sPaletteClick(hex) {
+      const panel = document.getElementById('spanel-' + _sActiveTab);
+      const picker = panel ? panel.querySelector('input[type="color"]') : null;
+      if (picker) { picker.value = hex; const id = picker.id.replace('sc_',''); sLive(id, hex); }
+    }
+
+    function sLive(id, hex) {
+      const hexEl = document.getElementById('shex_' + id);
+      if (hexEl) hexEl.textContent = hex;
+      const prev = document.getElementById('spreview_' + id);
+      if (prev) prev.style.background = hex;
+      if (_sCssMap[id]) document.documentElement.style.setProperty(_sCssMap[id], hex);
+      if (_sSaveMap[id]) { const el = document.getElementById(_sSaveMap[id]); if (el) el.value = hex; }
+      if (id === 'accent') {
+        _sAllDepts.forEach(d => { const el = document.getElementById('ssave_' + d); if (el) el.value = hex; });
+      }
+    }
+
+    function sSaveAll() {
+      document.getElementById('sformUI').submit();
+      setTimeout(() => document.getElementById('sformAccent').submit(), 300);
+    }
+
+    function sReset() {
+      if (!confirm('Rétablir les couleurs officielles Distech Controls?')) return;
+      const d = { sidebar_bg:'#001743', sidebar_deep:'#001030', sidebar_hover:'#002570',
+                  navbar_bg:'#ffffff', navbar_border:'#001743', navbar_text:'#001743',
+                  page_bg:'#f4f6f8', card_header:'#001743', accent:'#009ADA' };
+      Object.entries(d).forEach(([id, hex]) => {
+        const el = document.getElementById('sc_' + id);
+        if (el) { el.value = hex; sLive(id, hex); }
+      });
+    }
+    </script>
   </div>
 </div>
 

@@ -21,6 +21,19 @@
               <div class="form-text">Un nom descriptif pour ce type de formation</div>
             </div>
 
+            <% if (user.role === 'admin') { %>
+            <div class="mb-3">
+              <label for="department" class="form-label">Département</label>
+              <select class="form-select" id="department" name="department">
+                <option value="" <%= !template || !template.department ? 'selected' : '' %>>— Non assigné —</option>
+                <option value="Operations"  <%= template && template.department === 'Operations'  ? 'selected' : '' %>>Opérations</option>
+                <option value="Technicians" <%= template && template.department === 'Technicians' ? 'selected' : '' %>>Techniciens</option>
+                <option value="Logistics"   <%= template && template.department === 'Logistics'   ? 'selected' : '' %>>Logistique</option>
+              </select>
+              <div class="form-text">Seuls les utilisateurs de ce département verront ce modèle.</div>
+            </div>
+            <% } %>
+
             <div class="mb-3">
               <label for="description" class="form-label">Description</label>
               <textarea class="form-control" id="description" name="description" rows="4"

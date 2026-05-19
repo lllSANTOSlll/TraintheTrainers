@@ -18,16 +18,33 @@
     <% } %>
   </div>
 
+  <!-- Filters -->
+  <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+    <input type="text" id="s-search" class="form-control form-control-sm" placeholder="Rechercher…" style="max-width:200px">
+    <select id="s-statut" class="form-select form-select-sm" style="max-width:150px">
+      <option value="">Tous les statuts</option>
+      <option value="En cours">En cours</option>
+      <option value="Terminée">Terminée</option>
+    </select>
+    <select id="s-poste" class="form-select form-select-sm" style="max-width:160px">
+      <option value="">Tous les postes</option>
+      <% [...new Set(sessions.map(s => s.poste).filter(Boolean))].sort().forEach(p => { %>
+        <option value="<%= p %>"><%= p %></option>
+      <% }); %>
+    </select>
+    <span class="text-muted small ms-auto" id="s-count"><%= sessions.length %> session(s)</span>
+  </div>
+
   <div class="card">
     <div class="card-body">
       <div class="table-responsive">
-        <table class="table table-hover">
+        <table class="table table-hover" id="s-table">
           <thead class="table-light">
             <tr>
               <th>Employé</th>
               <th>Formateur</th>
               <% if (user.role === 'admin') { %>
-                <th>Assigné à</th>
+                <th>Superviseur</th>
               <% } %>
               <th>Poste</th>
               <th>Date début</th>
@@ -51,18 +68,17 @@
               </tr>
             <% } else { %>
               <% sessions.forEach(session => { %>
-                <tr>
+                <tr data-statut="<%= session.statut || '' %>" data-poste="<%= session.poste || '' %>">
                   <td><strong><%= session.employee_name %></strong></td>
                   <td><%= session.trainer_name %></td>
                   <% if (user.role === 'admin') { %>
                     <td>
-                      <% if (session.assigned_fullname || session.assigned_username) { %>
-                        <span class="badge bg-info">
-                          <i class="bi bi-person-check"></i>
-                          <%= session.assigned_fullname || session.assigned_username %>
+                      <% if (session.employee_supervisor) { %>
+                        <span class="badge bg-secondary">
+                          <i class="bi bi-person-badge me-1"></i><%= session.employee_supervisor %>
                         </span>
                       <% } else { %>
-                        <span class="text-muted">Non assigné</span>
+                        <span class="text-muted">—</span>
                       <% } %>
                     </td>
                   <% } %>
@@ -78,9 +94,22 @@
                     <% } %>
                   </td>
                   <td>
-                    <a href="/training/<%= session.id %>" class="btn btn-sm btn-info" title="Voir">
-                      <i class="bi bi-eye"></i>
-                    </a>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <a href="/training/<%= session.id %>" class="btn btn-info" title="Voir">
+                        <i class="bi bi-eye"></i>
+                      </a>
+                      <% if (user.role === 'admin') { %>
+                        <a href="/training/<%= session.id %>/edit" class="btn btn-warning" title="Modifier">
+                          <i class="bi bi-pencil"></i>
+                        </a>
+                        <form method="POST" action="/training/<%= session.id %>/delete" style="display:inline;"
+                              onsubmit="return confirm('Supprimer la session de <%= session.employee_name %> ? Cette action est irréversible.');">
+                          <button type="submit" class="btn btn-danger" title="Supprimer">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </form>
+                      <% } %>
+                    </div>
                   </td>
                 </tr>
               <% }); %>
@@ -91,5 +120,46 @@
     </div>
   </div>
 </div>
+
+<script>
+  const sSearch = document.getElementById('s-search');
+  const sStatut = document.getElementById('s-statut');
+  const sPoste  = document.getElementById('s-poste');
+  const sCount  = document.getElementById('s-count');
+  const STORE   = 'filters_training';
+
+  // Restore
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE) || '{}');
+    if (saved.search && sSearch) sSearch.value = saved.search;
+    if (saved.statut && sStatut) sStatut.value = saved.statut;
+    if (saved.poste  && sPoste)  sPoste.value  = saved.poste;
+  } catch(e) {}
+
+  function saveFilters() {
+    try { localStorage.setItem(STORE, JSON.stringify({ search: sSearch?.value||'', statut: sStatut?.value||'', poste: sPoste?.value||'' })); } catch(e) {}
+  }
+
+  function applyFilters() {
+    const q = (sSearch?.value || '').toLowerCase();
+    const st = sStatut?.value || '';
+    const po = sPoste?.value  || '';
+    let n = 0;
+    document.querySelectorAll('#s-table tbody tr').forEach(row => {
+      const ok = (!q  || row.textContent.toLowerCase().includes(q))
+              && (!st || row.dataset.statut === st)
+              && (!po || row.dataset.poste  === po);
+      row.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    if (sCount) sCount.textContent = n + ' session(s)';
+    saveFilters();
+  }
+
+  sSearch?.addEventListener('input', applyFilters);
+  sStatut?.addEventListener('change', applyFilters);
+  sPoste?.addEventListener('change', applyFilters);
+  applyFilters();
+</script>
 
 <%- include('../partials/footer') %>
