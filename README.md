@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Former les Formateurs - Application de Gestion
 
 Application web complète pour gérer le processus de formation des formateurs avec authentification, gestion des rôles et intégration SharePoint.
