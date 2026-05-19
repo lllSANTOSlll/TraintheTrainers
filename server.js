@@ -79,6 +79,13 @@ app.use((req, res, next) => {
         // Apply accent color for the active department
         const colorKey = activeDept ? `dept_color_${activeDept}` : null;
         res.locals.accentColor = (colorKey && s[colorKey]) ? s[colorKey] : '#009ADA';
+
+        // Expose permission helper to all EJS templates
+        const permsModule = require('./config/permissions');
+        const _role = req.session.user.role;
+        const _dept = req.session.user.department || '';
+        res.locals.canPerm = (key) => permsModule.can(_role, key, _dept);
+
         next();
       });
     }

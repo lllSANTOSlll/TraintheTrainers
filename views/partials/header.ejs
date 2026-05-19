@@ -318,29 +318,26 @@
           </a>
         </li>
 
-        <% const showMatrix = (user.role === 'admin' && (adminDept === '' || adminDept === 'Operations' || adminDept === 'Technicians')) || ['Operations','Technicians'].includes(user.department); %>
-        <% const showSchedule = (user.role === 'admin' && (adminDept === '' || adminDept === 'Operations')) || user.department === 'Operations'; %>
-
-        <% if (showMatrix) { %>
+        <% if (canPerm('matrix_view') || (user.role === 'admin' && (adminDept === '' || adminDept === 'Operations' || adminDept === 'Technicians'))) { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/matrix') ? 'active' : '' %>" href="/matrix">
             <i class="bi bi-grid-3x3"></i> Matrice de formation
           </a>
         </li>
         <% } %>
-        <% if (showSchedule) { %>
+        <% if (canPerm('schedule_view') || (user.role === 'admin' && (adminDept === '' || adminDept === 'Operations'))) { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/schedule') ? 'active' : '' %>" href="/schedule">
             <i class="bi bi-calendar-week"></i> Planification
           </a>
         </li>
+        <% } %>
         <% if (user.role === 'admin' && adminDept === '') { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/display') ? 'active' : '' %>" href="/display">
             <i class="bi bi-display"></i> Stations Display
           </a>
         </li>
-        <% } %>
         <% } %>
         <% } %>
 
