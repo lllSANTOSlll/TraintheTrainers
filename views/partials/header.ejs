@@ -334,7 +334,7 @@
             <i class="bi bi-calendar-week"></i> Planification
           </a>
         </li>
-        <% if (user.role === 'admin') { %>
+        <% if (user.role === 'admin' && (adminDept === '' || adminDept === 'Operations')) { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/display') ? 'active' : '' %>" href="/display">
             <i class="bi bi-display"></i> Stations Display
