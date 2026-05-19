@@ -562,6 +562,24 @@
       </div>
       <% } %>
 
+      <!-- Language Switcher -->
+      <div class="d-flex align-items-center" style="border:1px solid #dee2e6; border-radius:8px; overflow:hidden; background:#f8f9fa;">
+        <button class="lang-btn btn btn-sm px-2 py-1" data-lang="fr" onclick="setLang('fr')" title="Français"
+                style="font-size:0.78rem; border:none; border-radius:0; transition:all .15s;">
+          🇫🇷 FR
+        </button>
+        <div style="width:1px;height:20px;background:#dee2e6;"></div>
+        <button class="lang-btn btn btn-sm px-2 py-1" data-lang="en" onclick="setLang('en')" title="English"
+                style="font-size:0.78rem; border:none; border-radius:0; transition:all .15s;">
+          🇬🇧 EN
+        </button>
+        <div style="width:1px;height:20px;background:#dee2e6;"></div>
+        <button class="lang-btn btn btn-sm px-2 py-1" data-lang="es" onclick="setLang('es')" title="Español"
+                style="font-size:0.78rem; border:none; border-radius:0; transition:all .15s;">
+          🇪🇸 ES
+        </button>
+      </div>
+
       <a href="/logout" class="btn btn-sm" style="border:1px solid var(--dc-navy);color:var(--dc-navy);font-size:0.82rem;">
         <i class="bi bi-box-arrow-right"></i> Déconnexion
       </a>
