@@ -24,6 +24,7 @@
     <select id="s-statut" class="form-select form-select-sm" style="max-width:150px">
       <option value="">Tous les statuts</option>
       <option value="En cours">En cours</option>
+      <option value="En retard">En retard</option>
       <option value="Terminée">Terminée</option>
     </select>
     <select id="s-poste" class="form-select form-select-sm" style="max-width:160px">
@@ -48,6 +49,7 @@
               <% } %>
               <th>Poste</th>
               <th>Date début</th>
+              <th>Date fin prévue</th>
               <th>Statut</th>
               <th>Actions</th>
             </tr>
@@ -55,7 +57,7 @@
           <tbody>
             <% if (sessions.length === 0) { %>
               <tr>
-                <td colspan="<%= user.role === 'admin' ? 7 : 6 %>" class="text-center text-muted py-4">
+                <td colspan="<%= user.role === 'admin' ? 8 : 7 %>" class="text-center text-muted py-4">
                   <i class="bi bi-inbox" style="font-size: 2rem;"></i>
                   <p class="mb-0 mt-2">
                     <% if (user.role === 'admin') { %>
@@ -68,7 +70,15 @@
               </tr>
             <% } else { %>
               <% sessions.forEach(session => { %>
-                <tr data-statut="<%= session.statut || '' %>" data-poste="<%= session.poste || '' %>">
+                <%
+                  const today = new Date(); today.setHours(0,0,0,0);
+                  const finDate = session.date_fin ? new Date(session.date_fin) : null;
+                  if (finDate) finDate.setHours(0,0,0,0);
+                  const isLate = session.statut === 'En cours' && finDate && finDate < today;
+                  const daysLate = isLate ? Math.floor((today - finDate) / 86400000) : 0;
+                  const rowStatut = isLate ? 'En retard' : (session.statut || '');
+                %>
+                <tr data-statut="<%= rowStatut %>" data-poste="<%= session.poste || '' %>">
                   <td><strong><%= session.employee_name %></strong></td>
                   <td><%= session.trainer_name %></td>
                   <% if (user.role === 'admin') { %>
@@ -85,7 +95,19 @@
                   <td><%= session.poste || '-' %></td>
                   <td><%= session.date_debut ? new Date(session.date_debut).toLocaleDateString('fr-CA') : '-' %></td>
                   <td>
-                    <% if (session.statut === 'En cours') { %>
+                    <% if (finDate) { %>
+                      <span class="<%= isLate ? 'text-danger fw-bold' : 'text-muted' %>">
+                        <%= finDate.toLocaleDateString('fr-CA') %>
+                      </span>
+                    <% } else { %>
+                      <span class="text-muted">—</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (isLate) { %>
+                      <span class="badge bg-danger">En retard</span>
+                      <br><small class="text-danger fw-bold">+<%= daysLate %> jour<%= daysLate > 1 ? 's' : '' %></small>
+                    <% } else if (session.statut === 'En cours') { %>
                       <span class="badge bg-primary">En cours</span>
                     <% } else if (session.statut === 'Terminée') { %>
                       <span class="badge bg-success">Terminée</span>

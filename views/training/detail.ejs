@@ -30,9 +30,19 @@
           <h6>Poste</h6>
           <p class="mb-3"><%= session.poste || '-' %></p>
 
+          <%
+            const _today = new Date(); _today.setHours(0,0,0,0);
+            const _fin = session.date_fin ? new Date(session.date_fin) : null;
+            if (_fin) _fin.setHours(0,0,0,0);
+            const _isLate = session.statut === 'En cours' && _fin && _fin < _today;
+            const _daysLate = _isLate ? Math.floor((_today - _fin) / 86400000) : 0;
+          %>
           <h6>Statut</h6>
           <p class="mb-3">
-            <% if (session.statut === 'En cours') { %>
+            <% if (_isLate) { %>
+              <span class="badge bg-danger">En retard</span>
+              <span class="text-danger fw-bold ms-2">+<%= _daysLate %> jour<%= _daysLate > 1 ? 's' : '' %> de retard</span>
+            <% } else if (session.statut === 'En cours') { %>
               <span class="badge bg-primary">En cours</span>
             <% } else if (session.statut === 'Terminée') { %>
               <span class="badge bg-success">Terminée</span>
@@ -46,7 +56,13 @@
             <strong>Début:</strong> <%= session.date_debut ? new Date(session.date_debut).toLocaleDateString('fr-CA') : '-' %>
           </p>
           <p class="mb-3">
-            <strong>Fin:</strong> <%= session.date_fin ? new Date(session.date_fin).toLocaleDateString('fr-CA') : '-' %>
+            <strong>Fin prévue:</strong>
+            <% if (_fin) { %>
+              <span class="<%= _isLate ? 'text-danger fw-bold' : '' %>">
+                <%= _fin.toLocaleDateString('fr-CA') %>
+                <% if (_isLate) { %> <i class="bi bi-exclamation-triangle-fill"></i><% } %>
+              </span>
+            <% } else { %>—<% } %>
           </p>
 
           <% if (session.notes) { %>
