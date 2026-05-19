@@ -234,9 +234,17 @@ db.serialize(() => {
     permission_key TEXT NOT NULL,
     allowed INTEGER DEFAULT 0,
     UNIQUE(role, permission_key)
+  )`, (err) => { if (err) console.error('role_permissions table:', err); else console.log('✓ role_permissions table ready'); });
+
+  db.run(`CREATE TABLE IF NOT EXISTS dept_permissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    department TEXT NOT NULL,
+    permission_key TEXT NOT NULL,
+    allowed INTEGER DEFAULT 0,
+    UNIQUE(department, permission_key)
   )`, (err) => {
-    if (err) { console.error('role_permissions table:', err); return; }
-    console.log('✓ role_permissions table ready');
+    if (err) { console.error('dept_permissions table:', err); return; }
+    console.log('✓ dept_permissions table ready');
     require('./config/permissions').load(() => console.log('✓ permissions cache loaded'));
   });
 });

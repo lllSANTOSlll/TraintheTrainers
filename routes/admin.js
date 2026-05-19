@@ -128,8 +128,9 @@ const perms = require('../config/permissions');
 
 router.get('/permissions', (req, res) => {
   res.render('admin/permissions', {
-    title: 'Éditeur de Permissions',
-    permsData: perms.getAll(),
+    title:     'Éditeur de Permissions',
+    rolesData: perms.getRoles(),
+    deptsData: perms.getDepts(),
     labels:    perms.getLabels(),
     message:   req.query.message || null,
   });
@@ -137,30 +138,55 @@ router.get('/permissions', (req, res) => {
 
 router.post('/permissions', (req, res) => {
   const roles = ['user', 'trainer', 'supervisor', 'admin'];
+  const depts = ['Operations', 'Technicians', 'Logistics'];
   const keys  = perms.getLabels().map(l => l.key);
-  const rows  = [];
 
+  // ── Role rows ──
+  const roleRows = [];
   roles.forEach(role => {
     keys.forEach(key => {
-      // Admin always keeps admin_* permissions ON
-      const forced = (role === 'admin' && key.startsWith('admin_'));
-      const allowed = forced ? 1 : (req.body[`${role}__${key}`] === '1' ? 1 : 0);
-      rows.push([role, key, allowed]);
+      const forced  = (role === 'admin' && key.startsWith('admin_'));
+      const allowed = forced ? 1 : (req.body[`role__${role}__${key}`] === '1' ? 1 : 0);
+      roleRows.push([role, key, allowed]);
+    });
+  });
+
+  // ── Dept rows ──
+  const deptRows = [];
+  depts.forEach(dept => {
+    keys.forEach(key => {
+      // dept cannot grant admin_* permissions
+      if (key.startsWith('admin_')) { deptRows.push([dept, key, 0]); return; }
+      const allowed = req.body[`dept__${dept}__${key}`] === '1' ? 1 : 0;
+      deptRows.push([dept, key, allowed]);
     });
   });
 
   db.run('DELETE FROM role_permissions', [], () => {
-    let done = 0;
-    rows.forEach(([role, key, allowed]) => {
+    let r = 0;
+    roleRows.forEach(([role, key, allowed]) => {
       db.run('INSERT INTO role_permissions (role, permission_key, allowed) VALUES (?,?,?)',
         [role, key, allowed], () => {
-          done++;
-          if (done === rows.length) {
-            perms.load(() => res.redirect('/admin/permissions?message=Permissions sauvegardées avec succès'));
-          }
+          r++;
+          if (r === roleRows.length) saveDepts();
         });
     });
   });
+
+  function saveDepts() {
+    db.run('DELETE FROM dept_permissions', [], () => {
+      let d = 0;
+      deptRows.forEach(([dept, key, allowed]) => {
+        db.run('INSERT INTO dept_permissions (department, permission_key, allowed) VALUES (?,?,?)',
+          [dept, key, allowed], () => {
+            d++;
+            if (d === deptRows.length) {
+              perms.load(() => res.redirect('/admin/permissions?message=Permissions sauvegardées avec succès'));
+            }
+          });
+      });
+    });
+  }
 });
 
 module.exports = router;

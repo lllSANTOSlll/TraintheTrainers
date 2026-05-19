@@ -49,7 +49,7 @@ function requirePermission(permKey) {
     const user = req.session && req.session.user;
     if (!user) return res.redirect('/login');
     const perms = require('../config/permissions');
-    if (perms.can(user.role, permKey)) return next();
+    if (perms.can(user.role, permKey, user.department)) return next();
     res.status(403).render('error', {
       title: 'Accès refusé',
       message: 'Vous n\'avez pas la permission d\'accéder à cette page.',
