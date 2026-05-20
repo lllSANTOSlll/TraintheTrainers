@@ -183,13 +183,42 @@ router.get('/:id', (req, res) => {
       [req.params.id], (err2, attachments) => {
         db.all('SELECT * FROM employee_holidays WHERE employee_id = ? ORDER BY date_start DESC',
           [req.params.id], (err3, holidays) => {
-            res.render('employees/detail', {
-              title: employee.nom, employee, stations: STATIONS,
-              attachments: attachments || [],
-              holidays: holidays || [],
-              holMessage: req.query.holMessage || null,
-              holError:   req.query.holError   || null,
-            });
+
+            const dept = employee.department || '';
+            const isOperations = (dept === 'Operations' || dept === '');
+
+            const renderDetail = (matrixColumns, matrixValues) => {
+              res.render('employees/detail', {
+                title: employee.nom, employee,
+                stations: STATIONS,
+                useMatrix: !isOperations,
+                matrixColumns: matrixColumns || [],
+                matrixValues:  matrixValues  || {},
+                attachments: attachments || [],
+                holidays:    holidays    || [],
+                holMessage: req.query.holMessage || null,
+                holError:   req.query.holError   || null,
+              });
+            };
+
+            if (isOperations) {
+              return renderDetail([], {});
+            }
+
+            // Non-Operations: load dynamic matrix columns + this employee's values
+            db.all('SELECT * FROM matrix_columns WHERE department = ? ORDER BY ordre, id',
+              [dept], (err4, columns) => {
+                const cols = columns || [];
+                if (cols.length === 0) return renderDetail([], {});
+                db.all('SELECT * FROM matrix_values WHERE employee_id = ?',
+                  [req.params.id], (err5, valRows) => {
+                    const mv = {};
+                    (valRows || []).forEach(r => { mv[r.column_id] = r.value; });
+                    renderDetail(cols, mv);
+                  }
+                );
+              }
+            );
           }
         );
       }

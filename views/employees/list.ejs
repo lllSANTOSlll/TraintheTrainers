@@ -92,11 +92,14 @@
         <input type="text" id="emp-search" class="form-control form-control-sm" placeholder="Rechercher..." style="max-width:200px">
         <select id="filter-shift" class="form-select form-select-sm" style="max-width:130px">
           <option value="">Tous les shifts</option>
-          <option>Jour</option><option>Soir</option><option>Nuit</option>
+          <option value="Jour">Jour</option>
+          <option value="Soir">Soir</option>
+          <option value="Nuit">Nuit</option>
         </select>
         <select id="filter-statut" class="form-select form-select-sm" style="max-width:130px">
           <option value="">Tous les statuts</option>
-          <option>Actif</option><option>Inactif</option>
+          <option value="Actif">Actif</option>
+          <option value="Inactif">Inactif</option>
         </select>
         <span class="text-muted small ms-auto" id="emp-count"><%= employees.length %> employé(s)</span>
       </div>
@@ -134,7 +137,7 @@
                 <span class="badge bg-primary rounded-pill"><%= e.nb_stations || 0 %></span>
               </td>
               <td>
-                <% if (e.statut === 'Actif') { %>
+                <% if (e.statut === 'Actif' || e.statut === 'Active') { %>
                   <span class="badge badge-actif">Actif</span>
                 <% } else { %>
                   <span class="badge badge-inactif"><%= e.statut || 'Inactif' %></span>
@@ -190,7 +193,9 @@
     document.querySelectorAll('#emp-table tbody tr').forEach(row => {
       const ok = (!q || row.textContent.toLowerCase().includes(q))
                && (!shift  || row.dataset.shift  === shift)
-               && (!statut || row.dataset.statut === statut);
+               && (!statut || row.dataset.statut === statut
+                           || (statut === 'Actif'   && row.dataset.statut === 'Active')
+                           || (statut === 'Inactif' && row.dataset.statut === 'Inactive'));
       row.style.display = ok ? '' : 'none';
       if (ok) n++;
     });

@@ -267,6 +267,37 @@ db.serialize(() => {
     require('./config/permissions').load(() => console.log('✓ permissions cache loaded'));
   });
 });
+// Training sessions calendar API — returns En cours sessions overlapping a date range
+app.get('/api/sessions-calendar', (req, res) => {
+  if (!req.session.user) return res.status(401).json([]);
+  const { from, to } = req.query;
+  if (!from || !to) return res.json([]);
+
+  const user = req.session.user;
+  const dept = user.role === 'admin'
+    ? (req.session.adminDept || null)
+    : (user.department || null);
+
+  // Join with employees to get department
+  let sql = `SELECT ts.*, e.department as emp_dept
+             FROM training_sessions ts
+             LEFT JOIN employees e ON LOWER(TRIM(e.nom)) = LOWER(TRIM(ts.employee_name))
+             WHERE ts.statut = 'En cours'
+               AND ts.date_debut IS NOT NULL
+               AND ts.date_fin   IS NOT NULL
+               AND ts.date_debut <= ? AND ts.date_fin >= ?`;
+  const params = [to, from];
+
+  if (dept) {
+    sql += ' AND (e.department = ? OR e.department IS NULL)';
+    params.push(dept);
+  }
+
+  sql += ' ORDER BY ts.date_debut';
+
+  db.all(sql, params, (err, rows) => res.json(err ? [] : rows));
+});
+
 // Holidays API — accessible to all authenticated users (used by sidebar calendar)
 app.get('/api/holidays', (req, res) => {
   if (!req.session.user) return res.status(401).json([]);

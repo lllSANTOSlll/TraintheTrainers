@@ -141,7 +141,53 @@
       </div>
     </div>
   </div>
+
+  <!-- ── Training Sessions Calendar ───────────────────────── -->
+  <div class="card mt-4" id="ts-cal-card">
+    <div class="card-header d-flex align-items-center justify-content-between py-2" style="background:var(--dc-navy);color:#fff;">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-calendar3"></i>
+        <strong id="ts-cal-title">Calendrier des Sessions</strong>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <!-- Legend -->
+        <span class="d-flex align-items-center gap-1 small me-2">
+          <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#0d6efd;"></span> En cours
+          <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#dc3545;margin-left:6px;"></span> En retard
+          <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#198754;margin-left:6px;"></span> Terminée
+        </span>
+        <button class="btn btn-sm btn-outline-light px-2 py-0" id="ts-prev">&#8249;</button>
+        <span class="fw-semibold small" id="ts-month-label" style="min-width:120px;text-align:center;"></span>
+        <button class="btn btn-sm btn-outline-light px-2 py-0" id="ts-next">&#8250;</button>
+        <button class="btn btn-sm btn-outline-light px-2 py-0" id="ts-today-btn" title="Aujourd'hui">●</button>
+      </div>
+    </div>
+    <div class="card-body p-2">
+      <div id="ts-cal-grid"></div>
+    </div>
+  </div>
 </div>
+
+<style>
+.ts-cal-table { width:100%; border-collapse:collapse; table-layout:fixed; }
+.ts-cal-table th { background:#f0f4f8; text-align:center; font-size:.75rem; font-weight:600;
+                   color:#555; padding:4px 2px; border:1px solid #e2e8f0; }
+.ts-cal-day { border:1px solid #e2e8f0; vertical-align:top; min-height:72px; padding:2px;
+              position:relative; font-size:.72rem; }
+.ts-cal-day.ts-today { background:#eff6ff !important; }
+.ts-cal-day.ts-today .ts-day-num { color:#0d6efd; font-weight:700; }
+.ts-cal-day.ts-other { background:#fafafa; }
+.ts-cal-day.ts-other .ts-day-num { color:#bbb; }
+.ts-day-num { font-size:.72rem; color:#666; padding:1px 3px; line-height:1.4; }
+.ts-pill { display:block; margin:1px 0; padding:1px 5px; border-radius:3px; font-size:.68rem;
+           white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+           cursor:pointer; color:#fff; text-decoration:none; line-height:1.5; }
+.ts-pill:hover { opacity:.85; color:#fff; }
+.ts-pill.ts-start { border-radius:4px 0 0 4px; }
+.ts-pill.ts-mid   { border-radius:0; }
+.ts-pill.ts-end   { border-radius:0 4px 4px 0; }
+.ts-pill.ts-only  { border-radius:4px; }
+</style>
 
 <script>
   const sSearch = document.getElementById('s-search');
@@ -182,6 +228,136 @@
   sStatut?.addEventListener('change', applyFilters);
   sPoste?.addEventListener('change', applyFilters);
   applyFilters();
+
+  /* ── Training Sessions Calendar ── */
+  (function() {
+    // Pass sessions from server to JS
+    const SESSIONS = <%- JSON.stringify(sessions.map(s => ({
+      id:       s.id,
+      name:     s.employee_name,
+      poste:    s.poste || '',
+      debut:    s.date_debut  || '',
+      fin:      s.date_fin    || '',
+      statut:   s.statut      || ''
+    }))) %>;
+
+    const DAYS_FR = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+    const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin',
+                       'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    let curYear  = today.getFullYear();
+    let curMonth = today.getMonth(); // 0-based
+
+    function statusColor(s, debut, fin) {
+      const todayMs = today.getTime();
+      const finDate = fin ? new Date(fin) : null;
+      if (finDate) finDate.setHours(0,0,0,0);
+      if (s === 'En cours' && finDate && finDate < today) return '#dc3545'; // late
+      if (s === 'En cours') return '#0d6efd';
+      if (s === 'Terminée')  return '#198754';
+      return '#6c757d';
+    }
+
+    function isoDate(d) {
+      return d.toISOString().split('T')[0];
+    }
+
+    function renderCalendar() {
+      const label = document.getElementById('ts-month-label');
+      label.textContent = MONTHS_FR[curMonth] + ' ' + curYear;
+
+      // First day of month (ISO week: Monday=0)
+      const firstDay = new Date(curYear, curMonth, 1);
+      const lastDay  = new Date(curYear, curMonth + 1, 0);
+
+      // Monday-anchored start
+      let startOffset = (firstDay.getDay() + 6) % 7; // Mon=0
+      const calStart = new Date(firstDay);
+      calStart.setDate(calStart.getDate() - startOffset);
+
+      // Build 6-week grid
+      const weeks = 6;
+      const totalDays = weeks * 7;
+
+      // Build per-day session map { 'YYYY-MM-DD': [{...}] }
+      const dayMap = {};
+      SESSIONS.forEach(s => {
+        if (!s.debut) return;
+        const start = new Date(s.debut); start.setHours(0,0,0,0);
+        const end   = s.fin ? new Date(s.fin) : new Date(s.debut);
+        end.setHours(0,0,0,0);
+        const d = new Date(start);
+        while (d <= end) {
+          const k = isoDate(d);
+          if (!dayMap[k]) dayMap[k] = [];
+          dayMap[k].push({ ...s, _isStart: isoDate(start) === k, _isEnd: isoDate(end) === k,
+                                  _startStr: isoDate(start), _endStr: isoDate(end) });
+          d.setDate(d.getDate() + 1);
+        }
+      });
+
+      // Build table
+      let html = '<table class="ts-cal-table"><thead><tr>';
+      DAYS_FR.forEach(d => { html += `<th>${d}</th>`; });
+      html += '</tr></thead><tbody>';
+
+      for (let w = 0; w < weeks; w++) {
+        html += '<tr>';
+        for (let dw = 0; dw < 7; dw++) {
+          const cellDate = new Date(calStart);
+          cellDate.setDate(calStart.getDate() + w * 7 + dw);
+          const isToday = isoDate(cellDate) === isoDate(today);
+          const isOther = cellDate.getMonth() !== curMonth;
+          const k = isoDate(cellDate);
+          const entries = dayMap[k] || [];
+
+          let cls = 'ts-cal-day';
+          if (isToday) cls += ' ts-today';
+          else if (isOther) cls += ' ts-other';
+
+          html += `<td class="${cls}">`;
+          html += `<div class="ts-day-num">${cellDate.getDate()}</div>`;
+
+          entries.forEach(e => {
+            const col  = statusColor(e.statut, e.debut, e.fin);
+            let pillCls = 'ts-pill';
+            if (e._isStart && e._isEnd) pillCls += ' ts-only';
+            else if (e._isStart)        pillCls += ' ts-start';
+            else if (e._isEnd)          pillCls += ' ts-end';
+            else                        pillCls += ' ts-mid';
+
+            const label = e._isStart
+              ? `📋 ${e.name}${e.poste ? ' · ' + e.poste : ''}`
+              : (e._isEnd ? `↳ ${e.name}` : `· ${e.name}`);
+
+            html += `<a href="/training/${e.id}" class="${pillCls}"
+                        style="background:${col};" title="${e.name} — ${e.poste}\n${e._startStr} → ${e._endStr}">${label}</a>`;
+          });
+
+          html += '</td>';
+        }
+        html += '</tr>';
+      }
+      html += '</tbody></table>';
+      document.getElementById('ts-cal-grid').innerHTML = html;
+    }
+
+    document.getElementById('ts-prev').addEventListener('click', () => {
+      curMonth--; if (curMonth < 0) { curMonth = 11; curYear--; }
+      renderCalendar();
+    });
+    document.getElementById('ts-next').addEventListener('click', () => {
+      curMonth++; if (curMonth > 11) { curMonth = 0; curYear++; }
+      renderCalendar();
+    });
+    document.getElementById('ts-today-btn').addEventListener('click', () => {
+      curYear = today.getFullYear(); curMonth = today.getMonth();
+      renderCalendar();
+    });
+
+    renderCalendar();
+  })();
 </script>
 
 <%- include('../partials/footer') %>

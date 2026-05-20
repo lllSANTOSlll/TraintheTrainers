@@ -4,7 +4,9 @@
   .schedule-table { border-collapse: collapse; min-width: 100%; }
   .schedule-table th, .schedule-table td { border: 1px solid #dee2e6; padding: 6px 8px; vertical-align: middle; }
   .schedule-table thead th { background: #f8f9fa; font-size: 0.82rem; font-weight: 700; text-align: center; white-space: nowrap; }
-  .col-emp { min-width: 160px; position: sticky; left: 0; background: #fff; z-index: 2; }
+  .col-emp { min-width: 180px; position: sticky; left: 0; background: #fff; z-index: 2; }
+  .emp-avatar-sm { width:32px; height:32px; border-radius:50%; object-fit:cover; flex-shrink:0; border:1.5px solid #dee2e6; }
+  .emp-initials-sm { width:32px; height:32px; border-radius:50%; background:var(--dc-navy,#0d2137); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.82rem; font-weight:700; flex-shrink:0; }
   .col-shift-h, .col-shift-td { min-width: 60px; }
   .day-col { min-width: 130px; }
   .sched-select { font-size: 0.82rem; padding: 3px 6px; border: 1px solid #ced4da; border-radius: 4px; width: 100%; background: #fff; }
@@ -95,11 +97,22 @@
             %>
             <tr>
               <td class="col-emp">
-                <a href="/employees/<%= e.id %>" class="fw-medium text-decoration-none"><%= e.nom %></a>
-                <div class="text-muted" style="font-size:0.75rem"><%= e.poste || '' %></div>
-                <% if (hasHolThisWeek) { %>
-                  <span class="badge" style="background:#ff6b35;font-size:0.65rem;">🏖️ Congé</span>
-                <% } %>
+                <div class="d-flex align-items-center gap-2">
+                  <% if (e.photo) { %>
+                    <img src="<%= e.photo %>" alt="<%= e.nom %>" class="emp-avatar-sm"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div class="emp-initials-sm" style="display:none;"><%= (e.nom || 'E').charAt(0).toUpperCase() %></div>
+                  <% } else { %>
+                    <div class="emp-initials-sm"><%= (e.nom || 'E').charAt(0).toUpperCase() %></div>
+                  <% } %>
+                  <div>
+                    <a href="/employees/<%= e.id %>" class="fw-medium text-decoration-none d-block" style="line-height:1.2;"><%= e.nom %></a>
+                    <div class="text-muted" style="font-size:0.72rem"><%= e.poste || '' %></div>
+                    <% if (hasHolThisWeek) { %>
+                      <span class="badge" style="background:#ff6b35;font-size:0.62rem;">🏖️ Congé</span>
+                    <% } %>
+                  </div>
+                </div>
               </td>
               <td class="col-shift-td text-center text-muted small"><%= e.shift || '—' %></td>
               <% days.forEach((d, di) => {

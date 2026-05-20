@@ -92,9 +92,11 @@
 
   <!-- Right panel -->
   <div class="col-lg-8">
-    <!-- Stats row -->
+
+    <% if (!useMatrix) { %>
+    <!-- ── OPERATIONS: hardcoded Stations de travail ── -->
     <%
-      const oui = stations.filter(s => (employee[s.key] || '').trim() === 'Oui').length;
+      const oui  = stations.filter(s => (employee[s.key] || '').trim() === 'Oui').length;
       const form = stations.filter(s => (employee[s.key] || '').trim().startsWith('Formation')).length;
       const rev  = stations.filter(s => (employee[s.key] || '').trim() === 'À revoir').length;
     %>
@@ -118,10 +120,8 @@
         </div>
       </div>
     </div>
-
-    <!-- Stations -->
     <div class="card mb-4">
-      <div class="card-header fw-bold"><i class="bi bi-grid me-2"></i>Statut par station</div>
+      <div class="card-header fw-bold"><i class="bi bi-grid me-2"></i>Stations de travail</div>
       <div class="card-body">
         <div class="station-grid">
           <% stations.forEach(s => {
@@ -139,6 +139,80 @@
         </div>
       </div>
     </div>
+
+    <% } else { %>
+    <!-- ── OTHER DEPTS (Logistique, Techniciens…): dynamic matrix columns ── -->
+    <%
+      const ouiM  = matrixColumns.filter(c => (matrixValues[c.id] || '').trim() === 'Oui').length;
+      const formM = matrixColumns.filter(c => (matrixValues[c.id] || '').trim().startsWith('Formation')).length;
+      const revM  = matrixColumns.filter(c => (matrixValues[c.id] || '').trim() === 'À revoir').length;
+      const totalM = matrixColumns.length;
+    %>
+    <% if (totalM > 0) { %>
+    <div class="row g-3 mb-4">
+      <div class="col-3">
+        <div class="stat-box" style="background:#d4edda;">
+          <div style="font-size:2rem; font-weight:700; color:#155724;"><%= ouiM %></div>
+          <div class="small text-muted">Formé(es)</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box" style="background:#fff3cd;">
+          <div style="font-size:2rem; font-weight:700; color:#856404;"><%= formM %></div>
+          <div class="small text-muted">En formation</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box" style="background:#ffe5d0;">
+          <div style="font-size:2rem; font-weight:700; color:#7d3c00;"><%= revM %></div>
+          <div class="small text-muted">À revoir</div>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="stat-box" style="background:#e8f4fd;">
+          <div style="font-size:2rem; font-weight:700; color:#0d47a1;"><%= totalM %></div>
+          <div class="small text-muted">Compétences</div>
+        </div>
+      </div>
+    </div>
+    <div class="card mb-4">
+      <div class="card-header fw-bold d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-grid me-2"></i>Matrice de compétences</span>
+        <a href="/matrix" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.75rem;">
+          <i class="bi bi-pencil me-1"></i>Modifier dans la matrice
+        </a>
+      </div>
+      <div class="card-body">
+        <% if (matrixColumns.length === 0) { %>
+          <p class="text-muted small text-center py-2 mb-0">Aucune compétence configurée pour ce département.</p>
+        <% } else { %>
+        <div class="station-grid">
+          <% matrixColumns.forEach(col => {
+            const val = (matrixValues[col.id] || '').trim();
+            let cls = 's-empty', txt = '—';
+            if (val === 'Oui') { cls = 's-oui'; txt = 'Oui'; }
+            else if (val.startsWith('Formation')) { cls = 's-form'; txt = 'Formation'; }
+            else if (val === 'À revoir') { cls = 's-revoir'; txt = 'À revoir'; }
+            else if (val) { txt = val; }
+          %>
+            <div class="station-item">
+              <div class="station-label"><%= col.name %></div>
+              <span class="s-badge <%= cls %>"><%= txt %></span>
+            </div>
+          <% }); %>
+        </div>
+        <% } %>
+      </div>
+    </div>
+    <% } else { %>
+    <!-- No matrix columns configured yet for this dept -->
+    <div class="alert alert-info d-flex align-items-center gap-2 mb-4" style="font-size:.9rem;">
+      <i class="bi bi-info-circle-fill"></i>
+      <span>Aucune colonne configurée dans la matrice de formation pour le département <strong><%= employee.department %></strong>.
+      <a href="/matrix" class="alert-link">Configurer la matrice →</a></span>
+    </div>
+    <% } %>
+    <% } %>
 
     <!-- ══ CONGÉS / ABSENCES ══════════════════════════════════════════ -->
     <div class="card" id="conges">

@@ -389,12 +389,14 @@ router.get('/holidays', (req, res) => {
   db.all(empSql, empParams, (err, employees) => {
     if (err) { console.error(err); return res.status(500).send('Erreur'); }
 
-    db.all(
-      `SELECT h.*, e.nom as employee_nom FROM employee_holidays h
+    let holSql = `SELECT h.*, e.nom as employee_nom FROM employee_holidays h
        JOIN employees e ON e.id = h.employee_id
-       WHERE e.statut = 'Actif'
-       ORDER BY h.date_start DESC`,
-      [],
+       WHERE e.statut = 'Actif'`;
+    const holParams = [];
+    if (dept !== null) { holSql += ' AND e.department = ?'; holParams.push(dept); }
+    holSql += ' ORDER BY h.date_start DESC';
+
+    db.all(holSql, holParams,
       (err, holidays) => {
         if (err) { console.error(err); return res.status(500).send('Erreur'); }
 
