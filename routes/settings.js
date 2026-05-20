@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { isAuthenticated, isAdmin } = require('../middleware/auth');
+const path = require('path');
+const fs = require('fs');
+const archiver = require('archiver');
 
 router.use(isAuthenticated);
 router.use(isAdmin);
@@ -194,6 +197,74 @@ router.get('/json', (req, res) => {
       return res.status(500).json({ error: 'Erreur serveur' });
     }
     res.json(settings);
+  });
+});
+
+// ── BACKUP ─────────────────────────────────────────────────────────────
+// GET /admin/settings/backup/download — streams a ZIP with DB + uploads
+router.get('/backup/download', (req, res) => {
+  const today    = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const filename = `backup-${today}.zip`;
+
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+  const archive = archiver('zip', { zlib: { level: 6 } });
+
+  archive.on('error', (err) => {
+    console.error('Backup error:', err);
+    if (!res.headersSent) res.status(500).send('Erreur lors de la création du backup');
+  });
+
+  archive.pipe(res);
+
+  // 1. SQLite database
+  const dbPath = path.join(__dirname, '../database/trainers.db');
+  if (fs.existsSync(dbPath)) {
+    archive.file(dbPath, { name: 'database/trainers.db' });
+  }
+
+  // 2. Uploaded files (photos, attachments, station images …)
+  const uploadsPath = path.join(__dirname, '../public/uploads');
+  if (fs.existsSync(uploadsPath)) {
+    archive.directory(uploadsPath, 'public/uploads');
+  }
+
+  // 3. backup-info.json — metadata
+  const info = JSON.stringify({
+    app: 'Former les Formateurs',
+    created_at: new Date().toISOString(),
+    created_by: req.session.user ? req.session.user.username : 'admin',
+    includes: ['database/trainers.db', 'public/uploads/'],
+  }, null, 2);
+  archive.append(info, { name: 'backup-info.json' });
+
+  archive.finalize();
+});
+
+// GET /admin/settings/backup/info — JSON with backup metadata (size, file counts)
+router.get('/backup/info', (req, res) => {
+  const dbPath      = path.join(__dirname, '../database/trainers.db');
+  const uploadsPath = path.join(__dirname, '../public/uploads');
+
+  let dbSize = 0;
+  try { dbSize = fs.statSync(dbPath).size; } catch (_) {}
+
+  let fileCount = 0;
+  function countFiles(dir) {
+    if (!fs.existsSync(dir)) return;
+    fs.readdirSync(dir).forEach(f => {
+      const full = path.join(dir, f);
+      if (fs.statSync(full).isDirectory()) countFiles(full);
+      else fileCount++;
+    });
+  }
+  countFiles(uploadsPath);
+
+  res.json({
+    db_size_kb:  Math.round(dbSize / 1024),
+    file_count:  fileCount,
+    today:       new Date().toISOString().slice(0, 10),
   });
 });
 

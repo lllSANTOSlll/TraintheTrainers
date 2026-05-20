@@ -438,4 +438,84 @@
   </div>
 </div>
 
+<!-- ══ BACKUP SECTION ══════════════════════════════════════════════════ -->
+<div class="row mt-2 mb-4">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header d-flex align-items-center gap-2" style="background:#001743; color:#fff;">
+        <i class="bi bi-archive-fill fs-5"></i>
+        <h5 class="mb-0">Sauvegarde Complète</h5>
+        <span class="badge bg-success ms-auto">ZIP</span>
+      </div>
+      <div class="card-body">
+        <div class="row align-items-center g-3">
+
+          <!-- What's included -->
+          <div class="col-md-5">
+            <p class="fw-semibold mb-2 text-dark"><i class="bi bi-box-seam me-1"></i>Contenu de la sauvegarde :</p>
+            <ul class="list-unstyled small mb-0">
+              <li class="mb-1"><i class="bi bi-database-fill text-primary me-2"></i><strong>Base de données</strong> — toutes vos données (employés, formations, évaluations, paramètres)</li>
+              <li class="mb-1"><i class="bi bi-images text-warning me-2"></i><strong>Photos &amp; pièces jointes</strong> — toutes les photos d'employés et fichiers téléversés</li>
+              <li><i class="bi bi-info-circle text-info me-2"></i><strong>backup-info.json</strong> — date et auteur de la sauvegarde</li>
+            </ul>
+          </div>
+
+          <!-- Live stats -->
+          <div class="col-md-4">
+            <div class="d-flex gap-3 flex-wrap">
+              <div class="text-center p-3 rounded" style="background:#f0f7ff; min-width:110px;">
+                <div class="fs-4 fw-bold text-primary" id="bk-db-size">—</div>
+                <div class="small text-muted">Base de données (KB)</div>
+              </div>
+              <div class="text-center p-3 rounded" style="background:#fff8e1; min-width:110px;">
+                <div class="fs-4 fw-bold text-warning" id="bk-file-count">—</div>
+                <div class="small text-muted">Fichiers téléversés</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Download button -->
+          <div class="col-md-3 text-center">
+            <a href="/admin/settings/backup/download" id="bk-btn"
+               class="btn btn-lg px-4 py-3 fw-semibold text-white"
+               style="background:#001743; border:none; border-radius:10px;"
+               onmouseenter="this.style.background='#002570'"
+               onmouseleave="this.style.background='#001743'">
+              <i class="bi bi-download fs-4 d-block mb-1"></i>
+              Télécharger<br><small style="font-weight:400;font-size:0.78rem;" id="bk-date">backup-<span id="bk-today">…</span>.zip</small>
+            </a>
+            <div class="small text-muted mt-2"><i class="bi bi-shield-check text-success me-1"></i>Aucune donnée envoyée en ligne</div>
+          </div>
+
+        </div>
+
+        <!-- Restore hint -->
+        <div class="alert alert-light border mt-3 mb-0 small">
+          <i class="bi bi-arrow-counterclockwise me-1 text-secondary"></i>
+          <strong>Restauration :</strong> pour restaurer, remplacez le fichier <code>database/trainers.db</code> et le dossier <code>public/uploads/</code> par ceux du ZIP, puis redémarrez l'application.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Load backup stats on page load
+(function loadBackupInfo() {
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('bk-today').textContent = today;
+
+  fetch('/admin/settings/backup/info')
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('bk-db-size').textContent    = d.db_size_kb.toLocaleString();
+      document.getElementById('bk-file-count').textContent = d.file_count;
+    })
+    .catch(() => {
+      document.getElementById('bk-db-size').textContent    = '?';
+      document.getElementById('bk-file-count').textContent = '?';
+    });
+})();
+</script>
+
 <%- include('../partials/footer') %>
