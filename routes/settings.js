@@ -4,7 +4,7 @@ const db = require('../config/database');
 const { isAuthenticated, isAdmin } = require('../middleware/auth');
 const path = require('path');
 const fs = require('fs');
-const archiver = require('archiver');
+const { ZipArchive } = require('archiver');
 
 router.use(isAuthenticated);
 router.use(isAdmin);
@@ -209,7 +209,7 @@ router.get('/backup/download', (req, res) => {
   res.setHeader('Content-Type', 'application/zip');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-  const archive = archiver('zip', { zlib: { level: 6 } });
+  const archive = new ZipArchive({ zlib: { level: 6 } });
 
   archive.on('error', (err) => {
     console.error('Backup error:', err);
