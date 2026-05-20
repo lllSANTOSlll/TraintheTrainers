@@ -243,6 +243,18 @@ db.serialize(() => {
     UNIQUE(role, permission_key)
   )`, (err) => { if (err) console.error('role_permissions table:', err); else console.log('✓ role_permissions table ready'); });
 
+  db.run(`CREATE TABLE IF NOT EXISTS employee_holidays (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    date_start TEXT NOT NULL,
+    date_end TEXT NOT NULL,
+    type TEXT DEFAULT 'Congé',
+    notes TEXT DEFAULT '',
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+  )`, (err) => { if (err) console.error('employee_holidays table:', err); else console.log('✓ employee_holidays table ready'); });
+
   db.run(`CREATE TABLE IF NOT EXISTS dept_permissions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     department TEXT NOT NULL,

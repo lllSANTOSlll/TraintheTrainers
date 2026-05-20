@@ -32,6 +32,9 @@
         <option value="Nuit" <%= filterShift === 'Nuit' ? 'selected' : '' %>>Nuit</option>
       </select>
     </form>
+    <a href="/schedule/holidays" class="btn btn-outline-warning btn-sm">
+      <i class="bi bi-calendar-heart me-1"></i>Congés
+    </a>
     <a href="/schedule/auto?week=<%= weekStart %>&shift=<%= filterShift %>" class="btn btn-outline-primary btn-sm">
       <i class="bi bi-magic me-1"></i>Planifier semaine suivante
     </a>
@@ -85,30 +88,49 @@
           </thead>
           <tbody>
             <% employees.forEach(e => {
-              const sched = schedMap[e.id] || {};
-              const trained = stations.filter(s => (e[s.key]||'').trim() === 'Oui').map(s => s.key);
+              const sched      = schedMap[e.id] || {};
+              const empHols    = (holidayInfo && holidayInfo[e.id]) || {};
+              const trained    = stations.filter(s => (e[s.key]||'').trim() === 'Oui').map(s => s.key);
+              const hasHolThisWeek = days.some(d => empHols[d]);
             %>
             <tr>
               <td class="col-emp">
                 <a href="/employees/<%= e.id %>" class="fw-medium text-decoration-none"><%= e.nom %></a>
                 <div class="text-muted" style="font-size:0.75rem"><%= e.poste || '' %></div>
+                <% if (hasHolThisWeek) { %>
+                  <span class="badge" style="background:#ff6b35;font-size:0.65rem;">🏖️ Congé</span>
+                <% } %>
               </td>
               <td class="col-shift-td text-center text-muted small"><%= e.shift || '—' %></td>
-              <% days.forEach(d => {
+              <% days.forEach((d, di) => {
+                const hol    = empHols[d];
                 const curVal = sched[d] || '';
               %>
-                <td class="day-col p-1">
-                  <select class="sched-select <%= curVal ? 'has-value' : '' %>"
-                          name="<%= e.id %>_<%= d %>"
-                          onchange="this.classList.toggle('has-value', !!this.value)">
-                    <option value="">— Repos —</option>
-                    <% stations.filter(s => trained.includes(s.key)).forEach(s => { %>
-                      <option value="<%= s.key %>" <%= curVal === s.key ? 'selected' : '' %>>
-                        <%= s.label %>
-                      </option>
-                    <% }); %>
-                  </select>
-                </td>
+                <% if (hol) { %>
+                  <%/* Holiday cell — locked, not editable */%>
+                  <td class="day-col p-1 text-center" style="background:#fff3e0;">
+                    <input type="hidden" name="<%= e.id %>_<%= d %>" value="<%= hol.type %>">
+                    <span class="badge" style="background:#ff6b35; font-size:0.78rem; padding:4px 8px;" title="<%= hol.notes || hol.type %>">
+                      🏖️ <%= hol.type %>
+                    </span>
+                    <% if (hol.notes) { %>
+                      <div class="text-muted" style="font-size:0.68rem; margin-top:2px;"><%= hol.notes %></div>
+                    <% } %>
+                  </td>
+                <% } else { %>
+                  <td class="day-col p-1">
+                    <select class="sched-select <%= curVal ? 'has-value' : '' %>"
+                            name="<%= e.id %>_<%= d %>"
+                            onchange="this.classList.toggle('has-value', !!this.value)">
+                      <option value="">— Repos —</option>
+                      <% stations.filter(s => trained.includes(s.key)).forEach(s => { %>
+                        <option value="<%= s.key %>" <%= curVal === s.key ? 'selected' : '' %>>
+                          <%= s.label %>
+                        </option>
+                      <% }); %>
+                    </select>
+                  </td>
+                <% } %>
               <% }); %>
             </tr>
             <% }); %>

@@ -75,6 +75,28 @@ function getDayDates(mondayStr) {
   });
 }
 
+// Returns ISO date strings YYYY-MM-DD for each day of the week
+function getDayISODates(mondayStr) {
+  return DAYS.map((_, i) => {
+    const d = new Date(mondayStr + 'T12:00:00');
+    d.setDate(d.getDate() + i);
+    return d.toISOString().split('T')[0];
+  });
+}
+
+// Build a Set of "employeeId_YYYY-MM-DD" strings that fall inside a holiday range
+function buildHolidaySet(holidays, isoDates) {
+  const set = new Set();
+  holidays.forEach(h => {
+    isoDates.forEach(iso => {
+      if (iso >= h.date_start && iso <= h.date_end) {
+        set.add(`${h.employee_id}_${iso}`);
+      }
+    });
+  });
+  return set;
+}
+
 // GET /schedule — show schedule for a week
 router.get('/', (req, res) => {
   const weekStart = req.query.week ? getMondayOf(req.query.week) : getMondayOf(new Date());
@@ -96,18 +118,46 @@ router.get('/', (req, res) => {
       const schedMap = {};
       schedRows.forEach(r => { schedMap[r.employee_id] = r; });
 
-      res.render('schedule/index', {
-        title: 'Planification',
-        employees, stations: STATIONS,
-        days: DAYS, dayLabels: DAY_LABELS,
-        dayDates: getDayDates(weekStart),
-        weekStart,
-        prevWeek: addWeeks(weekStart, -1),
-        nextWeek: addWeeks(weekStart, 1),
-        weekLabel: formatWeekLabel(weekStart),
-        schedMap,
-        filterShift: shift
-      });
+      const isoDates = getDayISODates(weekStart);
+      const weekEnd  = isoDates[6];
+
+      // Load holidays that overlap this week
+      db.all(
+        `SELECT * FROM employee_holidays WHERE date_start <= ? AND date_end >= ?`,
+        [weekEnd, weekStart],
+        (err, holidays) => {
+          if (err) { console.error(err); return res.status(500).send('Erreur'); }
+
+          const holidaySet = buildHolidaySet(holidays, isoDates);
+
+          // Build per-employee holiday map: empId -> { type, notes } for each iso date
+          const holidayInfo = {};
+          holidays.forEach(h => {
+            isoDates.forEach((iso, idx) => {
+              if (iso >= h.date_start && iso <= h.date_end) {
+                if (!holidayInfo[h.employee_id]) holidayInfo[h.employee_id] = {};
+                holidayInfo[h.employee_id][DAYS[idx]] = { type: h.type || 'Congé', notes: h.notes || '' };
+              }
+            });
+          });
+
+          res.render('schedule/index', {
+            title: 'Planification',
+            employees, stations: STATIONS,
+            days: DAYS, dayLabels: DAY_LABELS,
+            dayDates: getDayDates(weekStart),
+            isoDates,
+            weekStart,
+            prevWeek: addWeeks(weekStart, -1),
+            nextWeek: addWeeks(weekStart, 1),
+            weekLabel: formatWeekLabel(weekStart),
+            schedMap,
+            holidaySet,
+            holidayInfo,
+            filterShift: shift
+          });
+        }
+      );
     });
   });
 });
@@ -175,21 +225,44 @@ router.get('/auto', (req, res) => {
       const schedMap = {};
       schedRows.forEach(r => { schedMap[r.employee_id] = r; });
 
-      const copyPlan    = computeAutoSchedule(employees, schedMap, 'copy',   DAYS, STATIONS);
-      const rotatePlan  = computeAutoSchedule(employees, schedMap, 'rotate', DAYS, STATIONS);
+      // Load holidays for target week so auto-plan respects them
+      const targetIsoDates = getDayISODates(targetWeek);
+      const targetWeekEnd  = targetIsoDates[6];
 
-      res.render('schedule/auto', {
-        title: 'Planification automatique',
-        employees, stations: STATIONS,
-        days: DAYS, dayLabels: DAY_LABELS,
-        dayDates: getDayDates(targetWeek),
-        sourceWeek, targetWeek,
-        sourceWeekLabel: formatWeekLabel(sourceWeek),
-        targetWeekLabel: formatWeekLabel(targetWeek),
-        copyPlan:   JSON.stringify(copyPlan),
-        rotatePlan: JSON.stringify(rotatePlan),
-        filterShift: shift
-      });
+      db.all(
+        `SELECT * FROM employee_holidays WHERE date_start <= ? AND date_end >= ?`,
+        [targetWeekEnd, targetWeek],
+        (err, holidays) => {
+          if (err) holidays = [];
+
+          const holidayInfo = {};
+          holidays.forEach(h => {
+            targetIsoDates.forEach((iso, idx) => {
+              if (iso >= h.date_start && iso <= h.date_end) {
+                if (!holidayInfo[h.employee_id]) holidayInfo[h.employee_id] = {};
+                holidayInfo[h.employee_id][DAYS[idx]] = { type: h.type || 'Congé', notes: h.notes || '' };
+              }
+            });
+          });
+
+          const copyPlan   = computeAutoSchedule(employees, schedMap, 'copy',   DAYS, STATIONS, holidayInfo);
+          const rotatePlan = computeAutoSchedule(employees, schedMap, 'rotate', DAYS, STATIONS, holidayInfo);
+
+          res.render('schedule/auto', {
+            title: 'Planification automatique',
+            employees, stations: STATIONS,
+            days: DAYS, dayLabels: DAY_LABELS,
+            dayDates: getDayDates(targetWeek),
+            sourceWeek, targetWeek,
+            sourceWeekLabel: formatWeekLabel(sourceWeek),
+            targetWeekLabel: formatWeekLabel(targetWeek),
+            copyPlan:   JSON.stringify(copyPlan),
+            rotatePlan: JSON.stringify(rotatePlan),
+            holidayInfo: JSON.stringify(holidayInfo),
+            filterShift: shift
+          });
+        }
+      );
     });
   });
 });
@@ -213,7 +286,25 @@ router.post('/auto/apply', (req, res) => {
       const schedMap = {};
       schedRows.forEach(r => { schedMap[r.employee_id] = r; });
 
-      const plan = computeAutoSchedule(employees, schedMap, algorithm || 'copy', DAYS, STATIONS);
+      const targetIsoDates2 = getDayISODates(target_week);
+      const targetWeekEnd2  = targetIsoDates2[6];
+
+      db.all(
+        `SELECT * FROM employee_holidays WHERE date_start <= ? AND date_end >= ?`,
+        [targetWeekEnd2, target_week],
+        (err2, holidays2) => {
+          if (err2) holidays2 = [];
+          const holidayInfo2 = {};
+          holidays2.forEach(h => {
+            targetIsoDates2.forEach((iso, idx) => {
+              if (iso >= h.date_start && iso <= h.date_end) {
+                if (!holidayInfo2[h.employee_id]) holidayInfo2[h.employee_id] = {};
+                holidayInfo2[h.employee_id][DAYS[idx]] = { type: h.type || 'Congé' };
+              }
+            });
+          });
+
+      const plan = computeAutoSchedule(employees, schedMap, algorithm || 'copy', DAYS, STATIONS, holidayInfo2);
 
       let remaining = employees.length;
       if (remaining === 0) {
@@ -242,25 +333,33 @@ router.post('/auto/apply', (req, res) => {
           }
         );
       });
+        } // end holidays2 callback
+      ); // end db.all holidays2
     });
   });
 });
 
-function computeAutoSchedule(employees, schedMap, algorithm, DAYS, STATIONS) {
+function computeAutoSchedule(employees, schedMap, algorithm, DAYS, STATIONS, holidayInfo) {
   const result = {};
   employees.forEach(emp => {
     const trained = STATIONS.filter(s => (emp[s.key] || '').trim() === 'Oui').map(s => s.key);
     const src = schedMap[emp.id] || {};
+    const empHolidays = (holidayInfo || {})[emp.id] || {};
     const dayPlan = {};
 
     DAYS.forEach(d => {
+      // If employee is on holiday this day, lock it as 'Congé'
+      if (empHolidays[d]) {
+        dayPlan[d] = empHolidays[d].type || 'Congé';
+        return;
+      }
+
       const cur = src[d] || '';
       if (algorithm === 'copy') {
         dayPlan[d] = cur;
       } else {
-        // rotate: advance to next trained station; keep Repos if not working
-        if (!cur) {
-          dayPlan[d] = '';
+        if (!cur || cur === 'Congé') {
+          dayPlan[d] = cur;
         } else if (trained.length === 0) {
           dayPlan[d] = cur;
         } else {
@@ -276,5 +375,86 @@ function computeAutoSchedule(employees, schedMap, algorithm, DAYS, STATIONS) {
   });
   return result;
 }
+
+// ── HOLIDAY ROUTES ────────────────────────────────────────────────────────
+
+// GET /schedule/holidays — manage all holidays
+router.get('/holidays', (req, res) => {
+  const dept = getDeptFilter(req);
+  let empSql = "SELECT id, nom, department, shift FROM employees WHERE statut = 'Actif'";
+  const empParams = [];
+  if (dept !== null) { empSql += ' AND department = ?'; empParams.push(dept); }
+  empSql += ' ORDER BY nom ASC';
+
+  db.all(empSql, empParams, (err, employees) => {
+    if (err) { console.error(err); return res.status(500).send('Erreur'); }
+
+    db.all(
+      `SELECT h.*, e.nom as employee_nom FROM employee_holidays h
+       JOIN employees e ON e.id = h.employee_id
+       WHERE e.statut = 'Actif'
+       ORDER BY h.date_start DESC`,
+      [],
+      (err, holidays) => {
+        if (err) { console.error(err); return res.status(500).send('Erreur'); }
+
+        res.render('schedule/holidays', {
+          title: 'Gestion des Congés',
+          employees,
+          holidays,
+          message: req.query.message || null,
+          error:   req.query.error   || null,
+        });
+      }
+    );
+  });
+});
+
+// POST /schedule/holidays — create a holiday
+router.post('/holidays', (req, res) => {
+  const { employee_id, date_start, date_end, type, notes } = req.body;
+
+  if (!employee_id || !date_start || !date_end) {
+    return res.redirect('/schedule/holidays?error=Champs requis manquants');
+  }
+  if (date_end < date_start) {
+    return res.redirect('/schedule/holidays?error=La date de fin doit être après la date de début');
+  }
+
+  db.run(
+    `INSERT INTO employee_holidays (employee_id, date_start, date_end, type, notes, created_by)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [employee_id, date_start, date_end, type || 'Congé', notes || '', req.session.user.id],
+    (err) => {
+      if (err) { console.error(err); return res.redirect('/schedule/holidays?error=Erreur lors de l\'enregistrement'); }
+      res.redirect('/schedule/holidays?message=Congé enregistré avec succès');
+    }
+  );
+});
+
+// DELETE /schedule/holidays/:id — delete a holiday
+router.delete('/holidays/:id', (req, res) => {
+  db.run('DELETE FROM employee_holidays WHERE id = ?', [req.params.id], (err) => {
+    if (err) { console.error(err); return res.redirect('/schedule/holidays?error=Erreur lors de la suppression'); }
+    res.redirect('/schedule/holidays?message=Congé supprimé');
+  });
+});
+
+// GET /schedule/holidays/api — JSON: holidays for a date range (used by calendar)
+router.get('/holidays/api', (req, res) => {
+  const { from, to } = req.query;
+  if (!from || !to) return res.json([]);
+  db.all(
+    `SELECT h.*, e.nom as employee_nom FROM employee_holidays h
+     JOIN employees e ON e.id = h.employee_id
+     WHERE h.date_start <= ? AND h.date_end >= ?
+     ORDER BY h.date_start`,
+    [to, from],
+    (err, rows) => {
+      if (err) return res.json([]);
+      res.json(rows);
+    }
+  );
+});
 
 module.exports = router;
