@@ -280,6 +280,115 @@
       color: var(--dc-gray);
       font-weight: 500;
     }
+
+    /* ── Sidebar mini calendar ───────────────────────────── */
+    .sidebar-calendar {
+      flex-shrink: 0;
+      padding: 10px 12px 14px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.12);
+    }
+    .sc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .sc-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.85);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .sc-nav {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      padding: 0 4px;
+      font-size: 0.75rem;
+      line-height: 1;
+      transition: color .15s;
+    }
+    .sc-nav:hover { color: #fff; }
+    .sc-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+    }
+    .sc-dow {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.35);
+      text-align: center;
+      padding: 2px 0 4px;
+      letter-spacing: 0.04em;
+    }
+    .sc-day {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68rem;
+      color: rgba(255,255,255,0.6);
+      height: 24px;
+      border-radius: 4px;
+      cursor: default;
+      transition: background .12s;
+    }
+    .sc-day.sc-today {
+      background: var(--dc-blue);
+      color: #fff;
+      font-weight: 700;
+    }
+    .sc-day.sc-has-holiday {
+      cursor: pointer;
+    }
+    .sc-day.sc-has-holiday:not(.sc-today) {
+      background: rgba(255,107,53,0.18);
+      color: rgba(255,255,255,0.9);
+    }
+    .sc-day.sc-has-holiday:hover {
+      background: rgba(255,107,53,0.35);
+    }
+    .sc-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #ff6b35;
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .sc-day.sc-today .sc-dot { background: #fff; }
+    .sc-day.sc-empty { cursor: default; }
+    /* Tooltip */
+    .sc-tooltip {
+      position: fixed;
+      background: #1a1a2e;
+      color: #fff;
+      font-size: 0.72rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 9999;
+      max-width: 200px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,107,53,0.4);
+      display: none;
+    }
+    .sc-holiday-link {
+      display: block;
+      font-size: 0.68rem;
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      margin-top: 6px;
+      text-decoration: none;
+    }
+    .sc-holiday-link:hover { color: rgba(255,255,255,0.85); }
   </style>
 </head>
 <body>
@@ -384,7 +493,161 @@
 
       </ul>
     </div>
+
+    <!-- ── Mini Calendar ──────────────────────────────────── -->
+    <div class="sidebar-calendar">
+      <div class="sc-header">
+        <button class="sc-nav" id="sc-prev" title="Mois précédent">&#8249;</button>
+        <span class="sc-title" id="sc-month-label">…</span>
+        <button class="sc-nav" id="sc-next" title="Mois suivant">&#8250;</button>
+      </div>
+      <div class="sc-grid" id="sc-grid"></div>
+      <a href="/schedule/holidays" class="sc-holiday-link">
+        <i class="bi bi-calendar-heart" style="color:#ff6b35;"></i> Gérer les congés
+      </a>
+    </div>
+    <div class="sc-tooltip" id="sc-tooltip"></div>
+
   </nav>
+
+  <script>
+  (function() {
+    const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const DOWS = ['L','M','M','J','V','S','D'];
+    const HOL_ICON = { 'Congé':'🏖️','Maladie':'🤒','Férié':'🎉','Formation':'📚','Autre':'📋' };
+
+    let cur = new Date();
+    let viewYear  = cur.getFullYear();
+    let viewMonth = cur.getMonth(); // 0-based
+    let holidayMap = {}; // 'YYYY-MM-DD' -> [{employee_nom, type, notes}]
+
+    function isoDate(y, m, d) {
+      return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+
+    function loadHolidays(year, month) {
+      const from = isoDate(year, month, 1);
+      const lastDay = new Date(year, month+1, 0).getDate();
+      const to   = isoDate(year, month, lastDay);
+      fetch(`/api/holidays?from=${from}&to=${to}`)
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+          holidayMap = {};
+          data.forEach(h => {
+            // Expand each holiday into individual days within this month
+            const start = new Date(h.date_start + 'T12:00:00');
+            const end   = new Date(h.date_end   + 'T12:00:00');
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
+              const iso = d.toISOString().slice(0,10);
+              if (!holidayMap[iso]) holidayMap[iso] = [];
+              holidayMap[iso].push(h);
+            }
+          });
+          renderCalendar(year, month);
+        })
+        .catch(() => renderCalendar(year, month));
+    }
+
+    function renderCalendar(year, month) {
+      const label = document.getElementById('sc-month-label');
+      if (label) label.textContent = MONTHS_FR[month] + ' ' + year;
+
+      const grid  = document.getElementById('sc-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      // Day-of-week headers
+      DOWS.forEach(d => {
+        const el = document.createElement('div');
+        el.className = 'sc-dow';
+        el.textContent = d;
+        grid.appendChild(el);
+      });
+
+      const todayISO = new Date().toISOString().slice(0,10);
+      const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+      const offset   = firstDay === 0 ? 6 : firstDay - 1; // Mon-first
+      const totalDays = new Date(year, month+1, 0).getDate();
+
+      // Empty cells before first day
+      for (let i = 0; i < offset; i++) {
+        const el = document.createElement('div');
+        el.className = 'sc-day sc-empty';
+        grid.appendChild(el);
+      }
+
+      // Day cells
+      for (let d = 1; d <= totalDays; d++) {
+        const iso = isoDate(year, month, d);
+        const hols = holidayMap[iso] || [];
+        const el = document.createElement('div');
+        el.className = 'sc-day';
+        if (iso === todayISO) el.classList.add('sc-today');
+        if (hols.length > 0)  el.classList.add('sc-has-holiday');
+
+        const dayNum = document.createElement('span');
+        dayNum.textContent = d;
+        el.appendChild(dayNum);
+
+        if (hols.length > 0) {
+          const dot = document.createElement('div');
+          dot.className = 'sc-dot';
+          el.appendChild(dot);
+
+          el.addEventListener('mouseenter', (e) => showTooltip(e, hols, iso));
+          el.addEventListener('mouseleave', hideTooltip);
+          el.addEventListener('click', () => { window.location.href = '/schedule/holidays'; });
+        }
+
+        grid.appendChild(el);
+      }
+    }
+
+    function showTooltip(e, hols, iso) {
+      const tt = document.getElementById('sc-tooltip');
+      if (!tt) return;
+      const date = new Date(iso + 'T12:00:00').toLocaleDateString('fr-CA', { day:'numeric', month:'long' });
+      let html = `<div style="font-weight:700; margin-bottom:4px; color:#ff6b35;">${date}</div>`;
+      hols.forEach(h => {
+        const icon = HOL_ICON[h.type] || '📋';
+        html += `<div>${icon} <strong>${h.employee_nom}</strong> — ${h.type}</div>`;
+        if (h.notes) html += `<div style="opacity:0.7; font-size:0.65rem; margin-left:14px;">${h.notes}</div>`;
+      });
+      tt.innerHTML = html;
+      tt.style.display = 'block';
+      posTooltip(e);
+    }
+
+    function posTooltip(e) {
+      const tt = document.getElementById('sc-tooltip');
+      if (!tt) return;
+      const x = Math.min(e.clientX + 12, window.innerWidth  - 220);
+      const y = Math.min(e.clientY + 12, window.innerHeight - 100);
+      tt.style.left = x + 'px';
+      tt.style.top  = y + 'px';
+    }
+
+    function hideTooltip() {
+      const tt = document.getElementById('sc-tooltip');
+      if (tt) tt.style.display = 'none';
+    }
+
+    document.getElementById('sc-prev').addEventListener('click', () => {
+      viewMonth--;
+      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      loadHolidays(viewYear, viewMonth);
+    });
+
+    document.getElementById('sc-next').addEventListener('click', () => {
+      viewMonth++;
+      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      loadHolidays(viewYear, viewMonth);
+    });
+
+    // Initial load
+    loadHolidays(viewYear, viewMonth);
+  })();
+  </script>
 
   <!-- ── TOP NAVBAR ─────────────────────────────────────── -->
   <nav class="navbar d-flex align-items-center">

@@ -267,6 +267,21 @@ db.serialize(() => {
     require('./config/permissions').load(() => console.log('✓ permissions cache loaded'));
   });
 });
+// Holidays API — accessible to all authenticated users (used by sidebar calendar)
+app.get('/api/holidays', (req, res) => {
+  if (!req.session.user) return res.status(401).json([]);
+  const { from, to } = req.query;
+  if (!from || !to) return res.json([]);
+  db.all(
+    `SELECT h.*, e.nom as employee_nom FROM employee_holidays h
+     JOIN employees e ON e.id = h.employee_id
+     WHERE h.date_start <= ? AND h.date_end >= ?
+     ORDER BY h.date_start`,
+    [to, from],
+    (err, rows) => res.json(err ? [] : rows)
+  );
+});
+
 app.get('/api/dashboard/stats', (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: 'Unauthorized' });
