@@ -272,14 +272,26 @@ app.get('/api/holidays', (req, res) => {
   if (!req.session.user) return res.status(401).json([]);
   const { from, to } = req.query;
   if (!from || !to) return res.json([]);
-  db.all(
-    `SELECT h.*, e.nom as employee_nom FROM employee_holidays h
-     JOIN employees e ON e.id = h.employee_id
-     WHERE h.date_start <= ? AND h.date_end >= ?
-     ORDER BY h.date_start`,
-    [to, from],
-    (err, rows) => res.json(err ? [] : rows)
-  );
+
+  const user = req.session.user;
+  // Determine department filter: admin uses selected dept, others use own dept
+  const dept = user.role === 'admin'
+    ? (req.session.adminDept || null)   // null = all depts
+    : (user.department || null);
+
+  let sql = `SELECT h.*, e.nom as employee_nom FROM employee_holidays h
+             JOIN employees e ON e.id = h.employee_id
+             WHERE h.date_start <= ? AND h.date_end >= ?`;
+  const params = [to, from];
+
+  if (dept) {
+    sql += ' AND e.department = ?';
+    params.push(dept);
+  }
+
+  sql += ' ORDER BY h.date_start';
+
+  db.all(sql, params, (err, rows) => res.json(err ? [] : rows));
 });
 
 app.get('/api/dashboard/stats', (req, res) => {
