@@ -181,10 +181,51 @@ router.get('/:id', (req, res) => {
     if (err || !employee) return res.status(404).render('error', { title: '404', message: 'Employé non trouvé', error: { status: 404 } });
     db.all('SELECT * FROM employee_attachments WHERE employee_id = ? ORDER BY created_at DESC',
       [req.params.id], (err2, attachments) => {
-        res.render('employees/detail', { title: employee.nom, employee, stations: STATIONS, attachments: attachments || [] });
+        db.all('SELECT * FROM employee_holidays WHERE employee_id = ? ORDER BY date_start DESC',
+          [req.params.id], (err3, holidays) => {
+            res.render('employees/detail', {
+              title: employee.nom, employee, stations: STATIONS,
+              attachments: attachments || [],
+              holidays: holidays || [],
+              holMessage: req.query.holMessage || null,
+              holError:   req.query.holError   || null,
+            });
+          }
+        );
       }
     );
   });
+});
+
+// ── Add holiday from employee profile ─────────────────────
+router.post('/:id/holidays', (req, res) => {
+  const { date_start, date_end, type, notes } = req.body;
+  const empId = req.params.id;
+  if (!date_start || !date_end) {
+    return res.redirect(`/employees/${empId}?holError=Dates requises#conges`);
+  }
+  if (date_end < date_start) {
+    return res.redirect(`/employees/${empId}?holError=La date de fin doit être après le début#conges`);
+  }
+  db.run(
+    `INSERT INTO employee_holidays (employee_id, date_start, date_end, type, notes, created_by)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [empId, date_start, date_end, type || 'Congé', notes || '', req.session.user.id],
+    (err) => {
+      if (err) { console.error(err); return res.redirect(`/employees/${empId}?holError=Erreur enregistrement#conges`); }
+      res.redirect(`/employees/${empId}?holMessage=Congé enregistré#conges`);
+    }
+  );
+});
+
+// ── Delete holiday from employee profile ──────────────────
+router.delete('/:id/holidays/:hid', (req, res) => {
+  db.run('DELETE FROM employee_holidays WHERE id = ? AND employee_id = ?',
+    [req.params.hid, req.params.id], (err) => {
+      if (err) console.error(err);
+      res.redirect(`/employees/${req.params.id}?holMessage=Congé supprimé#conges`);
+    }
+  );
 });
 
 // ── Edit form ─────────────────────────────────────────────

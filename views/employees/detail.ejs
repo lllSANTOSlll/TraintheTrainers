@@ -140,6 +140,138 @@
       </div>
     </div>
 
+    <!-- ══ CONGÉS / ABSENCES ══════════════════════════════════════════ -->
+    <div class="card" id="conges">
+      <div class="card-header fw-bold d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-calendar-heart me-2" style="color:#ff6b35;"></i>Congés &amp; Absences
+          <% const upcomingHols = holidays.filter(h => h.date_end >= new Date().toISOString().slice(0,10)); %>
+          <% if (upcomingHols.length > 0) { %>
+            <span class="badge ms-1" style="background:#ff6b35;"><%= upcomingHols.length %> à venir</span>
+          <% } %>
+        </span>
+      </div>
+      <div class="card-body">
+
+        <% if (holMessage) { %>
+          <div class="alert alert-success alert-sm py-2 small"><i class="bi bi-check-circle me-1"></i><%= holMessage %></div>
+        <% } %>
+        <% if (holError) { %>
+          <div class="alert alert-danger alert-sm py-2 small"><i class="bi bi-exclamation-triangle me-1"></i><%= holError %></div>
+        <% } %>
+
+        <!-- Add form -->
+        <form method="POST" action="/employees/<%= employee.id %>/holidays" class="row g-2 align-items-end mb-4 p-3 rounded" style="background:#fff8f0; border:1px solid #ffe0cc;">
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold mb-1">Type</label>
+            <select name="type" class="form-select form-select-sm">
+              <option value="Congé">🏖️ Congé</option>
+              <option value="Maladie">🤒 Maladie</option>
+              <option value="Férié">🎉 Férié</option>
+              <option value="Formation">📚 Formation ext.</option>
+              <option value="Autre">📋 Autre</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-semibold mb-1">Début *</label>
+            <input type="date" name="date_start" class="form-control form-control-sm" required id="hol-start" onchange="holDuration()">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-semibold mb-1">Fin *</label>
+            <input type="date" name="date_end" class="form-control form-control-sm" required id="hol-end" onchange="holDuration()">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold mb-1">Note</label>
+            <input type="text" name="notes" class="form-control form-control-sm" placeholder="Optionnel…" maxlength="100">
+          </div>
+          <div class="col-md-2">
+            <button type="submit" class="btn btn-sm w-100" style="background:#ff6b35; color:#fff; border:none;">
+              <i class="bi bi-plus-circle me-1"></i>Ajouter
+            </button>
+            <div id="hol-duration" class="text-muted" style="font-size:0.7rem; margin-top:3px; text-align:center;"></div>
+          </div>
+        </form>
+
+        <!-- List -->
+        <%
+          const today2 = new Date().toISOString().slice(0,10);
+          const upcoming2 = holidays.filter(h => h.date_end >= today2);
+          const past2     = holidays.filter(h => h.date_end <  today2);
+
+          function fmtRange(h) {
+            const opts = { day:'numeric', month:'short', year:'numeric' };
+            const s = new Date(h.date_start+'T12:00:00').toLocaleDateString('fr-CA', opts);
+            const e = new Date(h.date_end  +'T12:00:00').toLocaleDateString('fr-CA', opts);
+            return h.date_start === h.date_end ? s : s + ' → ' + e;
+          }
+          function nbD(h) {
+            return Math.round((new Date(h.date_end+'T12:00:00') - new Date(h.date_start+'T12:00:00')) / 86400000) + 1;
+          }
+          const HOL_COLORS = { 'Congé':'#fff3e0|#e65100', 'Maladie':'#fce4ec|#880e4f', 'Férié':'#e8f5e9|#1b5e20', 'Formation':'#e3f2fd|#0d47a1', 'Autre':'#f3e5f5|#4a148c' };
+          const HOL_ICONS  = { 'Congé':'🏖️', 'Maladie':'🤒', 'Férié':'🎉', 'Formation':'📚', 'Autre':'📋' };
+        %>
+
+        <% if (holidays.length === 0) { %>
+          <p class="text-muted small text-center py-3 mb-0"><i class="bi bi-calendar-check me-1"></i>Aucune absence enregistrée.</p>
+        <% } else { %>
+
+          <% if (upcoming2.length > 0) { %>
+            <p class="small fw-semibold text-muted mb-2"><i class="bi bi-calendar-check text-success me-1"></i>À venir / en cours</p>
+            <div class="d-flex flex-column gap-2 mb-3">
+              <% upcoming2.forEach(h => {
+                const [bg, fg] = (HOL_COLORS[h.type]||'#f3e5f5|#4a148c').split('|');
+              %>
+              <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:<%= bg %>; border-left: 3px solid <%= fg %>;">
+                <span style="font-size:1.1rem;"><%= HOL_ICONS[h.type] || '📋' %></span>
+                <div class="flex-grow-1">
+                  <span class="fw-semibold small" style="color:<%= fg %>;"><%= h.type %></span>
+                  <span class="small text-muted ms-2"><%= fmtRange(h) %></span>
+                  <span class="badge ms-1" style="background:<%= fg %>; font-size:0.65rem;"><%= nbD(h) %> j</span>
+                  <% if (h.notes) { %><span class="small text-muted ms-2 fst-italic"><%= h.notes %></span><% } %>
+                </div>
+                <form method="POST" action="/employees/<%= employee.id %>/holidays/<%= h.id %>?_method=DELETE"
+                      onsubmit="return confirm('Supprimer ce congé?')" class="mb-0">
+                  <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size:0.75rem;">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+              <% }); %>
+            </div>
+          <% } %>
+
+          <% if (past2.length > 0) { %>
+            <details>
+              <summary class="small fw-semibold text-muted mb-2" style="cursor:pointer;">
+                <i class="bi bi-clock-history me-1"></i>Historique (<%= past2.length %> passé<%= past2.length>1?'s':'' %>)
+              </summary>
+              <div class="d-flex flex-column gap-2 mt-2">
+                <% past2.slice(0,8).forEach(h => {
+                  const [bg, fg] = (HOL_COLORS[h.type]||'#f3e5f5|#4a148c').split('|');
+                %>
+                <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:<%= bg %>; border-left:3px solid <%= fg %>; opacity:0.65;">
+                  <span style="font-size:1rem;"><%= HOL_ICONS[h.type] || '📋' %></span>
+                  <div class="flex-grow-1">
+                    <span class="fw-semibold small" style="color:<%= fg %>;"><%= h.type %></span>
+                    <span class="small text-muted ms-2"><%= fmtRange(h) %></span>
+                    <span class="badge ms-1" style="background:<%= fg %>; font-size:0.65rem;"><%= nbD(h) %> j</span>
+                    <% if (h.notes) { %><span class="small text-muted ms-2 fst-italic"><%= h.notes %></span><% } %>
+                  </div>
+                  <form method="POST" action="/employees/<%= employee.id %>/holidays/<%= h.id %>?_method=DELETE"
+                        onsubmit="return confirm('Supprimer?')" class="mb-0">
+                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size:0.75rem;">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+                <% }); %>
+              </div>
+            </details>
+          <% } %>
+
+        <% } %>
+      </div>
+    </div>
+
     <!-- Attachments -->
     <div class="card" id="attachments">
       <div class="card-header fw-bold d-flex justify-content-between align-items-center">
@@ -238,6 +370,30 @@ function clearSelected() {
   input.value = '';
   document.getElementById('att-selected').style.display = 'none';
   document.getElementById('att-selected-list').innerHTML = '';
+}
+
+// Holiday duration hint
+(function() {
+  const today = new Date().toISOString().slice(0,10);
+  const s = document.getElementById('hol-start');
+  const e = document.getElementById('hol-end');
+  if (s) s.value = today;
+  if (e) e.value = today;
+})();
+
+function holDuration() {
+  const s = document.getElementById('hol-start');
+  const e = document.getElementById('hol-end');
+  const hint = document.getElementById('hol-duration');
+  if (!s || !e || !hint) return;
+  if (!s.value || !e.value) { hint.textContent = ''; return; }
+  const days = Math.round((new Date(e.value+'T12:00:00') - new Date(s.value+'T12:00:00')) / 86400000) + 1;
+  hint.textContent = days >= 1 ? `📅 ${days} jour${days > 1 ? 's' : ''}` : '⚠️ Date invalide';
+}
+
+// Scroll to holidays section if anchor in URL
+if (window.location.hash === '#conges') {
+  document.getElementById('conges') && document.getElementById('conges').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 </script>
 
