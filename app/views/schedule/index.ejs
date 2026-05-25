@@ -1,0 +1,181 @@
+﻿<%- include('../partials/header') %>
+
+<style>
+  .schedule-table { border-collapse: collapse; min-width: 100%; }
+  .schedule-table th, .schedule-table td { border: 1px solid #dee2e6; padding: 6px 8px; vertical-align: middle; }
+  .schedule-table thead th { background: #f8f9fa; font-size: 0.82rem; font-weight: 700; text-align: center; white-space: nowrap; }
+  .col-emp { min-width: 180px; position: sticky; left: 0; background: #fff; z-index: 2; }
+  .emp-avatar-sm { width:32px; height:32px; border-radius:50%; object-fit:cover; flex-shrink:0; border:1.5px solid #dee2e6; }
+  .emp-initials-sm { width:32px; height:32px; border-radius:50%; background:var(--dc-navy,#0d2137); color:#fff; display:flex; align-items:center; justify-content:center; font-size:.82rem; font-weight:700; flex-shrink:0; }
+  .col-shift-h, .col-shift-td { min-width: 60px; }
+  .day-col { min-width: 130px; }
+  .sched-select { font-size: 0.82rem; padding: 3px 6px; border: 1px solid #ced4da; border-radius: 4px; width: 100%; background: #fff; }
+  .sched-select:focus { outline: none; border-color: var(--primary-color); }
+  .sched-select.has-value { background: #e8f4fd; font-weight: 600; }
+  .alert-saved { position: fixed; top: 70px; right: 20px; z-index: 9999; }
+@media (max-width: 768px) {
+  .schedule-table thead { display: none; }
+  .schedule-table, .schedule-table tbody, .schedule-table tr, .schedule-table td { display: block; width: 100%; }
+  .schedule-table tr { border: 1px solid #dee2e6; border-radius: 8px; margin-bottom: 8px; padding: 8px; background: #fff; }
+  .schedule-table td { border: none; padding: 4px 6px; }
+  .col-emp { position: static; width: 100%; min-width: unset; }
+  .col-shift-td { display: inline-block; font-size: 0.75rem; color: #6c757d; }
+  .day-col { display: flex; align-items: center; gap: 6px; min-width: unset; }
+  .day-col::before { content: attr(data-day); font-size: 0.7rem; color: #999; min-width: 30px; }
+  .sched-select { font-size: 0.78rem; }
+  /* Week nav: stack buttons */
+  .schedule-table-wrapper { overflow-x: auto; }
+}
+</style>
+
+<% if (typeof query !== 'undefined' && query && query.saved) { %>
+  <div class="alert alert-success alert-dismissible fade show alert-saved" role="alert">
+    <i class="bi bi-check-circle me-1"></i> Planning enregistré avec succès.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h2 class="mb-0"><i class="bi bi-calendar-week me-2"></i>Planification hebdomadaire</h2>
+  <div class="d-flex gap-2 align-items-center">
+    <form method="GET" action="/schedule" class="d-flex gap-2 align-items-center">
+      <input type="hidden" name="week" value="<%= weekStart %>">
+      <select name="shift" class="form-select form-select-sm" style="max-width:130px" onchange="this.form.submit()">
+        <option value="" <%= filterShift === '' ? 'selected' : '' %>>Tous les shifts</option>
+        <option value="Jour" <%= filterShift === 'Jour' ? 'selected' : '' %>>Jour</option>
+        <option value="Soir" <%= filterShift === 'Soir' ? 'selected' : '' %>>Soir</option>
+        <option value="Nuit" <%= filterShift === 'Nuit' ? 'selected' : '' %>>Nuit</option>
+      </select>
+    </form>
+    <a href="/schedule/holidays" class="btn btn-outline-warning btn-sm">
+      <i class="bi bi-calendar-heart me-1"></i>Congés
+    </a>
+    <a href="/schedule/auto?week=<%= weekStart %>&shift=<%= filterShift %>" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-magic me-1"></i>Planifier semaine suivante
+    </a>
+    <button type="submit" form="schedule-form" class="btn btn-success btn-sm">
+      <i class="bi bi-check-circle me-1"></i>Enregistrer
+    </button>
+  </div>
+</div>
+
+<!-- Week navigation -->
+<div class="card mb-3">
+  <div class="card-body py-2 d-flex align-items-center justify-content-between">
+    <a href="/schedule?week=<%= prevWeek %>&shift=<%= filterShift %>" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-chevron-left"></i> Semaine précédente
+    </a>
+    <strong class="text-center small"><%= weekLabel %></strong>
+    <a href="/schedule?week=<%= nextWeek %>&shift=<%= filterShift %>" class="btn btn-outline-secondary btn-sm">
+      Semaine suivante <i class="bi bi-chevron-right"></i>
+    </a>
+  </div>
+</div>
+
+<% if (employees.length === 0) { %>
+  <div class="card text-center py-5">
+    <div class="card-body">
+      <i class="bi bi-calendar-x" style="font-size:3rem; color:#ccc;"></i>
+      <p class="text-muted mt-3 mb-3">Aucun employé actif trouvé. Importez et activez vos employés d'abord.</p>
+      <a href="/employees" class="btn btn-primary">Gérer les employés</a>
+    </div>
+  </div>
+<% } else { %>
+  <form id="schedule-form" action="/schedule/save" method="POST">
+    <input type="hidden" name="week_start" value="<%= weekStart %>">
+    <input type="hidden" name="shift" value="<%= filterShift %>">
+    <input type="hidden" name="employee_ids" value="<%= employees.map(e => e.id).join(',') %>">
+
+    <div class="card">
+      <div class="card-body p-0" style="overflow-x:auto;">
+        <table class="schedule-table">
+          <thead>
+            <tr>
+              <th class="col-emp">Employé</th>
+              <th class="col-shift-h text-center">Shift</th>
+              <% for (let i = 0; i < days.length; i++) { %>
+                <th class="day-col text-center">
+                  <div><%= dayLabels[i] %></div>
+                  <div class="fw-normal text-muted" style="font-size:0.72rem"><%= dayDates[i] %></div>
+                </th>
+              <% } %>
+            </tr>
+          </thead>
+          <tbody>
+            <% employees.forEach(e => {
+              const sched      = schedMap[e.id] || {};
+              const empHols    = (holidayInfo && holidayInfo[e.id]) || {};
+              const trained    = stations.filter(s => (e[s.key]||'').trim() === 'Oui').map(s => s.key);
+              const hasHolThisWeek = days.some(d => empHols[d]);
+            %>
+            <tr>
+              <td class="col-emp">
+                <div class="d-flex align-items-center gap-2">
+                  <% if (e.photo) { %>
+                    <img src="<%= e.photo %>" alt="<%= e.nom %>" class="emp-avatar-sm"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div class="emp-initials-sm" style="display:none;"><%= (e.nom || 'E').charAt(0).toUpperCase() %></div>
+                  <% } else { %>
+                    <div class="emp-initials-sm"><%= (e.nom || 'E').charAt(0).toUpperCase() %></div>
+                  <% } %>
+                  <div>
+                    <a href="/employees/<%= e.id %>" class="fw-medium text-decoration-none d-block" style="line-height:1.2;"><%= e.nom %></a>
+                    <div class="text-muted" style="font-size:0.72rem"><%= e.poste || '' %></div>
+                    <% if (hasHolThisWeek) { %>
+                      <span class="badge" style="background:#ff6b35;font-size:0.62rem;">🏖️ Congé</span>
+                    <% } %>
+                  </div>
+                </div>
+              </td>
+              <td class="col-shift-td text-center text-muted small"><%= e.shift || '—' %></td>
+              <% days.forEach((d, di) => {
+                const hol    = empHols[d];
+                const curVal = sched[d] || '';
+              %>
+                <% if (hol) { %>
+                  <%/* Holiday cell — locked, not editable */%>
+                  <td class="day-col p-1 text-center" data-day="<%= dayLabels[di].slice(0,3) %>" style="background:#fff3e0;">
+                    <input type="hidden" name="<%= e.id %>_<%= d %>" value="<%= hol.type %>">
+                    <span class="badge" style="background:#ff6b35; font-size:0.78rem; padding:4px 8px;" title="<%= hol.notes || hol.type %>">
+                      🏖️ <%= hol.type %>
+                    </span>
+                    <% if (hol.notes) { %>
+                      <div class="text-muted" style="font-size:0.68rem; margin-top:2px;"><%= hol.notes %></div>
+                    <% } %>
+                  </td>
+                <% } else { %>
+                  <td class="day-col p-1" data-day="<%= dayLabels[di].slice(0,3) %>">
+                    <select class="sched-select <%= curVal ? 'has-value' : '' %>"
+                            name="<%= e.id %>_<%= d %>"
+                            onchange="this.classList.toggle('has-value', !!this.value)">
+                      <option value="">— Repos —</option>
+                      <% stations.filter(s => trained.includes(s.key)).forEach(s => { %>
+                        <option value="<%= s.key %>" <%= curVal === s.key ? 'selected' : '' %>>
+                          <%= s.label %>
+                        </option>
+                      <% }); %>
+                    </select>
+                  </td>
+                <% } %>
+              <% }); %>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="text-muted small mt-2">
+      <i class="bi bi-info-circle me-1"></i>Seules les stations maîtrisées par l'employé sont affichées.
+    </p>
+  </form>
+<% } %>
+
+<script>
+  // Auto-dismiss the saved alert
+  setTimeout(() => {
+    const el = document.querySelector('.alert-saved');
+    if (el) el.remove();
+  }, 4000);
+</script>
+
+<%- include('../partials/footer') %>

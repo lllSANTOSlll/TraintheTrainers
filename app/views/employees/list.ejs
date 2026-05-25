@@ -1,0 +1,219 @@
+<%- include('../partials/header') %>
+
+<style>
+  .emp-avatar { width:40px; height:40px; border-radius:50%; background:var(--primary-color); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1rem; flex-shrink:0; }
+  .badge-actif   { background:#28a745; }
+  .badge-inactif { background:#6c757d; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h2 class="mb-0"><i class="bi bi-people-fill me-2"></i>Employés</h2>
+  <div class="d-flex gap-2 flex-wrap">
+    <% if (user.role === 'admin') { %>
+      <button class="btn btn-outline-warning btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#bulk-dept-panel">
+        <i class="bi bi-building me-1"></i><span class="btn-label">Assigner département</span>
+      </button>
+    <% } %>
+    <a href="/employees/import" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-upload me-1"></i><span class="btn-label">Import CSV</span>
+    </a>
+    <a href="/employees/new" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-circle me-1"></i><span class="btn-label">Nouvel employé</span>
+    </a>
+  </div>
+</div>
+
+<% if (user.role === 'admin') { %>
+<div class="collapse mb-3" id="bulk-dept-panel">
+  <div class="card border-warning">
+    <div class="card-body py-3">
+      <h6 class="mb-2"><i class="bi bi-building me-1"></i>Assigner un département en masse</h6>
+      <p class="text-muted small mb-3">Assigne un département à tous les employés qui n'en ont pas encore, ou filtrés par équipe.</p>
+      <form method="POST" action="/employees/bulk-dept" class="d-flex flex-wrap gap-2 align-items-end">
+        <div>
+          <label class="form-label small mb-1">Département</label>
+          <select name="department" class="form-select form-select-sm" required style="min-width:160px">
+            <option value="">— Choisir —</option>
+            <option value="Operations">Opérations</option>
+            <option value="Technicians">Techniciens</option>
+            <option value="Logistics">Logistique</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label small mb-1">Filtrer par équipe (optionnel)</label>
+          <input type="text" name="equipe" class="form-control form-control-sm" placeholder="ex: Production" style="min-width:160px">
+        </div>
+        <div>
+          <label class="form-label small mb-1">Appliquer à</label>
+          <select name="scope" class="form-select form-select-sm">
+            <option value="unassigned">Sans département seulement</option>
+            <option value="all">Tous (écraser)</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-warning btn-sm">
+          <i class="bi bi-check-circle me-1"></i>Appliquer
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<% if (noDeptWarning) { %>
+  <div class="alert alert-warning d-flex align-items-center gap-2">
+    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+    <div>
+      <strong>Département non assigné.</strong>
+      Votre compte utilisateur n'a pas de département. Contactez un administrateur pour l'assigner.
+    </div>
+  </div>
+<% } %>
+
+<% if (typeof bulkSuccess !== 'undefined' && bulkSuccess) { %>
+  <div class="alert alert-success"><i class="bi bi-check-circle me-2"></i><strong><%= bulkSuccess %> employé(s)</strong> mis à jour.</div>
+<% } %>
+
+<% if (employees.length === 0 && !noDeptWarning) { %>
+  <div class="card text-center py-5">
+    <div class="card-body">
+      <i class="bi bi-people" style="font-size:3rem; color:#ccc;"></i>
+      <p class="text-muted mt-3 mb-3">Aucun employé enregistré.</p>
+      <div class="d-flex gap-2 justify-content-center">
+        <a href="/employees/import" class="btn btn-outline-primary"><i class="bi bi-upload me-1"></i>Importer depuis CSV</a>
+        <a href="/employees/new" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>Ajouter manuellement</a>
+      </div>
+    </div>
+  </div>
+<% } else { %>
+  <div class="card">
+    <div class="card-body p-0">
+      <!-- Filters -->
+      <div class="p-3 border-bottom d-flex gap-2 flex-wrap align-items-center">
+        <input type="text" id="emp-search" class="form-control form-control-sm" placeholder="Rechercher..." style="max-width:200px">
+        <select id="filter-shift" class="form-select form-select-sm" style="max-width:130px">
+          <option value="">Tous les shifts</option>
+          <option value="Jour">Jour</option>
+          <option value="Soir">Soir</option>
+          <option value="Nuit">Nuit</option>
+        </select>
+        <select id="filter-statut" class="form-select form-select-sm" style="max-width:130px">
+          <option value="">Tous les statuts</option>
+          <option value="Actif">Actif</option>
+          <option value="Inactif">Inactif</option>
+        </select>
+        <span class="text-muted small ms-auto" id="emp-count"><%= employees.length %> employé(s)</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="emp-table">
+          <thead class="table-light">
+            <tr>
+              <th>Employé</th>
+              <th class="col-hide-mobile">Poste</th>
+              <th class="col-hide-mobile">Shift</th>
+              <th class="col-hide-mobile">Équipe</th>
+              <th class="text-center col-hide-mobile">Stations</th>
+              <th>Statut</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% employees.forEach(e => { %>
+            <tr data-shift="<%= e.shift || '' %>" data-statut="<%= e.statut || '' %>">
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <% if (e.photo) { %>
+                    <img src="<%= e.photo %>" alt="<%= e.nom %>" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div class="emp-avatar" style="display:none;"><%= (e.nom || 'E').charAt(0).toUpperCase() %></div>
+                  <% } else { %>
+                    <div class="emp-avatar"><%= (e.nom || 'E').charAt(0).toUpperCase() %></div>
+                  <% } %>
+                  <div>
+                    <a href="/employees/<%= e.id %>" class="fw-medium text-decoration-none d-block"><%= e.nom %></a>
+                    <div class="d-md-none text-muted" style="font-size:0.72rem;"><%= e.poste || '' %><% if(e.shift){ %> · <%= e.shift %><% } %></div>
+                  </div>
+                </div>
+              </td>
+              <td class="text-muted small col-hide-mobile"><%= e.poste || '—' %></td>
+              <td class="col-hide-mobile"><%= e.shift || '—' %></td>
+              <td class="col-hide-mobile"><%= e.equipe || '—' %></td>
+              <td class="text-center col-hide-mobile">
+                <span class="badge bg-primary rounded-pill"><%= e.nb_stations || 0 %></span>
+              </td>
+              <td>
+                <% if (e.statut === 'Actif' || e.statut === 'Active') { %>
+                  <span class="badge badge-actif">Actif</span>
+                <% } else { %>
+                  <span class="badge badge-inactif"><%= e.statut || 'Inactif' %></span>
+                <% } %>
+              </td>
+              <td class="text-end">
+                <a href="/employees/<%= e.id %>" class="btn btn-sm btn-outline-secondary me-1" title="Voir"><i class="bi bi-eye"></i></a>
+                <a href="/employees/<%= e.id %>/edit" class="btn btn-sm btn-outline-warning me-1" title="Modifier"><i class="bi bi-pencil"></i></a>
+                <form action="/employees/<%= e.id %>?_method=DELETE" method="POST" class="d-inline"
+                  onsubmit="return confirm('Supprimer cet employé ?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% } %>
+
+<script>
+  const search = document.getElementById('emp-search');
+  const filterShift = document.getElementById('filter-shift');
+  const filterStatut = document.getElementById('filter-statut');
+  const countEl = document.getElementById('emp-count');
+  const STORE = 'filters_employees';
+
+  // Restore saved filters
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE) || '{}');
+    if (saved.search  && search)       search.value       = saved.search;
+    if (saved.shift   && filterShift)  filterShift.value  = saved.shift;
+    if (saved.statut  && filterStatut) filterStatut.value = saved.statut;
+  } catch(e) {}
+
+  function saveFilters() {
+    try {
+      localStorage.setItem(STORE, JSON.stringify({
+        search: search?.value || '',
+        shift:  filterShift?.value  || '',
+        statut: filterStatut?.value || ''
+      }));
+    } catch(e) {}
+  }
+
+  function applyFilters() {
+    const q = (search?.value || '').toLowerCase();
+    const shift = filterShift?.value || '';
+    const statut = filterStatut?.value || '';
+    let n = 0;
+    document.querySelectorAll('#emp-table tbody tr').forEach(row => {
+      const ok = (!q || row.textContent.toLowerCase().includes(q))
+               && (!shift  || row.dataset.shift  === shift)
+               && (!statut || row.dataset.statut === statut
+                           || (statut === 'Actif'   && row.dataset.statut === 'Active')
+                           || (statut === 'Inactif' && row.dataset.statut === 'Inactive'));
+      row.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    if (countEl) countEl.textContent = n + ' employé(s)';
+    saveFilters();
+  }
+
+  search?.addEventListener('input', applyFilters);
+  filterShift?.addEventListener('change', applyFilters);
+  filterStatut?.addEventListener('change', applyFilters);
+
+  // Apply on load
+  applyFilters();
+</script>
+
+<%- include('../partials/footer') %>

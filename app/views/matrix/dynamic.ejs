@@ -1,0 +1,200 @@
+<%- include('../partials/header') %>
+
+<style>
+  .dyn-table { border-collapse: collapse; min-width: 100%; font-size: 0.83rem; }
+  .dyn-table th, .dyn-table td { border: 1px solid #dee2e6; padding: 5px 8px; vertical-align: middle; }
+  .dyn-table thead th { background: #f8f9fa; font-weight: 700; text-align: center; white-space: nowrap; }
+  .col-emp { min-width: 170px; position: sticky; left: 0; background: #fff; z-index: 2; }
+  .col-data { min-width: 110px; text-align: center; }
+  .col-new  { min-width: 140px; background: #fffbea; }
+  .val-select { font-size: 0.8rem; padding: 2px 4px; border: 1px solid #ced4da; border-radius: 4px; width: 100%; }
+  .val-select.v-oui    { background:#d4edda; color:#155724; font-weight:600; }
+  .val-select.v-form   { background:#fff3cd; color:#856404; font-weight:600; }
+  .val-select.v-revoir { background:#fde8d8; color:#7d3c0e; font-weight:600; }
+  .col-header-wrap { display:flex; align-items:center; justify-content:center; gap:4px; }
+  .btn-del-col { background:none; border:none; color:#dc3545; cursor:pointer; font-size:0.75rem; padding:0; line-height:1; }
+  .new-col-input { border:none; background:transparent; font-weight:700; text-align:center; width:100%; font-size:0.83rem; outline:none; border-bottom:2px dashed #ffc107; }
+  .new-col-input::placeholder { color:#aaa; font-weight:400; }
+  .alert-saved { position:fixed; top:70px; right:20px; z-index:9999; }
+@media (max-width: 768px) {
+  .col-emp { min-width: 110px; }
+  .col-data { min-width: 80px; }
+}
+</style>
+
+<% if (saved) { %>
+  <div class="alert alert-success alert-dismissible fade show alert-saved" role="alert">
+    <i class="bi bi-check-circle me-1"></i> Matrice enregistrée.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h2 class="mb-0"><i class="bi bi-grid-3x3 me-2"></i>Matrice de formation
+    <span class="badge bg-secondary ms-2" style="font-size:0.7rem;"><%= dept %></span>
+  </h2>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <!-- Filters -->
+    <form method="GET" action="/matrix" class="d-flex gap-2 align-items-center">
+      <select name="shift" class="form-select form-select-sm" style="max-width:120px" onchange="this.form.submit()">
+        <option value="" <%= filterShift==='' ? 'selected':'' %>>Tous shifts</option>
+        <option value="Jour"  <%= filterShift==='Jour'  ? 'selected':'' %>>Jour</option>
+        <option value="Soir"  <%= filterShift==='Soir'  ? 'selected':'' %>>Soir</option>
+        <option value="Nuit"  <%= filterShift==='Nuit'  ? 'selected':'' %>>Nuit</option>
+      </select>
+      <select name="statut" class="form-select form-select-sm" style="max-width:120px" onchange="this.form.submit()">
+        <option value="Actif"   <%= filterStatut==='Actif'   ? 'selected':'' %>>Actifs</option>
+        <option value="Inactif" <%= filterStatut==='Inactif' ? 'selected':'' %>>Inactifs</option>
+        <option value=""        <%= filterStatut===''        ? 'selected':'' %>>Tous</option>
+      </select>
+    </form>
+    <button type="button" class="btn btn-outline-warning btn-sm" onclick="addColumn()">
+      <i class="bi bi-plus-circle me-1"></i>Ajouter colonne
+    </button>
+    <button type="button" class="btn btn-success btn-sm" onclick="saveMatrix()">
+      <i class="bi bi-check-circle me-1"></i>Enregistrer
+    </button>
+  </div>
+</div>
+
+<% if (employees.length === 0) { %>
+  <div class="card text-center py-5">
+    <div class="card-body">
+      <i class="bi bi-people" style="font-size:3rem;color:#ccc;"></i>
+      <p class="text-muted mt-3">Aucun employé actif dans ce département.</p>
+      <a href="/employees" class="btn btn-primary">Gérer les employés</a>
+    </div>
+  </div>
+<% } else { %>
+
+<div class="card">
+  <div class="card-body p-0" style="overflow-x:auto;">
+    <table class="dyn-table" id="matrix-table">
+      <thead>
+        <tr id="header-row">
+          <th class="col-emp">Employé</th>
+          <% columns.forEach(col => { %>
+          <th class="col-data" data-col-id="<%= col.id %>">
+            <div class="col-header-wrap">
+              <span><%= col.name %></span>
+              <button class="btn-del-col" onclick="deleteColumn(<%= col.id %>, this)" title="Supprimer cette colonne">✕</button>
+            </div>
+          </th>
+          <% }); %>
+          <!-- new columns inserted here by JS -->
+        </tr>
+      </thead>
+      <tbody>
+        <% employees.forEach(emp => { %>
+        <tr data-emp-id="<%= emp.id %>">
+          <td class="col-emp">
+            <a href="/employees/<%= emp.id %>" class="fw-medium text-decoration-none"><%= emp.nom %></a>
+            <div class="text-muted" style="font-size:0.72rem"><%= emp.poste || '' %> — <%= emp.shift || '' %></div>
+          </td>
+          <% columns.forEach(col => {
+            const val = (valuesMap[emp.id] && valuesMap[emp.id][col.id]) || '';
+          %>
+          <td class="col-data" data-col-id="<%= col.id %>">
+            <select class="val-select <%= val==='Oui' ? 'v-oui' : val==='Formation' ? 'v-form' : val==='À revoir' ? 'v-revoir' : '' %>"
+                    data-emp="<%= emp.id %>" data-col="<%= col.id %>"
+                    onchange="colorSelect(this)">
+              <option value="">—</option>
+              <option value="Oui"       <%= val==='Oui'       ? 'selected':'' %>>✅ Oui</option>
+              <option value="Formation" <%= val==='Formation' ? 'selected':'' %>>⚡ Formation</option>
+              <option value="À revoir"  <%= val==='À revoir'  ? 'selected':'' %>>⚠ À revoir</option>
+            </select>
+          </td>
+          <% }); %>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p class="text-muted small mt-2">
+  <i class="bi bi-info-circle me-1"></i>
+  Cliquez <strong>Ajouter colonne</strong> pour créer une nouvelle compétence, puis <strong>Enregistrer</strong> pour sauvegarder.
+</p>
+
+<% } %>
+
+<!-- Hidden save form -->
+<form id="save-form" method="POST" action="/matrix/dynamic-save" style="display:none;">
+  <input type="hidden" name="new_columns" id="new-cols-input">
+  <input type="hidden" name="values_json" id="values-json-input">
+</form>
+
+<script>
+let newColCount = 0;
+
+function colorSelect(sel) {
+  sel.className = 'val-select';
+  if (sel.value === 'Oui')       sel.classList.add('v-oui');
+  if (sel.value === 'Formation') sel.classList.add('v-form');
+  if (sel.value === 'À revoir')  sel.classList.add('v-revoir');
+}
+
+function addColumn() {
+  const colId = 'new_' + (++newColCount);
+  const headerRow = document.getElementById('header-row');
+  const th = document.createElement('th');
+  th.className = 'col-new';
+  th.dataset.colId = colId;
+  th.innerHTML = `<input class="new-col-input" placeholder="Nom de la compétence…" data-new-col="${colId}">`;
+  headerRow.appendChild(th);
+
+  // Add a cell to every employee row
+  document.querySelectorAll('#matrix-table tbody tr').forEach(row => {
+    const td = document.createElement('td');
+    td.className = 'col-new col-data';
+    td.dataset.colId = colId;
+    const empId = row.dataset.empId;
+    td.innerHTML = `<select class="val-select" data-emp="${empId}" data-col="${colId}" onchange="colorSelect(this)">
+      <option value="">—</option>
+      <option value="Oui">✅ Oui</option>
+      <option value="Formation">⚡ Formation</option>
+      <option value="À revoir">⚠ À revoir</option>
+    </select>`;
+    row.appendChild(td);
+  });
+}
+
+function deleteColumn(colId, btn) {
+  if (!confirm('Supprimer cette colonne et toutes ses valeurs ?')) return;
+  fetch('/matrix/columns/' + colId, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        document.querySelectorAll(`[data-col-id="${colId}"]`).forEach(el => el.remove());
+      }
+    });
+}
+
+function saveMatrix() {
+  // Collect new column names
+  const newCols = [];
+  document.querySelectorAll('[data-new-col]').forEach(input => {
+    if (input.value.trim()) newCols.push(input.value.trim());
+  });
+  document.getElementById('new-cols-input').value = newCols.join('\n');
+
+  // Collect all values
+  const values = {};
+  document.querySelectorAll('select.val-select[data-emp][data-col]').forEach(sel => {
+    const empId = sel.dataset.emp;
+    const colId = sel.dataset.col;
+    if (String(colId).startsWith('new_')) return; // new cols handled server-side
+    if (!values[empId]) values[empId] = {};
+    values[empId][colId] = sel.value;
+  });
+  document.getElementById('values-json-input').value = JSON.stringify(values);
+
+  document.getElementById('save-form').submit();
+}
+
+// Auto-dismiss alert
+setTimeout(() => { const el = document.querySelector('.alert-saved'); if (el) el.remove(); }, 4000);
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,290 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2>
+        <i class="bi bi-pencil-square"></i>
+        <%= template.title %>
+      </h2>
+      <p class="text-muted mb-0"><%= template.description || 'Aucune description' %></p>
+    </div>
+    <a href="/checklists" class="btn btn-secondary">
+      <i class="bi bi-arrow-left"></i> Retour
+    </a>
+  </div>
+
+  <% if (message) { %>
+    <div class="alert alert-success alert-dismissible fade show">
+      <i class="bi bi-check-circle"></i> <%= message %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <div class="row">
+    <!-- Add Item Form -->
+    <div class="col-lg-4 mb-4">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Ajouter un Élément</h5>
+        </div>
+        <div class="card-body">
+          <form id="addItemForm">
+            <div class="mb-3">
+              <label class="form-label">Jour *</label>
+              <select class="form-select" name="jour" required>
+                <option value="1">Jour 1</option>
+                <option value="2">Jour 2</option>
+                <option value="3">Jour 3</option>
+                <option value="4">Jour 4</option>
+                <option value="5">Jour 5</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Catégorie *</label>
+              <input type="text" class="form-control" name="categorie" required
+                     placeholder="Ex: Environnement, Tâches">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Sous-catégorie</label>
+              <input type="text" class="form-control" name="sous_categorie"
+                     placeholder="Ex: Magasin, Stations">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Quoi expliquer *</label>
+              <textarea class="form-control" name="quoi_expliquer" rows="3" required
+                        placeholder="Description de ce qui doit être expliqué..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-plus-circle"></i> Ajouter
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Items List -->
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">
+            <i class="bi bi-list-check"></i>
+            Éléments (<span id="itemCount"><%= items.length %></span>)
+          </h5>
+        </div>
+        <div class="card-body" id="itemsList">
+          <% if (items.length === 0) { %>
+            <div class="alert alert-info mb-0">
+              <i class="bi bi-info-circle"></i>
+              Aucun élément. Ajoutez-en avec le formulaire à gauche!
+            </div>
+          <% } else { %>
+            <% items.forEach(item => { %>
+              <div class="card mb-2" id="item-<%= item.id %>">
+                <div class="card-body py-2">
+                  <!-- Display Mode -->
+                  <div class="item-display" id="display-<%= item.id %>">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div class="flex-grow-1">
+                        <span class="badge bg-secondary me-2">Jour <span class="display-jour"><%= item.jour %></span></span>
+                        <strong class="display-cat"><%= item.categorie %></strong>
+                        <% if (item.sous_categorie) { %>
+                          <i class="bi bi-arrow-right-short"></i>
+                          <em class="display-sous"><%= item.sous_categorie %></em>
+                        <% } else { %>
+                          <em class="display-sous"></em>
+                        <% } %>
+                        <p class="mb-0 mt-1 text-muted display-quoi">
+                          <%= item.quoi_expliquer %>
+                        </p>
+                      </div>
+                      <div class="ms-2">
+                        <button class="btn btn-sm btn-outline-warning" 
+                                onclick="editItem(<%= item.id %>)"
+                                title="Modifier">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" 
+                                onclick="deleteItem(<%= item.id %>)"
+                                title="Supprimer">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Edit Mode -->
+                  <div class="item-edit d-none" id="edit-<%= item.id %>">
+                    <div class="row g-2 mb-2">
+                      <div class="col-md-3">
+                        <label class="form-label small">Jour</label>
+                        <select class="form-select form-select-sm edit-jour">
+                          <option value="1" <%= item.jour === 1 ? 'selected' : '' %>>Jour 1</option>
+                          <option value="2" <%= item.jour === 2 ? 'selected' : '' %>>Jour 2</option>
+                          <option value="3" <%= item.jour === 3 ? 'selected' : '' %>>Jour 3</option>
+                          <option value="4" <%= item.jour === 4 ? 'selected' : '' %>>Jour 4</option>
+                          <option value="5" <%= item.jour === 5 ? 'selected' : '' %>>Jour 5</option>
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label small">Catégorie</label>
+                        <input type="text" class="form-control form-control-sm edit-cat" 
+                               value="<%= item.categorie %>">
+                      </div>
+                      <div class="col-md-5">
+                        <label class="form-label small">Sous-catégorie</label>
+                        <input type="text" class="form-control form-control-sm edit-sous" 
+                               value="<%= item.sous_categorie || '' %>">
+                      </div>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small">Quoi expliquer</label>
+                      <textarea class="form-control form-control-sm edit-quoi" rows="2"><%= item.quoi_expliquer %></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-sm btn-success" onclick="saveEdit(<%= item.id %>)">
+                        <i class="bi bi-check-circle"></i> Sauver
+                      </button>
+                      <button class="btn btn-sm btn-secondary" onclick="cancelEdit(<%= item.id %>)">
+                        <i class="bi bi-x-circle"></i> Annuler
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const templateId = <%= template.id %>;
+
+// Add item
+document.getElementById('addItemForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  const formData = new FormData(this);
+  const data = Object.fromEntries(formData);
+  
+  try {
+    const response = await fetch('/checklists/' + templateId + '/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    if (result.success) {
+      location.reload();
+    } else {
+      alert('Erreur lors de l\'ajout');
+    }
+  } catch (err) {
+    alert('Erreur: ' + err.message);
+  }
+});
+
+// Edit item - show edit form
+function editItem(itemId) {
+  document.getElementById('display-' + itemId).classList.add('d-none');
+  document.getElementById('edit-' + itemId).classList.remove('d-none');
+}
+
+// Cancel edit
+function cancelEdit(itemId) {
+  document.getElementById('display-' + itemId).classList.remove('d-none');
+  document.getElementById('edit-' + itemId).classList.add('d-none');
+}
+
+// Save edit
+function saveEdit(itemId) {
+  const editDiv = document.getElementById('edit-' + itemId);
+  const jour = editDiv.querySelector('.edit-jour').value;
+  const categorie = editDiv.querySelector('.edit-cat').value;
+  const sous = editDiv.querySelector('.edit-sous').value;
+  const quoi = editDiv.querySelector('.edit-quoi').value;
+  
+  if (!categorie.trim() || !quoi.trim()) {
+    alert('Catégorie et description sont requis');
+    return;
+  }
+  
+  fetch('/checklists/' + templateId + '/items/' + itemId + '/edit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jour: parseInt(jour),
+      categorie: categorie,
+      sous_categorie: sous,
+      quoi_expliquer: quoi
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      // Update display
+      const display = document.getElementById('display-' + itemId);
+      display.querySelector('.display-jour').textContent = jour;
+      display.querySelector('.display-cat').textContent = categorie;
+      
+      const sousEl = display.querySelector('.display-sous');
+      if (sous) {
+        sousEl.textContent = sous;
+        // Add arrow if missing
+        if (!display.querySelector('.bi-arrow-right-short')) {
+          const arrow = document.createElement('i');
+          arrow.className = 'bi bi-arrow-right-short';
+          sousEl.parentNode.insertBefore(arrow, sousEl);
+        }
+      } else {
+        sousEl.textContent = '';
+      }
+      
+      display.querySelector('.display-quoi').textContent = quoi;
+      
+      cancelEdit(itemId);
+    } else {
+      alert('Erreur lors de la sauvegarde');
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    alert('Erreur de connexion');
+  });
+}
+
+// Delete item
+async function deleteItem(itemId) {
+  if (!confirm('Supprimer cet élément?')) return;
+  
+  try {
+    const response = await fetch('/checklists/' + templateId + '/items/' + itemId + '?_method=DELETE', {
+      method: 'POST'
+    });
+    
+    const result = await response.json();
+    if (result.success) {
+      document.getElementById('item-' + itemId).remove();
+      const count = parseInt(document.getElementById('itemCount').textContent);
+      document.getElementById('itemCount').textContent = count - 1;
+      
+      if (count - 1 === 0) {
+        document.getElementById('itemsList').innerHTML = 
+          '<div class="alert alert-info mb-0"><i class="bi bi-info-circle"></i> Aucun élément. Ajoutez-en avec le formulaire à gauche!</div>';
+      }
+    }
+  } catch (err) {
+    alert('Erreur: ' + err.message);
+  }
+}
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,153 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="mb-4">
+    <h2><i class="bi bi-clipboard-check"></i> Nouvelle Évaluation</h2>
+    <p class="text-muted">Formateur: <strong><%= trainer.nom_prenom %></strong></p>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card">
+        <div class="card-body">
+          <form method="POST" action="/evaluations">
+            <input type="hidden" name="trainer_id" value="<%= trainer.id %>">
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="formation" class="form-label">Formation *</label>
+                  <input type="text" class="form-control" id="formation" name="formation" 
+                         value="<%= evaluation ? evaluation.formation : '' %>" required
+                         placeholder="Ex: Formation TWI, Water Spider, etc.">
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="date_evaluation" class="form-label">Date d'évaluation *</label>
+                  <input type="date" class="form-control" id="date_evaluation" name="date_evaluation" 
+                         value="<%= evaluation ? evaluation.date_evaluation : new Date().toISOString().split('T')[0] %>" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="evaluateur" class="form-label">Évaluateur *</label>
+              <input type="text" class="form-control" id="evaluateur" name="evaluateur" 
+                     value="<%= evaluation ? evaluation.evaluateur : user.full_name || user.username %>" required>
+            </div>
+
+            <hr class="my-4">
+
+            <h5 class="mb-3"><i class="bi bi-star"></i> Critères d'Évaluation</h5>
+            <p class="text-muted">Échelle: 1 = Insuffisant | 2 = À améliorer | 3 = Satisfaisant | 4 = Très bien | 5 = Excellent</p>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Maîtrise technique</label>
+                <div class="d-flex gap-2">
+                  <% for(let i = 1; i <= 5; i++) { %>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="maitrise_technique" 
+                             id="maitrise_<%= i %>" value="<%= i %>" required>
+                      <label class="form-check-label" for="maitrise_<%= i %>"><%= i %></label>
+                    </div>
+                  <% } %>
+                </div>
+                <small class="text-muted">Compréhension et application des concepts techniques</small>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Compétences pédagogiques</label>
+                <div class="d-flex gap-2">
+                  <% for(let i = 1; i <= 5; i++) { %>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="competences_pedagogiques" 
+                             id="pedagogiques_<%= i %>" value="<%= i %>" required>
+                      <label class="form-check-label" for="pedagogiques_<%= i %>"><%= i %></label>
+                    </div>
+                  <% } %>
+                </div>
+                <small class="text-muted">Capacité à transmettre clairement les informations</small>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Communication</label>
+                <div class="d-flex gap-2">
+                  <% for(let i = 1; i <= 5; i++) { %>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="communication" 
+                             id="communication_<%= i %>" value="<%= i %>" required>
+                      <label class="form-check-label" for="communication_<%= i %>"><%= i %></label>
+                    </div>
+                  <% } %>
+                </div>
+                <small class="text-muted">Clarté, écoute et interaction avec les participants</small>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Application des standards de qualité</label>
+                <div class="d-flex gap-2">
+                  <% for(let i = 1; i <= 5; i++) { %>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="standards_qualite" 
+                             id="standards_<%= i %>" value="<%= i %>" required>
+                      <label class="form-check-label" for="standards_<%= i %>"><%= i %></label>
+                    </div>
+                  <% } %>
+                </div>
+                <small class="text-muted">Respect des procédures, sécurité et normes internes</small>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Engagement et autonomie</label>
+                <div class="d-flex gap-2">
+                  <% for(let i = 1; i <= 5; i++) { %>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="engagement_autonomie" 
+                             id="engagement_<%= i %>" value="<%= i %>" required>
+                      <label class="form-check-label" for="engagement_<%= i %>"><%= i %></label>
+                    </div>
+                  <% } %>
+                </div>
+                <small class="text-muted">Initiative et participation active</small>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Capacité d'adaptation</label>
+                <div class="d-flex gap-2">
+                  <% for(let i = 1; i <= 5; i++) { %>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="capacite_adaptation" 
+                             id="adaptation_<%= i %>" value="<%= i %>" required>
+                      <label class="form-check-label" for="adaptation_<%= i %>"><%= i %></label>
+                    </div>
+                  <% } %>
+                </div>
+                <small class="text-muted">Réaction face aux situations imprévues</small>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="remarques_generales" class="form-label">Remarques générales / Conclusion</label>
+              <textarea class="form-control" id="remarques_generales" name="remarques_generales" 
+                        rows="4"><%= evaluation ? evaluation.remarques_generales || '' : '' %></textarea>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <a href="/trainers/<%= trainer.id %>" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Retour
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i> Enregistrer l'Évaluation
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

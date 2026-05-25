@@ -1,0 +1,198 @@
+<%- include('../partials/header') %>
+
+<style>
+  .perm-table th, .perm-table td { vertical-align: middle; }
+  .perm-table thead th { text-align: center; font-size: 0.85rem; }
+  .perm-table td.action-label { font-size: 0.85rem; min-width: 230px; }
+  .perm-table tr.group-header td { background: var(--dc-navy); color: #fff; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 12px; }
+  .form-check-input { width: 2.2em; height: 1.2em; cursor: pointer; }
+  .form-check-input:checked { background-color: var(--dc-green, #62BB46); border-color: var(--dc-green, #62BB46); }
+  .role-col { min-width: 90px; text-align: center; }
+  .locked-on { color: #62BB46; font-size: 1.15rem; }
+  .role-header { font-size: 0.85rem; font-weight: 700; }
+  .dept-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 20px; }
+  .info-banner { background: #e8f4fd; border-left: 4px solid var(--dc-blue, #009ADA); border-radius: 4px; padding: 10px 14px; font-size: 0.85rem; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h2 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Éditeur de Permissions</h2>
+  <a href="/admin/users" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour Utilisateurs
+  </a>
+</div>
+
+<% if (message) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <i class="bi bi-check-circle me-1"></i><%= message %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<form method="POST" action="/admin/permissions" id="perm-form">
+
+  <!-- ── TABS ── -->
+  <ul class="nav nav-tabs mb-0" id="permTabs">
+    <li class="nav-item">
+      <button class="nav-link active" id="tab-role" type="button" onclick="switchTab('role')" style="font-weight:600;">
+        <i class="bi bi-person-badge me-1"></i>Par Rôle
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-dept" type="button" onclick="switchTab('dept')" style="font-weight:600;">
+        <i class="bi bi-building me-1"></i>Par Département
+        <span class="badge bg-info ms-1" style="font-size:0.7rem;">Extra</span>
+      </button>
+    </li>
+  </ul>
+
+  <!-- ── ROLE TAB ── -->
+  <div id="panel-role" class="card" style="border-top-left-radius:0; border-top:none;">
+    <div class="card-header d-flex align-items-center justify-content-between py-2">
+      <span class="small fw-bold"><i class="bi bi-toggles me-1"></i>Permissions selon le rôle de l'utilisateur</span>
+      <span class="small text-muted">Admin ⭐ est toujours verrouillé ON</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table perm-table mb-0">
+          <thead>
+            <tr>
+              <th style="min-width:230px;">Action</th>
+              <th class="role-col">👤<br><span class="role-header">User</span></th>
+              <th class="role-col">🎓<br><span class="role-header">Formateur</span></th>
+              <th class="role-col">👔<br><span class="role-header">Superviseur</span></th>
+              <th class="role-col">⭐<br><span class="role-header">Admin</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% let lastGroup = ''; %>
+            <% labels.forEach(function(item) { %>
+              <% if (item.group !== lastGroup) { lastGroup = item.group; %>
+                <tr class="group-header"><td colspan="5"><%= item.group %></td></tr>
+              <% } %>
+              <tr>
+                <td class="action-label"><%= item.label %></td>
+                <% ['user','trainer','supervisor','admin'].forEach(function(role) {
+                  const isAdmin = role === 'admin';
+                  const checked = rolesData[role] && rolesData[role][item.key] === 1;
+                %>
+                <td class="role-col">
+                  <% if (isAdmin) { %>
+                    <input type="hidden" name="role__admin__<%= item.key %>" value="1">
+                    <i class="bi bi-check-circle-fill locked-on" title="Toujours activé pour Admin"></i>
+                  <% } else { %>
+                    <div class="form-check form-switch d-flex justify-content-center">
+                      <input class="form-check-input" type="checkbox"
+                             name="role__<%= role %>__<%= item.key %>"
+                             value="1" <%= checked ? 'checked' : '' %>
+                             id="role_<%= role %>_<%= item.key %>">
+                    </div>
+                  <% } %>
+                </td>
+                <% }); %>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DEPT TAB ── -->
+  <div id="panel-dept" class="card" style="border-top-left-radius:0; border-top:none; display:none;">
+    <div class="card-header py-2">
+      <span class="small fw-bold"><i class="bi bi-building me-1"></i>Permissions supplémentaires par département</span>
+    </div>
+    <div class="card-body border-bottom p-3">
+      <div class="info-banner">
+        <i class="bi bi-info-circle me-1 text-primary"></i>
+        Ces permissions s'<strong>ajoutent</strong> aux permissions du rôle. Si un utilisateur a déjà la permission via son rôle, ce tableau n'a pas d'effet. Utile pour donner accès à une fonctionnalité spécifique à un département sans changer le rôle global.
+        <br><small class="text-muted">Exemple : activer la Matrice de formation pour les utilisateurs Logistique.</small>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table perm-table mb-0">
+          <thead>
+            <tr>
+              <th style="min-width:230px;">Action</th>
+              <th class="role-col">🏭<br><span class="role-header">Opérations</span></th>
+              <th class="role-col">🔧<br><span class="role-header">Techniciens</span></th>
+              <th class="role-col">📦<br><span class="role-header">Logistique</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% let lastGroup2 = ''; %>
+            <% labels.forEach(function(item) { %>
+              <% if (item.group !== lastGroup2) { lastGroup2 = item.group; %>
+                <tr class="group-header"><td colspan="4"><%= item.group %></td></tr>
+              <% } %>
+              <tr>
+                <td class="action-label"><%= item.label %></td>
+                <% ['Operations','Technicians','Logistics'].forEach(function(dept) {
+                  const isAdminPerm = item.key.startsWith('admin_');
+                  const checked = deptsData[dept] && deptsData[dept][item.key] === 1;
+                %>
+                <td class="role-col">
+                  <% if (isAdminPerm) { %>
+                    <input type="hidden" name="dept__<%= dept %>__<%= item.key %>" value="0">
+                    <i class="bi bi-lock text-muted" title="Non disponible par département"></i>
+                  <% } else { %>
+                    <div class="form-check form-switch d-flex justify-content-center">
+                      <input class="form-check-input" type="checkbox"
+                             name="dept__<%= dept %>__<%= item.key %>"
+                             value="1" <%= checked ? 'checked' : '' %>
+                             id="dept_<%= dept %>_<%= item.key %>">
+                    </div>
+                  <% } %>
+                </td>
+                <% }); %>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Save bar ── -->
+  <div class="d-flex gap-2 justify-content-between mt-3">
+    <button type="button" class="btn btn-outline-secondary" onclick="resetToDefaults()">
+      <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser par défaut
+    </button>
+    <button type="submit" class="btn btn-primary px-4">
+      <i class="bi bi-save me-1"></i>Enregistrer toutes les permissions
+    </button>
+  </div>
+
+</form>
+
+<script>
+function switchTab(tab) {
+  document.getElementById('panel-role').style.display = tab === 'role' ? '' : 'none';
+  document.getElementById('panel-dept').style.display = tab === 'dept' ? '' : 'none';
+  document.getElementById('tab-role').classList.toggle('active', tab === 'role');
+  document.getElementById('tab-dept').classList.toggle('active', tab === 'dept');
+}
+
+const ROLE_DEFAULTS = <%- JSON.stringify({
+  user:       { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:1, sessions_view_all:0, sessions_checklist:1, sessions_create:0, checklists_edit:0, checklists_import:0, suivi_view:0, suivi_edit:0, analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
+  trainer:    { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:1, sessions_view_all:0, sessions_checklist:1, sessions_create:0, checklists_edit:0, checklists_import:0, suivi_view:0, suivi_edit:0, analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
+  supervisor: { employees_view:1, employees_edit:1, employees_import:1, matrix_view:1, schedule_view:1, sessions_view_own:1, sessions_view_all:1, sessions_checklist:1, sessions_create:1, checklists_edit:1, checklists_import:1, suivi_view:1, suivi_edit:1, analytics_view:0, coverage_view:1, actions_view:1, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
+}) %>;
+
+function resetToDefaults() {
+  if (!confirm('Réinitialiser toutes les permissions aux valeurs par défaut?')) return;
+  ['user','trainer','supervisor'].forEach(role => {
+    Object.entries(ROLE_DEFAULTS[role]).forEach(([key, val]) => {
+      const el = document.getElementById('role_' + role + '_' + key);
+      if (el) el.checked = val === 1;
+    });
+  });
+  // Reset all dept permissions to OFF
+  ['Operations','Technicians','Logistics'].forEach(dept => {
+    document.querySelectorAll(`[id^="dept_${dept}_"]`).forEach(el => el.checked = false);
+  });
+}
+</script>
+
+<%- include('../partials/footer') %>

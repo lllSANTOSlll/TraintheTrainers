@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title><%= station.label || station.station_code %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100vw; height: 100vh; overflow: hidden;
+      background: #000; font-family: 'Segoe UI', sans-serif; color: #fff;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── Top bar ── */
+    #top-bar {
+      flex-shrink: 0;
+      height: 44px;
+      background: #001743;
+      border-bottom: 1px solid rgba(0,154,218,0.25);
+      padding: 0 14px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .s-code  { font-size: 0.95rem; font-weight: 800; color: #009ADA; letter-spacing: 1px; }
+    .s-label { font-size: 0.65rem; color: rgba(255,255,255,0.4); margin-top: 1px; }
+    #clock   { font-size: 0.9rem; color: rgba(255,255,255,0.6); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+    /* ── DOMO section (top ~55%) ── */
+    #domo-section {
+      flex: 0 0 55%;
+      position: relative;
+      background: #05070f;
+      border-bottom: 2px solid rgba(0,154,218,0.2);
+      overflow: hidden;
+    }
+
+    #domo-frame {
+      width: 100%; height: 100%;
+      border: none; display: block;
+    }
+
+    /* No URL placeholder */
+    #domo-placeholder {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px; text-align: center; padding: 24px;
+    }
+    #domo-placeholder i    { font-size: 3rem; color: rgba(0,154,218,0.3); }
+    #domo-placeholder span { font-size: 0.85rem; color: rgba(255,255,255,0.3); }
+    #domo-placeholder a    { font-size: 0.75rem; color: #009ADA; }
+
+    /* ── Slideshow section (bottom ~45%) ── */
+    #slide-section {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: #000;
+      display: flex; flex-direction: column;
+    }
+
+    #carousel-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    .carousel-slide {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.8s ease;
+    }
+    .carousel-slide.active { opacity: 1; }
+    .carousel-slide img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+    .no-images {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100%;
+      color: rgba(255,255,255,0.2); gap: 10px; font-size: 0.82rem; text-align: center;
+    }
+    .no-images i { font-size: 2.5rem; }
+
+    /* ── Bottom bar ── */
+    #bottom-bar {
+      flex-shrink: 0;
+      height: 44px;
+      background: #001020;
+      border-top: 1px solid rgba(0,154,218,0.15);
+      padding: 0 12px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+
+    /* Dots */
+    .dots { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); cursor: pointer;
+      transition: background .2s, transform .2s;
+    }
+    .dot.active { background: #009ADA; transform: scale(1.3); }
+
+    .bar-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.55);
+      border-radius: 7px; padding: 5px 11px;
+      font-size: 0.73rem; cursor: pointer; text-decoration: none;
+      transition: background .2s, color .2s; white-space: nowrap;
+    }
+    .bar-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+    .nav-btn {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.5); width: 28px; height: 28px;
+      border-radius: 7px; cursor: pointer; font-size: 0.8rem;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .nav-btn:hover { background: rgba(0,154,218,0.3); color: #fff; }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div id="top-bar">
+    <div>
+      <div class="s-code"><i class="bi bi-upc-scan me-1"></i><%= station.station_code %></div>
+      <% if (station.label) { %><div class="s-label"><%= station.label %></div><% } %>
+    </div>
+    <div id="clock"></div>
+  </div>
+
+  <!-- DOMO section -->
+  <div id="domo-section">
+    <% if (station.url) { %>
+      <iframe id="domo-frame" src="<%= station.url %>" allow="fullscreen; autoplay"></iframe>
+    <% } else { %>
+      <div id="domo-placeholder">
+        <i class="bi bi-speedometer2"></i>
+        <span>Aucune URL configurée</span>
+        <a href="/display/<%= station.id %>/edit">Configurer →</a>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Slideshow section -->
+  <div id="slide-section">
+    <div id="carousel-wrap">
+      <% if (images.length === 0) { %>
+        <div class="no-images">
+          <i class="bi bi-images"></i>
+          <span>Aucune image</span>
+          <a href="/display/<%= station.id %>/edit" style="color:#009ADA;font-size:0.75rem;">Ajouter →</a>
+        </div>
+      <% } else { %>
+        <% images.forEach((img, i) => { %>
+          <div class="carousel-slide <%= i === 0 ? 'active' : '' %>">
+            <img src="<%= img.filename %>" alt="<%= img.original_name %>">
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+
+    <!-- Bottom bar -->
+    <div id="bottom-bar">
+      <a href="/display/scan" class="bar-btn"><i class="bi bi-arrow-left"></i> Scanner</a>
+
+      <div class="dots" id="dots">
+        <% images.forEach((img, i) => { %>
+          <div class="dot <%= i === 0 ? 'active' : '' %>" onclick="goTo(<%= i %>)"></div>
+        <% }); %>
+      </div>
+
+      <div style="display:flex;gap:5px;">
+        <button class="nav-btn" onclick="goTo(current-1)"><i class="bi bi-chevron-left"></i></button>
+        <button class="nav-btn" onclick="goTo(current+1)"><i class="bi bi-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const INTERVAL = <%= station.carousel_interval || 10 %> * 1000;
+
+// ── Carousel ──────────────────────────────────────────────
+const slides = document.querySelectorAll('.carousel-slide');
+const dots   = document.querySelectorAll('.dot');
+let current = 0, timer;
+
+function goTo(n) {
+  if (!slides.length) return;
+  slides[current].classList.remove('active');
+  dots[current] && dots[current].classList.remove('active');
+  current = (n + slides.length) % slides.length;
+  slides[current].classList.add('active');
+  dots[current] && dots[current].classList.add('active');
+  resetTimer();
+}
+function resetTimer() {
+  clearInterval(timer);
+  if (slides.length > 1) timer = setInterval(() => goTo(current + 1), INTERVAL);
+}
+if (slides.length > 1) timer = setInterval(() => goTo(current + 1), INTERVAL);
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goTo(current + 1);
+  if (e.key === 'ArrowUp'   || e.key === 'ArrowLeft')  goTo(current - 1);
+  if (e.key === 'Escape') window.location.href = '/display/scan';
+});
+
+// ── Clock ─────────────────────────────────────────────────
+function tick() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+setInterval(tick, 1000); tick();
+</script>
+</body>
+</html>
