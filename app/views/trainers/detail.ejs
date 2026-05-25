@@ -1,0 +1,168 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-person-badge"></i> <%= trainer.nom_prenom %></h2>
+    <div>
+      <a href="/trainers/<%= trainer.id %>/edit" class="btn btn-warning">
+        <i class="bi bi-pencil"></i> Modifier
+      </a>
+      <a href="/trainers" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Retour
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Trainer Info Card -->
+    <div class="col-md-4 mb-4">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informations</h5>
+        </div>
+        <div class="card-body">
+          <h6>Poste Actuel</h6>
+          <p class="mb-3"><%= trainer.poste_actuel || '-' %></p>
+
+          <h6>Département</h6>
+          <p class="mb-3"><%= trainer.departement || '-' %></p>
+
+          <h6>Domaine d'Expertise</h6>
+          <p class="mb-3"><%= trainer.domaine_expertise || '-' %></p>
+
+          <h6>Superviseur</h6>
+          <p class="mb-3"><%= trainer.superviseur || '-' %></p>
+
+          <h6>Statut de Validation</h6>
+          <p class="mb-3">
+            <% if (trainer.statut_validation === 'Validé') { %>
+              <span class="badge bg-success">Validé</span>
+            <% } else { %>
+              <span class="badge bg-warning">Non validé</span>
+            <% } %>
+          </p>
+
+          <% if (trainer.date_formation) { %>
+            <h6>Date de Formation</h6>
+            <p class="mb-3"><%= new Date(trainer.date_formation).toLocaleDateString('fr-CA') %></p>
+          <% } %>
+
+          <% if (trainer.date_certification) { %>
+            <h6>Date de Certification</h6>
+            <p class="mb-3"><%= new Date(trainer.date_certification).toLocaleDateString('fr-CA') %></p>
+          <% } %>
+
+          <% if (trainer.commentaires) { %>
+            <h6>Commentaires</h6>
+            <p class="mb-0"><%= trainer.commentaires %></p>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-body">
+          <a href="/evaluations/new/<%= trainer.id %>" class="btn btn-primary w-100">
+            <i class="bi bi-clipboard-check"></i> Nouvelle Évaluation
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evaluations & Sessions -->
+    <div class="col-md-8">
+      <!-- Evaluations -->
+      <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> Évaluations</h5>
+        </div>
+        <div class="card-body">
+          <% if (evaluations.length === 0) { %>
+            <p class="text-muted text-center py-3">
+              <i class="bi bi-inbox"></i> Aucune évaluation enregistrée
+            </p>
+          <% } else { %>
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>Date</th>
+                    <th>Formation</th>
+                    <th>Évaluateur</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% evaluations.forEach(eval => { %>
+                    <tr>
+                      <td><%= eval.date_evaluation ? new Date(eval.date_evaluation).toLocaleDateString('fr-CA') : '-' %></td>
+                      <td><%= eval.formation || '-' %></td>
+                      <td><%= eval.evaluateur || '-' %></td>
+                      <td>
+                        <a href="/evaluations/<%= eval.id %>" class="btn btn-sm btn-info">
+                          <i class="bi bi-eye"></i>
+                        </a>
+                      </td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Training Sessions -->
+      <div class="card">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Sessions de Formation Données</h5>
+        </div>
+        <div class="card-body">
+          <% if (sessions.length === 0) { %>
+            <p class="text-muted text-center py-3">
+              <i class="bi bi-inbox"></i> Aucune session de formation
+            </p>
+          <% } else { %>
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>Employé</th>
+                    <th>Poste</th>
+                    <th>Date début</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% sessions.forEach(session => { %>
+                    <tr>
+                      <td><%= session.employee_name %></td>
+                      <td><%= session.poste || '-' %></td>
+                      <td><%= session.date_debut ? new Date(session.date_debut).toLocaleDateString('fr-CA') : '-' %></td>
+                      <td>
+                        <% if (session.statut === 'En cours') { %>
+                          <span class="badge bg-primary">En cours</span>
+                        <% } else if (session.statut === 'Terminée') { %>
+                          <span class="badge bg-success">Terminée</span>
+                        <% } else { %>
+                          <span class="badge bg-secondary"><%= session.statut %></span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <a href="/training/<%= session.id %>" class="btn btn-sm btn-info">
+                          <i class="bi bi-eye"></i>
+                        </a>
+                      </td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

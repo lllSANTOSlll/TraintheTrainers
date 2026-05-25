@@ -1,0 +1,186 @@
+<%- include('../partials/header') %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0">
+    <i class="bi bi-upc-scan me-2"></i>
+    <%= station ? 'Modifier : ' + station.station_code : 'Nouvelle Station' %>
+  </h2>
+  <a href="/display" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<div class="row g-4">
+
+  <!-- Station settings -->
+  <div class="col-lg-5">
+    <div class="card mb-4">
+      <div class="card-header fw-bold"><i class="bi bi-gear me-1"></i> Configuration</div>
+      <div class="card-body">
+        <form method="POST" action="<%= action %>">
+          <div class="mb-3">
+            <label class="form-label fw-medium">Code station <span class="text-danger">*</span></label>
+            <input type="text" class="form-control text-uppercase fw-bold" name="station_code"
+                   value="<%= station ? station.station_code : '' %>"
+                   placeholder="ex: IP_VAV" required style="letter-spacing:1px;">
+            <div class="form-text">Code scanné par le lecteur de code QR/barres</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-medium">Nom / Description</label>
+            <input type="text" class="form-control" name="label"
+                   value="<%= station ? station.label || '' : '' %>"
+                   placeholder="ex: IP VAV — Poste 3">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-medium">URL d'intégration (Embed URL)</label>
+            <input type="text" class="form-control" name="url" id="url-input"
+                   value="<%= station ? station.url || '' : '' %>"
+                   placeholder="Collez l'URL ou le code &lt;iframe&gt; fourni par DOMO…">
+            <div class="form-text">
+              <i class="bi bi-info-circle me-1"></i>
+              Collez l'<strong>URL</strong> ou le <strong>code &lt;iframe&gt;</strong> complet fourni par votre admin DOMO — l'URL sera extraite automatiquement.
+              <br>Dans DOMO : <strong>Admin → More → Embed</strong> → créer un embed → copier le code.
+            </div>
+          </div>
+          <script>
+            document.getElementById('url-input').addEventListener('input', function() {
+              const val = this.value.trim();
+              // If it looks like an iframe tag, extract the src
+              if (val.toLowerCase().includes('<iframe')) {
+                const m = val.match(/src=["']([^"']+)["']/i);
+                if (m) {
+                  this.value = m[1];
+                  this.style.borderColor = '#198754';
+                  setTimeout(() => this.style.borderColor = '', 1500);
+                }
+              }
+            });
+          </script>
+          <div class="mb-3">
+            <label class="form-label fw-medium">Durée par image (secondes)</label>
+            <input type="number" class="form-control" name="carousel_interval" min="3" max="300"
+                   value="<%= station ? station.carousel_interval || 10 : 10 %>">
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-1"></i><%= station ? 'Enregistrer' : 'Créer la station' %>
+            </button>
+            <% if (station) { %>
+              <a href="/display/show/<%= station.station_code %>" target="_blank" class="btn btn-outline-info">
+                <i class="bi bi-fullscreen me-1"></i>Aperçu
+              </a>
+            <% } %>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image management -->
+  <div class="col-lg-7">
+    <% if (station) { %>
+    <div class="card" id="images">
+      <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-images me-1"></i> Images du slideshow
+          <% if (images.length > 0) { %>
+            <span class="badge bg-secondary ms-1"><%= images.length %></span>
+          <% } %>
+        </span>
+      </div>
+      <div class="card-body">
+
+        <!-- Upload zone -->
+        <form method="POST" action="/display/<%= station.id %>/images" enctype="multipart/form-data" id="img-form">
+          <div class="att-drop" id="att-drop" onclick="document.getElementById('img-input').click()">
+            <i class="bi bi-cloud-arrow-up" style="font-size:2rem;color:#adb5bd;"></i>
+            <div class="mt-2 text-muted">Glissez des images ici ou <strong>cliquez pour parcourir</strong></div>
+            <div class="small text-muted mt-1">JPG, PNG, GIF, WEBP · max 20 Mo · plusieurs à la fois</div>
+            <input type="file" id="img-input" name="images" multiple accept="image/*,.jfif" style="display:none"
+                   onchange="showSelected(this)">
+          </div>
+          <div id="att-selected" class="mt-2" style="display:none;">
+            <div id="att-selected-list" class="small text-muted mb-2"></div>
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="bi bi-upload me-1"></i>Envoyer
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm ms-1" onclick="clearSelected()">Annuler</button>
+          </div>
+        </form>
+
+        <!-- Image grid -->
+        <% if (images.length === 0) { %>
+          <div class="text-center text-muted small mt-3 py-2">Aucune image — ajoutez-en ci-dessus</div>
+        <% } else { %>
+          <div class="row g-2 mt-3" id="img-grid">
+            <% images.forEach((img, i) => { %>
+              <div class="col-6 col-md-4" data-id="<%= img.id %>">
+                <div class="position-relative" style="border-radius:8px;overflow:hidden;border:1px solid #dee2e6;">
+                  <img src="<%= img.filename %>" alt="<%= img.original_name %>"
+                       style="width:100%;height:120px;object-fit:cover;display:block;">
+                  <div style="position:absolute;top:4px;left:6px;">
+                    <span class="badge bg-dark opacity-75" style="font-size:.7rem;">#<%= i+1 %></span>
+                  </div>
+                  <div style="position:absolute;top:4px;right:4px;">
+                    <form method="POST" action="/display/<%= station.id %>/images/<%= img.id %>/delete"
+                          onsubmit="return confirm('Supprimer cette image ?')">
+                      <button type="submit" class="btn btn-sm btn-danger"
+                              style="padding:2px 7px;font-size:.75rem;border-radius:6px;">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </div>
+                  <div class="p-1 bg-light" style="font-size:.7rem;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<%= img.original_name %>">
+                    <%= img.original_name %>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+          <div class="form-text mt-2"><i class="bi bi-info-circle me-1"></i>Les images défilent dans cet ordre sur l'écran</div>
+        <% } %>
+
+      </div>
+    </div>
+    <% } else { %>
+      <div class="card">
+        <div class="card-body text-center text-muted py-4">
+          <i class="bi bi-images" style="font-size:2.5rem;"></i>
+          <p class="mt-2 mb-0">Créez d'abord la station pour pouvoir ajouter des images</p>
+        </div>
+      </div>
+    <% } %>
+  </div>
+
+</div>
+
+<style>
+  .att-drop { border:2px dashed #dee2e6; border-radius:10px; padding:24px; text-align:center; cursor:pointer; transition:border-color .2s, background .2s; }
+  .att-drop:hover, .att-drop.drag-over { border-color:#009ADA; background:#f0f8ff; }
+</style>
+
+<script>
+const drop  = document.getElementById('att-drop');
+const input = document.getElementById('img-input');
+if (drop && input) {
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('drag-over');
+    const dt = new DataTransfer();
+    [...e.dataTransfer.files].forEach(f => dt.items.add(f));
+    input.files = dt.files;
+    showSelected(input);
+  });
+}
+function showSelected(inp) {
+  const files = [...inp.files]; if (!files.length) return;
+  document.getElementById('att-selected-list').innerHTML =
+    files.map(f => `<span class="badge bg-light text-dark border me-1 mb-1"><i class="bi bi-image me-1"></i>${f.name}</span>`).join('');
+  document.getElementById('att-selected').style.display = 'block';
+}
+function clearSelected() {
+  if (input) input.value = '';
+  document.getElementById('att-selected').style.display = 'none';
+  document.getElementById('att-selected-list').innerHTML = '';
+}
+</script>
+
+<%- include('../partials/footer') %>

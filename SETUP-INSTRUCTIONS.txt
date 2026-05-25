@@ -1,0 +1,175 @@
+# 📦 Distech Training - Portable Package Setup
+
+## ⚡ Quick Start (5 Steps)
+
+### Step 1: Download Portable Node.js
+
+1. Go to: https://nodejs.org/dist/v20.11.0/node-v20.11.0-win-x64.zip
+2. Download and extract the ZIP
+3. Find `node.exe` inside (in the root of extracted folder)
+4. Copy `node.exe` 
+
+### Step 2: Create Package Folder
+
+Create this structure on your desktop:
+
+```
+Distech-Training-Portable/
+├── node.exe              ← Paste here (from Step 1)
+├── START_APP.bat         ← Download from Claude
+├── app/                  ← Create this folder
+│   └── (your entire app) ← Copy all your app files here
+└── README.txt            ← This file
+```
+
+### Step 3: Copy Your App
+
+Copy your ENTIRE app folder contents into the `app/` subfolder:
+
+From: `C:\Users\HD001\Desktop\trainer-management\`
+To: `Distech-Training-Portable\app\`
+
+Make sure you have:
+- ✅ app/server.js
+- ✅ app/routes/
+- ✅ app/views/
+- ✅ app/database/
+- ✅ app/node_modules/
+- ✅ app/package.json
+- ✅ Everything!
+
+### Step 4: Test It
+
+1. Double-click `START_APP.bat`
+2. Wait 3 seconds
+3. Browser opens to login page
+4. Login with admin/admin123
+
+**IT WORKS!** ✅
+
+### Step 5: Share with Colleagues
+
+**Option A: Network Share**
+1. Put entire `Distech-Training-Portable/` folder on network drive
+2. Tell colleagues the path: `\\server\shared\Distech-Training-Portable\`
+3. They double-click `START_APP.bat` from there
+
+**Option B: Copy to Each PC**
+1. ZIP the entire folder
+2. Send to colleagues
+3. They extract and run
+
+**Option C: Shared Database**
+1. Keep `node.exe` and `app/` on their PC
+2. Put `database/trainers.db` on network drive: `\\server\shared\distech-db\`
+3. Update `config/database.js` to point to network path
+4. Everyone shares same database!
+
+---
+
+## 🎯 For Colleagues (User Instructions)
+
+**To Start the App:**
+1. Navigate to `Distech-Training-Portable/` folder
+2. Double-click `START_APP.bat`
+3. Wait for browser to open (3 seconds)
+4. Login!
+
+**To Stop the App:**
+- Close the black command window OR
+- Press Ctrl+C in the window
+
+---
+
+## 🔧 Troubleshooting
+
+### "node.exe not found"
+- Download Node.js portable from link above
+- Make sure `node.exe` is in root folder (next to START_APP.bat)
+
+### "Application files not found"
+- Make sure your app is in `app/` subfolder
+- Check that `app/server.js` exists
+
+### "Port 3001 already in use"
+- Another copy is running
+- Close other instances
+- Or change PORT in server.js
+
+### Database locked / can't write
+- If on network drive, only ONE person can write at a time
+- Wait for other person to finish
+- Or give each person their own database copy
+
+---
+
+## 📊 Multi-User Setup (Shared Database)
+
+**Want everyone to see same data?**
+
+1. **Put database on network drive:**
+   ```
+   \\FILESERVER\Shared\Distech\trainers.db
+   ```
+
+2. **Update each person's `app/config/database.js`:**
+   ```javascript
+   const dbPath = '\\\\FILESERVER\\Shared\\Distech\\trainers.db';
+   ```
+
+3. **Everyone runs their own START_APP.bat** but shares one database!
+
+**Note:** SQLite handles file locking automatically - multiple readers OK, one writer at a time.
+
+---
+
+## ✅ Advantages of This Setup
+
+- ✅ No installation required
+- ✅ No network firewall issues
+- ✅ Works offline
+- ✅ Portable (USB, email, network)
+- ✅ Each person can have own copy OR share database
+- ✅ No admin rights needed
+- ✅ Same app you already built!
+
+---
+
+## 📝 File Checklist
+
+Before sharing, make sure you have:
+
+```
+☐ node.exe (20MB)
+☐ START_APP.bat
+☐ app/ folder with:
+    ☐ server.js
+    ☐ package.json
+    ☐ routes/
+    ☐ views/
+    ☐ middleware/
+    ☐ config/
+    ☐ database/trainers.db
+    ☐ node_modules/
+    ☐ public/
+☐ README.txt (this file)
+```
+
+**Total size:** ~150-200MB (mostly node_modules)
+
+---
+
+## 🚀 Next Steps
+
+1. ✅ Download node.exe
+2. ✅ Create folder structure  
+3. ✅ Copy your app
+4. ✅ Test START_APP.bat
+5. ✅ ZIP and share!
+
+**Questions?** Check troubleshooting section above!
+
+---
+
+**Created for: Distech Controls Operations**
+**Date: May 2026**

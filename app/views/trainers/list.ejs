@@ -1,0 +1,111 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-people-fill"></i> Liste des Formateurs</h2>
+    <a href="/trainers/new" class="btn btn-primary">
+      <i class="bi bi-plus-circle"></i> Nouveau Formateur
+    </a>
+  </div>
+
+  <!-- Filters -->
+  <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+    <input type="text" id="t-search" class="form-control form-control-sm" placeholder="Rechercher…" style="max-width:200px">
+    <select id="t-statut" class="form-select form-select-sm" style="max-width:160px">
+      <option value="">Tous les statuts</option>
+      <option value="Validé">Validé</option>
+      <option value="Non validé">Non validé</option>
+    </select>
+    <span class="text-muted small ms-auto" id="t-count"><%= trainers.length %> formateur(s)</span>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover" id="t-table">
+          <thead class="table-light">
+            <tr>
+              <th>Nom et Prénom</th>
+              <th>Poste</th>
+              <th class="col-hide-mobile">Département</th>
+              <th class="col-hide-mobile">Domaine d'expertise</th>
+              <th class="col-hide-mobile">Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (trainers.length === 0) { %>
+              <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                  <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                  <p class="mb-0 mt-2">Aucun formateur enregistré</p>
+                </td>
+              </tr>
+            <% } else { %>
+              <% trainers.forEach(trainer => { %>
+                <tr data-statut="<%= trainer.statut_validation || '' %>">
+                  <td><strong><%= trainer.nom_prenom %></strong></td>
+                  <td><%= trainer.poste_actuel || '-' %></td>
+                  <td class="col-hide-mobile"><%= trainer.departement || '-' %></td>
+                  <td class="col-hide-mobile"><%= trainer.domaine_expertise || '-' %></td>
+                  <td class="col-hide-mobile">
+                    <% if (trainer.statut_validation === 'Validé') { %>
+                      <span class="badge bg-success">Validé</span>
+                    <% } else { %>
+                      <span class="badge bg-warning">Non validé</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <a href="/trainers/<%= trainer.id %>" class="btn btn-sm btn-info" title="Voir">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="/trainers/<%= trainer.id %>/edit" class="btn btn-sm btn-warning" title="Modifier">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                  </td>
+                </tr>
+              <% }); %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const tSearch = document.getElementById('t-search');
+  const tStatut = document.getElementById('t-statut');
+  const tCount  = document.getElementById('t-count');
+  const STORE   = 'filters_trainers';
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE) || '{}');
+    if (saved.search && tSearch) tSearch.value = saved.search;
+    if (saved.statut && tStatut) tStatut.value = saved.statut;
+  } catch(e) {}
+
+  function saveFilters() {
+    try { localStorage.setItem(STORE, JSON.stringify({ search: tSearch?.value||'', statut: tStatut?.value||'' })); } catch(e) {}
+  }
+
+  function applyFilters() {
+    const q  = (tSearch?.value || '').toLowerCase();
+    const st = tStatut?.value || '';
+    let n = 0;
+    document.querySelectorAll('#t-table tbody tr').forEach(row => {
+      const ok = (!q  || row.textContent.toLowerCase().includes(q))
+              && (!st || row.dataset.statut === st);
+      row.style.display = ok ? '' : 'none';
+      if (ok) n++;
+    });
+    if (tCount) tCount.textContent = n + ' formateur(s)';
+    saveFilters();
+  }
+
+  tSearch?.addEventListener('input', applyFilters);
+  tStatut?.addEventListener('change', applyFilters);
+  applyFilters();
+</script>
+
+<%- include('../partials/footer') %>

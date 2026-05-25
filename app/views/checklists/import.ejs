@@ -1,0 +1,109 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-file-earmark-arrow-up"></i> Importer une Checklist</h2>
+    <a href="/checklists" class="btn btn-secondary">
+      <i class="bi bi-arrow-left"></i> Retour
+    </a>
+  </div>
+
+  <% if (message) { %>
+    <div class="alert alert-success alert-dismissible fade show">
+      <i class="bi bi-check-circle"></i> <%= message %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <% if (error) { %>
+    <div class="alert alert-danger alert-dismissible fade show">
+      <i class="bi bi-exclamation-triangle"></i> <%= error %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <div class="row">
+    <!-- Import Form -->
+    <div class="col-lg-7 mb-4">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-upload"></i> Importer un Document Word</h5>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="/checklists/import" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label for="template_title" class="form-label">Titre du Modèle *</label>
+              <input type="text" class="form-control" id="template_title" name="template_title" required
+                     placeholder="Ex: Water Spider, Opérateur, QA Inspector">
+              <div class="form-text">Nom qui apparaîtra dans la liste des modèles</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="template_description" class="form-label">Description</label>
+              <textarea class="form-control" id="template_description" name="template_description" rows="2"
+                        placeholder="Description du modèle de formation"></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label for="docfile" class="form-label">Fichier Word (.docx) *</label>
+              <input type="file" class="form-control" id="docfile" name="docfile" 
+                     accept=".docx" required>
+              <div class="form-text">
+                Utilisez le template fourni pour de meilleurs résultats. 
+                Taille maximale: 10MB
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <a href="/checklists" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Annuler
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-upload"></i> Importer
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="col-lg-5 mb-4">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="bi bi-info-circle"></i> Comment ça fonctionne</h5>
+        </div>
+        <div class="card-body">
+          <h6>📥 Étape 1: Téléchargez le template</h6>
+          <a href="/checklists/template-download" class="btn btn-outline-primary btn-sm mb-3">
+            <i class="bi bi-file-earmark-word"></i> Télécharger le Template Word
+          </a>
+
+          <h6>✏️ Étape 2: Remplissez le tableau</h6>
+          <p class="small text-muted">
+            Le template contient un tableau avec 4 colonnes:
+          </p>
+          <ul class="small">
+            <li><strong>Jour:</strong> Numéro du jour (1, 2, 3...)</li>
+            <li><strong>Catégorie:</strong> Grand thème (ex: Environnement)</li>
+            <li><strong>Sous-catégorie:</strong> Sous-thème (ex: Magasin)</li>
+            <li><strong>Quoi expliquer:</strong> Description détaillée</li>
+          </ul>
+
+          <h6>📤 Étape 3: Importez le fichier</h6>
+          <p class="small text-muted">
+            Sauvegardez votre document, donnez un titre au modèle 
+            et téléversez le fichier .docx ci-contre.
+          </p>
+
+          <div class="alert alert-warning small mb-0">
+            <i class="bi bi-lightbulb"></i>
+            <strong>Astuce:</strong> Vous pouvez ajouter autant de lignes que nécessaire dans le tableau Word.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

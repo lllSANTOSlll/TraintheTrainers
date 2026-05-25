@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - Train the Trainers</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Dynamic UI colors (from DB settings) */
+      --dc-navy:       <%= settings.ui_sidebar_bg    || '#001743' %>;
+      --dc-navy-deep:  <%= settings.ui_sidebar_deep  || '#001030' %>;
+      --dc-navy-mid:   <%= settings.ui_sidebar_hover || '#002570' %>;
+      --dc-blue:       <%= typeof accentColor !== 'undefined' ? accentColor : '#009ADA' %>;
+      --dc-green:      #62BB46;
+      --dc-gray:       #474C55;
+      --dc-gray-light: <%= settings.ui_page_bg       || '#f4f6f8' %>;
+      --dc-border:     #e2e6ea;
+      --dc-navbar-bg:        <%= settings.ui_navbar_bg      || '#ffffff' %>;
+      --dc-navbar-border:    <%= settings.ui_navbar_border  || '#001743' %>;
+      --dc-navbar-text:      <%= settings.ui_navbar_text    || '#001743' %>;
+      --dc-card-header:      <%= settings.ui_card_header_bg || '#001743' %>;
+
+      /* Theme variables */
+      --primary-color:  var(--dc-blue);
+      --sidebar-bg:     var(--dc-navy);
+      --sidebar-hover:  var(--dc-navy-mid);
+      --success-color:  var(--dc-green);
+      --danger-color:   #dc3545;
+      --warning-color:  #ffc107;
+      --info-color:     var(--dc-blue);
+    }
+
+    /* ── Base ─────────────────────────────────────────────── */
+    body {
+      font-family: 'Figtree', 'Roboto', 'Segoe UI', sans-serif;
+      background-color: var(--dc-gray-light);
+      color: #1a1a2e;
+    }
+    /* ensure navbar & card header pick up dynamic vars */
+
+    /* ── Sidebar ─────────────────────────────────────────── */
+    .sidebar {
+      position: fixed;
+      top: 0; bottom: 0; left: 0;
+      z-index: 100;
+      width: 250px;
+      background-color: var(--dc-navy);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Logo area */
+    .logo-section {
+      padding: 0;
+      background-color: var(--dc-navy-deep);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+    .logo-inner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 18px;
+      text-decoration: none;
+    }
+    .logo-mark {
+      width: 44px;
+      height: 44px;
+      background: #ffffff;
+      border-radius: 6px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+    }
+    .logo-mark img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+    .logo-text .brand-name {
+      font-family: 'Figtree', sans-serif;
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .logo-text .brand-sub {
+      font-family: 'Figtree', sans-serif;
+      font-weight: 400;
+      font-size: 0.70rem;
+      color: rgba(255,255,255,0.55);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* Nav links */
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 0 16px;
+    }
+    .sidebar-nav::-webkit-scrollbar { width: 4px; }
+    .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+
+    .nav-section-label {
+      padding: 16px 18px 4px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+    }
+
+    .sidebar .nav-link {
+      font-family: 'Figtree', sans-serif;
+      font-weight: 500;
+      font-size: 0.875rem;
+      color: rgba(255,255,255,0.75);
+      padding: 9px 18px;
+      border-left: 3px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      border-radius: 0;
+    }
+    .sidebar .nav-link i {
+      font-size: 1rem;
+      width: 18px;
+      text-align: center;
+      flex-shrink: 0;
+      opacity: 0.8;
+    }
+    .sidebar .nav-link:hover {
+      background-color: rgba(255,255,255,0.07);
+      color: #ffffff;
+      border-left-color: var(--dc-blue);
+    }
+    .sidebar .nav-link:hover i { opacity: 1; }
+    .sidebar .nav-link.active {
+      background-color: rgba(0,154,218,0.15);
+      color: #ffffff;
+      border-left-color: var(--dc-blue);
+      font-weight: 600;
+    }
+    .sidebar .nav-link.active i { opacity: 1; }
+
+    /* ── Top Navbar ──────────────────────────────────────── */
+    main { margin-left: 250px; padding: 70px 24px 24px; }
+
+    .navbar {
+      position: fixed;
+      top: 0; right: 0; left: 250px;
+      z-index: 99;
+      background-color: var(--dc-navbar-bg);
+      border-bottom: 2px solid var(--dc-navbar-border);
+      box-shadow: 0 1px 6px rgba(0,23,67,0.08);
+      padding: 0 20px;
+      height: 56px;
+    }
+
+    /* ── Mobile hamburger button ──────────────────────────── */
+    .sidebar-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--dc-navbar-text);
+      font-size: 1.4rem;
+      padding: 4px 8px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    /* ── Sidebar overlay (mobile backdrop) ───────────────── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 1040;
+    }
+    .sidebar-overlay.active { display: block; }
+
+    /* ── Mobile responsive breakpoint ────────────────────── */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-250px);
+        transition: transform 0.28s ease;
+        z-index: 1050;
+      }
+      .sidebar.mobile-open { transform: translateX(0); }
+      .sidebar-toggle { display: inline-flex; align-items: center; }
+      main { margin-left: 0; padding: 66px 10px 20px; }
+      .navbar { left: 0; padding: 0 10px; height: 56px; }
+      .navbar .d-flex.gap-2 { gap: 4px !important; }
+
+      /* Hide text labels, keep only icons/core elements */
+      .user-info { display: none !important; }
+      .dept-badge { display: none !important; }
+      .navbar-brand { font-size: 0.88rem; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+      /* Dept selector: compact */
+      .navbar form select { max-width: 100px !important; font-size: 0.75rem !important; padding: 2px 4px !important; }
+      .navbar .bi-building { display: none !important; }
+
+      /* Logout: icon only */
+      .navbar a[href="/logout"] .logout-text { display: none; }
+
+      /* Language switcher: flag only, hide code */
+      #lang-code { display: none; }
+      #lang-dropdown-btn { padding: 2px 6px !important; }
+
+      /* Hide sidebar calendar on mobile */
+      .sidebar-calendar { display: none; }
+
+      /* Page header action buttons: icon only */
+      .btn-label { display: none; }
+
+      /* Tables: horizontal scroll */
+      .table-responsive { -webkit-overflow-scrolling: touch; }
+
+      /* Hide non-essential table columns on mobile */
+      .col-hide-mobile { display: none; }
+    }
+    @media (max-width: 480px) {
+      .navbar-brand { max-width: 80px; font-size: 0.8rem; }
+      .navbar form select { max-width: 80px !important; }
+    }
+    .navbar-brand {
+      font-family: 'Figtree', sans-serif;
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: var(--dc-navbar-text) !important;
+    }
+
+    /* ── Cards ───────────────────────────────────────────── */
+    .card {
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,23,67,0.08);
+      margin-bottom: 20px;
+    }
+    .card-header {
+      background-color: var(--dc-card-header);
+      color: #fff;
+      font-family: 'Figtree', sans-serif;
+      font-weight: 600;
+      border-radius: 8px 8px 0 0 !important;
+      padding: 12px 18px;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn-primary {
+      background-color: var(--dc-navy);
+      border-color: var(--dc-navy);
+      font-family: 'Figtree', sans-serif;
+      font-weight: 500;
+    }
+    .btn-primary:hover, .btn-primary:focus {
+      background-color: var(--dc-navy-mid);
+      border-color: var(--dc-navy-mid);
+    }
+    .btn-outline-primary {
+      color: var(--dc-navy);
+      border-color: var(--dc-navy);
+    }
+    .btn-outline-primary:hover {
+      background-color: var(--dc-navy);
+      border-color: var(--dc-navy);
+      color: #fff;
+    }
+    .btn-success {
+      background-color: var(--dc-green);
+      border-color: var(--dc-green);
+    }
+    .btn-success:hover { filter: brightness(0.92); }
+    .btn-info {
+      background-color: var(--dc-blue);
+      border-color: var(--dc-blue);
+      color: #fff;
+    }
+    .btn-info:hover { filter: brightness(0.92); color: #fff; }
+
+    /* ── Badges & bg overrides ──────────────────────────── */
+    .bg-primary  { background-color: var(--dc-navy)  !important; }
+    .bg-success  { background-color: var(--dc-green) !important; }
+    .bg-info     { background-color: var(--dc-blue)  !important; }
+    .bg-secondary{ background-color: var(--dc-gray)  !important; }
+    .badge.bg-primary  { background-color: var(--dc-navy)  !important; }
+    .badge.bg-success  { background-color: var(--dc-green) !important; }
+    .badge.bg-info     { background-color: var(--dc-blue)  !important; }
+    .badge.bg-danger   { background-color: var(--danger-color) !important; }
+    .badge.bg-warning  { background-color: var(--warning-color) !important; }
+
+    /* ── Table headers ──────────────────────────────────── */
+    .table thead th {
+      background-color: var(--dc-navy);
+      color: #ffffff;
+      font-family: 'Figtree', sans-serif;
+      font-weight: 600;
+      font-size: 0.82rem;
+      letter-spacing: 0.03em;
+      border-color: var(--dc-navy-mid);
+    }
+    .table-hover tbody tr:hover { background-color: rgba(0,154,218,0.05); }
+
+    /* ── Links ───────────────────────────────────────────── */
+    a { color: var(--dc-navy); }
+    a:hover { color: var(--dc-blue); }
+
+    /* ── Form controls focus ─────────────────────────────── */
+    .form-control:focus, .form-select:focus {
+      border-color: var(--dc-blue);
+      box-shadow: 0 0 0 0.2rem rgba(0,154,218,0.2);
+    }
+
+    /* ── Page title ──────────────────────────────────────── */
+    h2, h3, h4 {
+      font-family: 'Figtree', sans-serif;
+      font-weight: 700;
+      color: var(--dc-navy);
+    }
+    /* Headings inside coloured cards must stay white */
+    .text-white h1, .text-white h2, .text-white h3,
+    .text-white h4, .text-white h5, .text-white h6 {
+      color: #fff !important;
+    }
+
+    /* ── Dept badge in navbar ─────────────────────────────── */
+    .dept-badge {
+      font-size: 0.75rem;
+      background: var(--dc-blue);
+      color: #fff;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    /* ── User info in navbar ─────────────────────────────── */
+    .user-info {
+      font-size: 0.85rem;
+      color: var(--dc-gray);
+      font-weight: 500;
+    }
+
+    /* ── Sidebar mini calendar ───────────────────────────── */
+    .sidebar-calendar {
+      flex-shrink: 0;
+      padding: 10px 12px 14px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.12);
+    }
+    .sc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .sc-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.85);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .sc-nav {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      padding: 0 4px;
+      font-size: 0.75rem;
+      line-height: 1;
+      transition: color .15s;
+    }
+    .sc-nav:hover { color: #fff; }
+    .sc-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+    }
+    .sc-dow {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.35);
+      text-align: center;
+      padding: 2px 0 4px;
+      letter-spacing: 0.04em;
+    }
+    .sc-day {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68rem;
+      color: rgba(255,255,255,0.6);
+      height: 24px;
+      border-radius: 4px;
+      cursor: default;
+      transition: background .12s;
+    }
+    .sc-day.sc-today {
+      background: var(--dc-blue);
+      color: #fff;
+      font-weight: 700;
+    }
+    .sc-day.sc-has-holiday {
+      cursor: pointer;
+    }
+    .sc-day.sc-has-holiday:not(.sc-today) {
+      background: rgba(255,107,53,0.18);
+      color: rgba(255,255,255,0.9);
+    }
+    .sc-day.sc-has-holiday:hover {
+      background: rgba(255,107,53,0.35);
+    }
+    .sc-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #ff6b35;
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .sc-day.sc-today .sc-dot { background: #fff; }
+    .sc-day.sc-empty { cursor: default; }
+    /* Tooltip */
+    .sc-tooltip {
+      position: fixed;
+      background: #1a1a2e;
+      color: #fff;
+      font-size: 0.72rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 9999;
+      max-width: 200px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,107,53,0.4);
+      display: none;
+    }
+    .sc-holiday-link {
+      display: block;
+      font-size: 0.68rem;
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      margin-top: 6px;
+      text-decoration: none;
+    }
+    .sc-holiday-link:hover { color: rgba(255,255,255,0.85); }
+  </style>
+</head>
+<body>
+
+  <!-- ── Mobile sidebar backdrop ──────────────────────────── -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────── -->
+  <nav class="sidebar" id="sidebar">
+
+    <!-- Logo -->
+    <div class="logo-section">
+      <a class="logo-inner" href="/dashboard">
+        <div class="logo-mark">
+          <img src="/images/logo.png" alt="Distech Controls">
+        </div>
+        <div class="logo-text">
+          <span class="brand-name">Distech Controls</span>
+          <span class="brand-sub">Train the Trainers</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Nav -->
+    <div class="sidebar-nav">
+      <ul class="nav flex-column">
+
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath === '/dashboard' ? 'active' : '' %>" href="/dashboard">
+            <i class="bi bi-speedometer2"></i> Tableau de bord
+          </a>
+        </li>
+
+        <% if (user.role === 'admin' || user.role === 'supervisor') { %>
+        <div class="nav-section-label">Opérations</div>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/employees') ? 'active' : '' %>" href="/employees">
+            <i class="bi bi-people-fill"></i> Employés
+          </a>
+        </li>
+
+        <% if (canPerm('matrix_view') || (user.role === 'admin' && (adminDept === '' || adminDept === 'Operations' || adminDept === 'Technicians'))) { %>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/matrix') ? 'active' : '' %>" href="/matrix">
+            <i class="bi bi-grid-3x3"></i> Matrice de formation
+          </a>
+        </li>
+        <% } %>
+        <% if (canPerm('schedule_view') || (user.role === 'admin' && (adminDept === '' || adminDept === 'Operations'))) { %>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/schedule') ? 'active' : '' %>" href="/schedule">
+            <i class="bi bi-calendar-week"></i> Planification
+          </a>
+        </li>
+        <% } %>
+        <% if (user.role === 'admin' && adminDept === '') { %>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/display') ? 'active' : '' %>" href="/display">
+            <i class="bi bi-display"></i> Stations Display
+          </a>
+        </li>
+        <% } %>
+        <% } %>
+
+        <div class="nav-section-label">Suivi</div>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/suivi') ? 'active' : '' %>" href="/suivi">
+            <i class="bi bi-clipboard2-pulse"></i> Suivi Employés
+          </a>
+        </li>
+
+        <div class="nav-section-label">Formation</div>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/trainers') ? 'active' : '' %>" href="/trainers">
+            <i class="bi bi-mortarboard"></i> Formateurs
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/training') ? 'active' : '' %>" href="/training">
+            <i class="bi bi-calendar-check"></i> Sessions
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/checklists') ? 'active' : '' %>" href="/checklists">
+            <i class="bi bi-list-check"></i> Checklists
+          </a>
+        </li>
+
+        <% if (user.role === 'admin') { %>
+        <div class="nav-section-label">Administration</div>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/admin/analytics') ? 'active' : '' %>" href="/admin/analytics">
+            <i class="bi bi-graph-up-arrow"></i> KPI & Analytique
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/admin/coverage') ? 'active' : '' %>" href="/admin/coverage">
+            <i class="bi bi-shield-check"></i> Couverture & Polyvalence
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/admin/actions') ? 'active' : '' %>" href="/admin/actions">
+            <i class="bi bi-exclamation-triangle"></i> Actions Correctives
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/admin/users') ? 'active' : '' %>" href="/admin/users">
+            <i class="bi bi-person-gear"></i> Utilisateurs
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/admin/settings') ? 'active' : '' %>" href="/admin/settings">
+            <i class="bi bi-sliders"></i> Paramètres
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/admin/permissions') ? 'active' : '' %>" href="/admin/permissions">
+            <i class="bi bi-shield-lock"></i> Permissions
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/sharepoint') ? 'active' : '' %>" href="/sharepoint/sync">
+            <i class="bi bi-cloud-arrow-up"></i> SharePoint / Export
+          </a>
+        </li>
+        <% } %>
+
+      </ul>
+    </div>
+
+    <!-- ── Mini Calendar ──────────────────────────────────── -->
+    <div class="sidebar-calendar">
+      <div class="sc-header">
+        <button class="sc-nav" id="sc-prev" title="Mois précédent">&#8249;</button>
+        <span class="sc-title" id="sc-month-label">…</span>
+        <button class="sc-nav" id="sc-next" title="Mois suivant">&#8250;</button>
+      </div>
+      <div class="sc-grid" id="sc-grid"></div>
+      <a href="/schedule/holidays" class="sc-holiday-link">
+        <i class="bi bi-calendar-heart" style="color:#ff6b35;"></i> Gérer les congés
+      </a>
+    </div>
+    <div class="sc-tooltip" id="sc-tooltip"></div>
+
+  <!-- Restore sidebar scroll BEFORE first paint (inline = synchronous) -->
+  <script>
+    (function(){
+      var s = sessionStorage.getItem('sidebar_scroll');
+      if (s) {
+        var nav = document.querySelector('.sidebar-nav');
+        if (nav) nav.scrollTop = parseInt(s, 10);
+      }
+    })();
+  </script>
+
+  </nav>
+
+  <script>
+  (function() {
+    const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const DOWS = ['L','M','M','J','V','S','D'];
+    const HOL_ICON = { 'Congé':'🏖️','Maladie':'🤒','Férié':'🎉','Formation':'📚','Autre':'📋' };
+
+    let cur = new Date();
+    let viewYear  = cur.getFullYear();
+    let viewMonth = cur.getMonth(); // 0-based
+    let holidayMap = {}; // 'YYYY-MM-DD' -> [{employee_nom, type, notes}]
+
+    function isoDate(y, m, d) {
+      return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+
+    function loadHolidays(year, month) {
+      const from = isoDate(year, month, 1);
+      const lastDay = new Date(year, month+1, 0).getDate();
+      const to   = isoDate(year, month, lastDay);
+      fetch(`/api/holidays?from=${from}&to=${to}`)
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+          holidayMap = {};
+          data.forEach(h => {
+            // Expand each holiday into individual days within this month
+            const start = new Date(h.date_start + 'T12:00:00');
+            const end   = new Date(h.date_end   + 'T12:00:00');
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
+              const iso = d.toISOString().slice(0,10);
+              if (!holidayMap[iso]) holidayMap[iso] = [];
+              holidayMap[iso].push(h);
+            }
+          });
+          renderCalendar(year, month);
+        })
+        .catch(() => renderCalendar(year, month));
+    }
+
+    function renderCalendar(year, month) {
+      const label = document.getElementById('sc-month-label');
+      if (label) label.textContent = MONTHS_FR[month] + ' ' + year;
+
+      const grid  = document.getElementById('sc-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      // Day-of-week headers
+      DOWS.forEach(d => {
+        const el = document.createElement('div');
+        el.className = 'sc-dow';
+        el.textContent = d;
+        grid.appendChild(el);
+      });
+
+      const todayISO = new Date().toISOString().slice(0,10);
+      const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+      const offset   = firstDay === 0 ? 6 : firstDay - 1; // Mon-first
+      const totalDays = new Date(year, month+1, 0).getDate();
+
+      // Empty cells before first day
+      for (let i = 0; i < offset; i++) {
+        const el = document.createElement('div');
+        el.className = 'sc-day sc-empty';
+        grid.appendChild(el);
+      }
+
+      // Day cells
+      for (let d = 1; d <= totalDays; d++) {
+        const iso = isoDate(year, month, d);
+        const hols = holidayMap[iso] || [];
+        const el = document.createElement('div');
+        el.className = 'sc-day';
+        if (iso === todayISO) el.classList.add('sc-today');
+        if (hols.length > 0)  el.classList.add('sc-has-holiday');
+
+        const dayNum = document.createElement('span');
+        dayNum.textContent = d;
+        el.appendChild(dayNum);
+
+        if (hols.length > 0) {
+          const dot = document.createElement('div');
+          dot.className = 'sc-dot';
+          el.appendChild(dot);
+
+          el.addEventListener('mouseenter', (e) => showTooltip(e, hols, iso));
+          el.addEventListener('mouseleave', hideTooltip);
+          el.addEventListener('click', () => { window.location.href = '/schedule/holidays'; });
+        }
+
+        grid.appendChild(el);
+      }
+    }
+
+    function showTooltip(e, hols, iso) {
+      const tt = document.getElementById('sc-tooltip');
+      if (!tt) return;
+      const date = new Date(iso + 'T12:00:00').toLocaleDateString('fr-CA', { day:'numeric', month:'long' });
+      let html = `<div style="font-weight:700; margin-bottom:4px; color:#ff6b35;">${date}</div>`;
+      hols.forEach(h => {
+        const icon = HOL_ICON[h.type] || '📋';
+        html += `<div>${icon} <strong>${h.employee_nom}</strong> — ${h.type}</div>`;
+        if (h.notes) html += `<div style="opacity:0.7; font-size:0.65rem; margin-left:14px;">${h.notes}</div>`;
+      });
+      tt.innerHTML = html;
+      tt.style.display = 'block';
+      posTooltip(e);
+    }
+
+    function posTooltip(e) {
+      const tt = document.getElementById('sc-tooltip');
+      if (!tt) return;
+      const x = Math.min(e.clientX + 12, window.innerWidth  - 220);
+      const y = Math.min(e.clientY + 12, window.innerHeight - 100);
+      tt.style.left = x + 'px';
+      tt.style.top  = y + 'px';
+    }
+
+    function hideTooltip() {
+      const tt = document.getElementById('sc-tooltip');
+      if (tt) tt.style.display = 'none';
+    }
+
+    document.getElementById('sc-prev').addEventListener('click', () => {
+      viewMonth--;
+      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      loadHolidays(viewYear, viewMonth);
+    });
+
+    document.getElementById('sc-next').addEventListener('click', () => {
+      viewMonth++;
+      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      loadHolidays(viewYear, viewMonth);
+    });
+
+    // Initial load
+    loadHolidays(viewYear, viewMonth);
+  })();
+  </script>
+
+  <!-- ── TOP NAVBAR ─────────────────────────────────────── -->
+  <nav class="navbar d-flex align-items-center">
+    <button class="sidebar-toggle me-2" id="sidebar-toggle" aria-label="Menu">
+      <i class="bi bi-list"></i>
+    </button>
+    <span class="navbar-brand mb-0"><%= title %></span>
+    <div class="d-flex align-items-center gap-2 ms-auto">
+
+      <% if (user.role === 'admin') { %>
+        <form method="POST" action="/set-dept" class="d-flex align-items-center gap-1">
+          <input type="hidden" name="returnTo" value="<%= currentPath %>">
+          <i class="bi bi-building small" style="color:var(--dc-gray)"></i>
+          <select name="dept" onchange="this.form.submit()"
+                  class="form-select form-select-sm"
+                  style="max-width:165px; font-size:0.82rem; border-color:#ced4da;">
+            <option value="" <%= adminDept === '' ? 'selected' : '' %>>Tous les départements</option>
+            <option value="Operations"  <%= adminDept === 'Operations'  ? 'selected' : '' %>>Opérations</option>
+            <option value="Technicians" <%= adminDept === 'Technicians' ? 'selected' : '' %>>Techniciens</option>
+            <option value="Logistics"   <%= adminDept === 'Logistics'   ? 'selected' : '' %>>Logistique</option>
+          </select>
+        </form>
+      <% } else if (user.department) { %>
+        <span class="dept-badge"><i class="bi bi-building me-1"></i><%= user.department %></span>
+      <% } %>
+
+      <span class="user-info">
+        <i class="bi bi-person-circle me-1"></i><%= user.full_name || user.username %>
+        <% if (user.role === 'admin') { %>
+          <span class="badge ms-1" style="background:var(--dc-navy);font-size:0.7rem;">Admin</span>
+        <% } else if (user.role === 'supervisor') { %>
+          <span class="badge ms-1" style="background:var(--dc-blue);font-size:0.7rem;">Superviseur</span>
+        <% } else if (user.role === 'trainer') { %>
+          <span class="badge ms-1" style="background:var(--dc-green);font-size:0.7rem;">Formateur</span>
+        <% } %>
+      </span>
+
+      <% if (false) { %>
+      <div class="dropdown" style="display:none!important">
+        <div class="dropdown-menu dropdown-menu-end p-0" style="min-width:320px;max-height:85vh;overflow-y:auto;">
+          <%
+            const qPalette = [
+              { name: 'DC Blue',     hex: '#009ADA' },
+              { name: 'DC Green',    hex: '#62BB46' },
+              { name: 'DC Navy',     hex: '#001743' },
+              { name: 'Resense',     hex: '#71d8a6' },
+              { name: 'KE2 Therm',  hex: '#74b4d6' },
+              { name: 'Eclypse',    hex: '#f47937' },
+              { name: 'Facilities', hex: '#a8aaad' },
+              { name: 'White',      hex: '#ffffff' },
+              { name: 'Light Gray', hex: '#f4f6f8' },
+              { name: 'Dark',       hex: '#1a1a2e'  },
+            ];
+            const cur = {
+              accent:       typeof accentColor !== 'undefined' ? accentColor : '#009ADA',
+              sidebar_bg:   settings.ui_sidebar_bg    || '#001743',
+              sidebar_deep: settings.ui_sidebar_deep  || '#001030',
+              sidebar_hover:settings.ui_sidebar_hover || '#002570',
+              navbar_bg:    settings.ui_navbar_bg     || '#ffffff',
+              navbar_border:settings.ui_navbar_border || '#001743',
+              navbar_text:  settings.ui_navbar_text   || '#001743',
+              page_bg:      settings.ui_page_bg       || '#f4f6f8',
+              card_header:  settings.ui_card_header_bg|| '#001743',
+            };
+          %>
+
+          <!-- Tabs -->
+          <div class="d-flex border-bottom" style="background:#f8f9fa;">
+            <button class="flex-fill btn btn-sm rounded-0 py-2 active" id="tab-accent" onclick="switchTab('accent')"
+                    style="font-size:0.75rem;font-weight:600;border:none;border-bottom:2px solid var(--dc-blue);">Accent</button>
+            <button class="flex-fill btn btn-sm rounded-0 py-2" id="tab-sidebar" onclick="switchTab('sidebar')"
+                    style="font-size:0.75rem;font-weight:600;border:none;border-bottom:2px solid transparent;">Sidebar</button>
+            <button class="flex-fill btn btn-sm rounded-0 py-2" id="tab-navbar" onclick="switchTab('navbar')"
+                    style="font-size:0.75rem;font-weight:600;border:none;border-bottom:2px solid transparent;">Navbar</button>
+            <button class="flex-fill btn btn-sm rounded-0 py-2" id="tab-page" onclick="switchTab('page')"
+                    style="font-size:0.75rem;font-weight:600;border:none;border-bottom:2px solid transparent;">Page</button>
+          </div>
+
+          <div class="p-3">
+            <!-- Palette (shared) -->
+            <div class="d-flex flex-wrap gap-1 mb-3" id="palette-row">
+              <% qPalette.forEach(c => { %>
+                <div title="<%= c.name %>"
+                     onclick="paletteClick('<%= c.hex %>')"
+                     style="width:26px;height:26px;background:<%= c.hex %>;border-radius:5px;cursor:pointer;border:1px solid rgba(0,0,0,0.1);transition:transform .1s;box-shadow:0 1px 2px rgba(0,0,0,0.1);"
+                     onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+                </div>
+              <% }); %>
+            </div>
+
+            <!-- TAB: Accent -->
+            <div id="panel-accent">
+              <div class="small fw-semibold mb-2" style="color:#474C55;">Couleur d'accent — boutons, liens actifs</div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <input type="color" id="qc_accent" value="<%= cur.accent %>"
+                       style="width:38px;height:30px;padding:2px;border-radius:5px;border:1px solid #dee2e6;cursor:pointer;"
+                       oninput="livePreview('accent', this.value)">
+                <span id="hex_accent" class="small" style="font-family:monospace;color:#666;"><%= cur.accent %></span>
+              </div>
+              <div class="small text-muted mt-1">S'applique au département: <strong><%= adminDept || 'Tous' %></strong></div>
+            </div>
+
+            <!-- TAB: Sidebar -->
+            <div id="panel-sidebar" style="display:none;">
+              <% [
+                ['sidebar_bg',    'ui_sidebar_bg',    'Fond sidebar',        cur.sidebar_bg],
+                ['sidebar_deep',  'ui_sidebar_deep',  'Logo area (fond)',     cur.sidebar_deep],
+                ['sidebar_hover', 'ui_sidebar_hover', 'Survol / actif',       cur.sidebar_hover],
+              ].forEach(([id, key, label, val]) => { %>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <input type="color" id="qc_<%= id %>" value="<%= val %>"
+                       style="width:32px;height:26px;padding:2px;border-radius:4px;border:1px solid #dee2e6;cursor:pointer;"
+                       oninput="livePreview('<%= id %>', this.value)">
+                <span class="small text-muted flex-fill"><%= label %></span>
+                <span id="hex_<%= id %>" class="small" style="font-family:monospace;color:#888;font-size:0.7rem;"><%= val %></span>
+              </div>
+              <% }); %>
+            </div>
+
+            <!-- TAB: Navbar -->
+            <div id="panel-navbar" style="display:none;">
+              <% [
+                ['navbar_bg',     'ui_navbar_bg',     'Fond navbar',          cur.navbar_bg],
+                ['navbar_border', 'ui_navbar_border', 'Bordure bas',          cur.navbar_border],
+                ['navbar_text',   'ui_navbar_text',   'Texte / titre',        cur.navbar_text],
+              ].forEach(([id, key, label, val]) => { %>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <input type="color" id="qc_<%= id %>" value="<%= val %>"
+                       style="width:32px;height:26px;padding:2px;border-radius:4px;border:1px solid #dee2e6;cursor:pointer;"
+                       oninput="livePreview('<%= id %>', this.value)">
+                <span class="small text-muted flex-fill"><%= label %></span>
+                <span id="hex_<%= id %>" class="small" style="font-family:monospace;color:#888;font-size:0.7rem;"><%= val %></span>
+              </div>
+              <% }); %>
+            </div>
+
+            <!-- TAB: Page -->
+            <div id="panel-page" style="display:none;">
+              <% [
+                ['page_bg',      'ui_page_bg',        'Fond de page',        cur.page_bg],
+                ['card_header',  'ui_card_header_bg', 'En-tête des cartes',  cur.card_header],
+              ].forEach(([id, key, label, val]) => { %>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <input type="color" id="qc_<%= id %>" value="<%= val %>"
+                       style="width:32px;height:26px;padding:2px;border-radius:4px;border:1px solid #dee2e6;cursor:pointer;"
+                       oninput="livePreview('<%= id %>', this.value)">
+                <span class="small text-muted flex-fill"><%= label %></span>
+                <span id="hex_<%= id %>" class="small" style="font-family:monospace;color:#888;font-size:0.7rem;"><%= val %></span>
+              </div>
+              <% }); %>
+            </div>
+
+            <hr class="my-2">
+
+            <!-- Save forms -->
+            <form method="POST" action="/admin/settings/ui-colors" id="formUI">
+              <input type="hidden" name="ui_sidebar_bg"     id="save_sidebar_bg"    value="<%= cur.sidebar_bg %>">
+              <input type="hidden" name="ui_sidebar_deep"   id="save_sidebar_deep"  value="<%= cur.sidebar_deep %>">
+              <input type="hidden" name="ui_sidebar_hover"  id="save_sidebar_hover" value="<%= cur.sidebar_hover %>">
+              <input type="hidden" name="ui_navbar_bg"      id="save_navbar_bg"     value="<%= cur.navbar_bg %>">
+              <input type="hidden" name="ui_navbar_border"  id="save_navbar_border" value="<%= cur.navbar_border %>">
+              <input type="hidden" name="ui_navbar_text"    id="save_navbar_text"   value="<%= cur.navbar_text %>">
+              <input type="hidden" name="ui_page_bg"        id="save_page_bg"       value="<%= cur.page_bg %>">
+              <input type="hidden" name="ui_card_header_bg" id="save_card_header"   value="<%= cur.card_header %>">
+            </form>
+            <form method="POST" action="/admin/settings/dept-colors" id="formAccent">
+              <input type="hidden" name="dept_color_Operations"  id="save_Operations"  value="<%= settings.dept_color_Operations  || '#009ADA' %>">
+              <input type="hidden" name="dept_color_Technicians" id="save_Technicians" value="<%= settings.dept_color_Technicians || '#009ADA' %>">
+              <input type="hidden" name="dept_color_Logistics"   id="save_Logistics"   value="<%= settings.dept_color_Logistics   || '#009ADA' %>">
+            </form>
+
+            <div class="d-flex gap-2">
+              <button type="button" onclick="saveAll()" class="btn btn-sm btn-primary flex-fill" style="font-size:0.8rem;">
+                <i class="bi bi-check2-circle"></i> Appliquer & Sauvegarder
+              </button>
+              <button type="button" onclick="resetDefaults()" class="btn btn-sm btn-outline-secondary" style="font-size:0.8rem;" title="Réinitialiser">
+                <i class="bi bi-arrow-counterclockwise"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <% } %>
+
+      <!-- Language Switcher Dropdown -->
+      <div class="dropdown">
+        <button id="lang-dropdown-btn" class="btn btn-sm dropdown-toggle d-flex align-items-center gap-1"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                style="border:1px solid #dee2e6; background:#f8f9fa; font-size:0.82rem; font-weight:600; color:var(--dc-navy);">
+          <span id="lang-flag">🇫🇷</span>
+          <span id="lang-code">FR</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="min-width:130px;">
+          <li>
+            <a class="dropdown-item lang-btn d-flex align-items-center gap-2" href="#" data-lang="fr"
+               onclick="setLang('fr'); return false;" style="font-size:0.85rem;">
+              🇫🇷 <span>Français</span>
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item lang-btn d-flex align-items-center gap-2" href="#" data-lang="en"
+               onclick="setLang('en'); return false;" style="font-size:0.85rem;">
+              🇬🇧 <span>English</span>
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item lang-btn d-flex align-items-center gap-2" href="#" data-lang="es"
+               onclick="setLang('es'); return false;" style="font-size:0.85rem;">
+              🇪🇸 <span>Español</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <a href="/logout" class="btn btn-sm" style="border:1px solid var(--dc-navy);color:var(--dc-navy);font-size:0.82rem;">
+        <i class="bi bi-box-arrow-right"></i><span class="logout-text"> Déconnexion</span>
+      </a>
+
+      <script>
+      const _activeDept = '<%= adminDept || "" %>';
+      const _allDepts   = ['Operations','Technicians','Logistics'];
+      let _activeTab = 'accent';
+
+      // CSS var map: local id → CSS variable
+      const _cssMap = {
+        accent:        '--dc-blue',
+        sidebar_bg:    '--dc-navy',
+        sidebar_deep:  '--dc-navy-deep',
+        sidebar_hover: '--dc-navy-mid',
+        navbar_bg:     '--dc-navbar-bg',
+        navbar_border: '--dc-navbar-border',
+        navbar_text:   '--dc-navbar-text',
+        page_bg:       '--dc-gray-light',
+        card_header:   '--dc-card-header',
+      };
+      // save input map
+      const _saveMap = {
+        sidebar_bg:    'save_sidebar_bg',
+        sidebar_deep:  'save_sidebar_deep',
+        sidebar_hover: 'save_sidebar_hover',
+        navbar_bg:     'save_navbar_bg',
+        navbar_border: 'save_navbar_border',
+        navbar_text:   'save_navbar_text',
+        page_bg:       'save_page_bg',
+        card_header:   'save_card_header',
+      };
+
+      function switchTab(tab) {
+        ['accent','sidebar','navbar','page'].forEach(t => {
+          document.getElementById('panel-' + t).style.display = t === tab ? '' : 'none';
+          const btn = document.getElementById('tab-' + t);
+          btn.style.borderBottom = t === tab ? '2px solid var(--dc-blue)' : '2px solid transparent';
+          btn.style.fontWeight   = t === tab ? '700' : '600';
+        });
+        _activeTab = tab;
+      }
+
+      function paletteClick(hex) {
+        // Apply to the current active tab's first picker
+        const panelId = 'panel-' + _activeTab;
+        const firstPicker = document.querySelector('#' + panelId + ' input[type="color"]');
+        if (firstPicker) {
+          firstPicker.value = hex;
+          const id = firstPicker.id.replace('qc_', '');
+          livePreview(id, hex);
+        }
+      }
+
+      function livePreview(id, hex) {
+        document.getElementById('hex_' + id) && (document.getElementById('hex_' + id).textContent = hex);
+        // Apply CSS var
+        if (_cssMap[id]) document.documentElement.style.setProperty(_cssMap[id], hex);
+        // Update save hidden input
+        if (_saveMap[id]) {
+          const el = document.getElementById(_saveMap[id]);
+          if (el) el.value = hex;
+        }
+        // For accent, also update dept inputs + dot
+        if (id === 'accent') {
+          const dot = document.querySelector('.dropdown-toggle [style*="border-radius:50%"]');
+          if (dot) dot.style.background = hex;
+          if (_activeDept && _allDepts.includes(_activeDept)) {
+            document.getElementById('save_' + _activeDept).value = hex;
+          } else {
+            _allDepts.forEach(d => { document.getElementById('save_' + d).value = hex; });
+          }
+        }
+      }
+
+      function saveAll() {
+        document.getElementById('formUI').submit();
+        // accent form submit after short delay to avoid double navigation
+        setTimeout(() => document.getElementById('formAccent').submit(), 300);
+      }
+
+      function resetDefaults() {
+        if (!confirm('Réinitialiser les couleurs Distech Controls par défaut?')) return;
+        const defaults = {
+          sidebar_bg:'#001743', sidebar_deep:'#001030', sidebar_hover:'#002570',
+          navbar_bg:'#ffffff', navbar_border:'#001743', navbar_text:'#001743',
+          page_bg:'#f4f6f8', card_header:'#001743', accent:'#009ADA'
+        };
+        Object.entries(defaults).forEach(([id, hex]) => {
+          const el = document.getElementById('qc_' + id);
+          if (el) { el.value = hex; livePreview(id, hex); }
+        });
+      }
+      </script>
+    </div>
+  </nav>
+
+  <!-- ── Mobile sidebar toggle script ─────────────────────── -->
+  <script>
+  (function() {
+    const toggle  = document.getElementById('sidebar-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    function openSidebar() {
+      sidebar.classList.add('mobile-open');
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar() {
+      sidebar.classList.remove('mobile-open');
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    if (toggle)  toggle.addEventListener('click', openSidebar);
+    if (overlay) overlay.addEventListener('click', closeSidebar);
+
+    // Close sidebar when a nav link is tapped on mobile
+    sidebar && sidebar.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', () => {
+        if (window.innerWidth <= 768) closeSidebar();
+      });
+    });
+  })();
+  </script>
+
+  <script>
+  // ── Save sidebar scroll on every scroll ───────────────────
+  (function() {
+    const nav = document.querySelector('.sidebar-nav');
+    if (!nav) return;
+    nav.addEventListener('scroll', () => {
+      sessionStorage.setItem('sidebar_scroll', nav.scrollTop);
+    });
+  })();
+  </script>
+
+  <main>

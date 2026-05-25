@@ -1,0 +1,59 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="mb-4">
+    <h2>
+      <i class="bi <%= template ? 'bi-pencil-square' : 'bi-plus-circle' %>"></i>
+      <%= template ? 'Modifier' : 'Nouveau' %> Modèle de Checklist
+    </h2>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-body">
+          <form method="POST" action="<%= action %>">
+            <div class="mb-3">
+              <label for="title" class="form-label">Titre du Modèle *</label>
+              <input type="text" class="form-control" id="title" name="title" 
+                     value="<%= template ? template.title : '' %>" required
+                     placeholder="Ex: Water Spider, Opérateur, QA Inspector">
+              <div class="form-text">Un nom descriptif pour ce type de formation</div>
+            </div>
+
+            <% if (user.role === 'admin') { %>
+            <div class="mb-3">
+              <label for="department" class="form-label">Département</label>
+              <select class="form-select" id="department" name="department">
+                <option value="" <%= !template || !template.department ? 'selected' : '' %>>— Non assigné —</option>
+                <option value="Operations"  <%= template && template.department === 'Operations'  ? 'selected' : '' %>>Opérations</option>
+                <option value="Technicians" <%= template && template.department === 'Technicians' ? 'selected' : '' %>>Techniciens</option>
+                <option value="Logistics"   <%= template && template.department === 'Logistics'   ? 'selected' : '' %>>Logistique</option>
+              </select>
+              <div class="form-text">Seuls les utilisateurs de ce département verront ce modèle.</div>
+            </div>
+            <% } %>
+
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="4"
+                        placeholder="Décrivez ce modèle de formation..."><%= template ? template.description || '' : '' %></textarea>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <a href="/checklists" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Annuler
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i> 
+                <%= template ? 'Mettre à jour' : 'Créer et Ajouter Items' %>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

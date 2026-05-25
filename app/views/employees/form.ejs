@@ -1,0 +1,223 @@
+<%- include('../partials/header') %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0"><i class="bi bi-person-<%= employee ? 'gear' : 'plus' %> me-2"></i>
+    <%= employee ? 'Modifier ' + employee.nom : 'Nouvel employé' %>
+  </h2>
+  <a href="<%= employee ? '/employees/' + employee.id : '/employees' %>" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+<form action="<%= action %>" method="POST" enctype="multipart/form-data">
+  <input type="hidden" name="_existing_photo" value="<%= employee && employee.photo ? employee.photo : '' %>">
+
+  <!-- Informations générales -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold">Informations générales</div>
+    <div class="card-body">
+      <div class="row g-3">
+
+        <!-- Photo -->
+        <div class="col-12">
+          <label class="form-label fw-medium">Photo de l'employé</label>
+          <div class="d-flex align-items-center gap-3">
+            <div id="photo-preview-wrap" style="width:90px;height:90px;border-radius:50%;overflow:hidden;background:#e9ecef;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #dee2e6;">
+              <% if (employee && employee.photo) { %>
+                <img id="photo-preview" src="<%= employee.photo %>" alt="Photo" style="width:100%;height:100%;object-fit:cover;">
+              <% } else { %>
+                <i class="bi bi-person-fill text-muted" style="font-size:2.5rem;" id="photo-placeholder"></i>
+                <img id="photo-preview" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;">
+              <% } %>
+            </div>
+            <div>
+              <input type="file" class="form-control" name="photo" id="photo-input" accept="image/jpeg,image/png,image/gif,image/webp" style="max-width:300px;">
+              <div class="form-text">JPG, PNG, GIF ou WEBP · max 5 Mo</div>
+              <% if (employee && employee.photo) { %>
+                <div class="form-text text-success"><i class="bi bi-check-circle"></i> Photo existante — laissez vide pour la conserver</div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-medium">Nom complet <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="nom" value="<%= employee ? employee.nom : '' %>" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-medium">Département</label>
+          <% if (userDept) { %>
+            <input type="hidden" name="department" value="<%= userDept %>">
+            <input type="text" class="form-control" value="<%= userDept %>" disabled>
+          <% } else { %>
+            <select class="form-select" name="department">
+              <option value="" <%= !employee || !employee.department ? 'selected' : '' %>>—</option>
+              <option value="Operations"  <%= employee && employee.department === 'Operations'  ? 'selected' : '' %>>Opérations</option>
+              <option value="Technicians" <%= employee && employee.department === 'Technicians' ? 'selected' : '' %>>Techniciens</option>
+              <option value="Logistics"   <%= employee && employee.department === 'Logistics'   ? 'selected' : '' %>>Logistique</option>
+            </select>
+          <% } %>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-medium">Shift</label>
+          <select class="form-select" name="shift">
+            <% ['','Jour','Soir','Nuit'].forEach(o => { %>
+              <option <%= employee && employee.shift === o ? 'selected' : (!employee && o === '' ? 'selected' : '') %>><%= o %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-medium">Statut</label>
+          <select class="form-select" name="statut">
+            <option <%= !employee || employee.statut === 'Actif' ? 'selected' : '' %>>Actif</option>
+            <option <%= employee && employee.statut === 'Inactif' ? 'selected' : '' %>>Inactif</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-medium">Poste</label>
+          <input type="text" class="form-control" name="poste" value="<%= employee ? (employee.poste || '') : '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-medium">Équipe</label>
+          <input type="text" class="form-control" name="equipe" value="<%= employee ? (employee.equipe || '') : '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-medium">Horaire</label>
+          <input type="text" class="form-control" name="horaire" value="<%= employee ? (employee.horaire || '') : '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-medium">Superviseur</label>
+          <select class="form-select" name="superviseur">
+            <option value="">— Aucun —</option>
+            <% (typeof supervisors !== 'undefined' ? supervisors : []).forEach(s => { %>
+              <option value="<%= s.full_name || s.username %>"
+                <%= employee && employee.superviseur === (s.full_name || s.username) ? 'selected' : '' %>>
+                <%= s.full_name || s.username %>
+              </option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-medium">Date de naissance</label>
+          <input type="text" class="form-control" name="date_naissance" value="<%= employee ? (employee.date_naissance || '') : '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-medium">Date d'embauche</label>
+          <input type="text" class="form-control" name="date_embauche" value="<%= employee ? (employee.date_embauche || '') : '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-medium">Date de fin</label>
+          <input type="text" class="form-control" name="date_fin" value="<%= employee ? (employee.date_fin || '') : '' %>">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-medium">Raison de départ</label>
+          <input type="text" class="form-control" name="raison_depart" value="<%= employee ? (employee.raison_depart || '') : '' %>">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-medium">Ancienneté</label>
+          <input type="text" class="form-control" name="anciennete" value="<%= employee ? (employee.anciennete || '') : '' %>">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-medium">Taille chandail</label>
+          <input type="text" class="form-control" name="taille_chandail" value="<%= employee ? (employee.taille_chandail || '') : '' %>">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold">Contact</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-medium">Courriel</label>
+          <input type="email" class="form-control" name="courriel" value="<%= employee ? (employee.courriel || '') : '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-medium">Téléphone</label>
+          <input type="text" class="form-control" name="telephone" value="<%= employee ? (employee.telephone || '') : '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-medium">Contact d'urgence</label>
+          <input type="text" class="form-control" name="contact_urgence" value="<%= employee ? (employee.contact_urgence || '') : '' %>">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profil personnel -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold">Profil personnel</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-medium">Restriction alimentaire</label>
+          <input type="text" class="form-control" name="restriction_alimentaire" value="<%= employee ? (employee.restriction_alimentaire || '') : '' %>">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-medium">Passion</label>
+          <input type="text" class="form-control" name="passion" value="<%= employee ? (employee.passion || '') : '' %>">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-medium">Ambition</label>
+          <input type="text" class="form-control" name="ambition" value="<%= employee ? (employee.ambition || '') : '' %>">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-medium">Préoccupation</label>
+          <input type="text" class="form-control" name="preoccupation" value="<%= employee ? (employee.preoccupation || '') : '' %>">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-medium">Why</label>
+          <textarea class="form-control" name="why" rows="2"><%= employee ? (employee.why || '') : '' %></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stations -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold">Stations de travail</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <% stations.forEach(s => { %>
+          <div class="col-6 col-md-4 col-lg-3">
+            <label class="form-label fw-medium small"><%= s.label %></label>
+            <select class="form-select form-select-sm" name="<%= s.key %>">
+              <% ['','Oui','Formation','Formation prévue','À revoir'].forEach(opt => { %>
+                <option value="<%= opt %>" <%= employee && employee[s.key] === opt ? 'selected' : (!employee && opt === '' ? 'selected' : '') %>>
+                  <%= opt || '—' %>
+                </option>
+              <% }); %>
+            </select>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-check-lg me-1"></i><%= employee ? 'Enregistrer' : "Créer l'employé" %>
+    </button>
+    <a href="<%= employee ? '/employees/' + employee.id : '/employees' %>" class="btn btn-outline-secondary">Annuler</a>
+  </div>
+</form>
+
+<script>
+document.getElementById('photo-input').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const preview = document.getElementById('photo-preview');
+    const placeholder = document.getElementById('photo-placeholder');
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+    if (placeholder) placeholder.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+});
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,408 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-calendar-check"></i> Session de Formation</h2>
+    <a href="/training" class="btn btn-secondary">
+      <i class="bi bi-arrow-left"></i> Retour
+    </a>
+  </div>
+
+  <div class="row">
+    <!-- Session Info -->
+    <div class="col-md-4 mb-4">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informations</h5>
+        </div>
+        <div class="card-body">
+          <h6>Employé</h6>
+          <p class="mb-3"><strong><%= session.employee_name %></strong></p>
+
+          <h6>Formateur</h6>
+          <p class="mb-3"><%= session.trainer_name %></p>
+
+          <% if (session.employee_supervisor) { %>
+            <h6>Superviseur</h6>
+            <p class="mb-3"><i class="bi bi-person-badge me-1 text-muted"></i><%= session.employee_supervisor %></p>
+          <% } %>
+
+          <h6>Poste</h6>
+          <p class="mb-3"><%= session.poste || '-' %></p>
+
+          <%
+            const _today = new Date(); _today.setHours(0,0,0,0);
+            const _fin = session.date_fin ? new Date(session.date_fin) : null;
+            if (_fin) _fin.setHours(0,0,0,0);
+            const _isLate = session.statut === 'En cours' && _fin && _fin < _today;
+            const _daysLate = _isLate ? Math.floor((_today - _fin) / 86400000) : 0;
+          %>
+          <h6>Statut</h6>
+          <p class="mb-3">
+            <% if (_isLate) { %>
+              <span class="badge bg-danger">En retard</span>
+              <span class="text-danger fw-bold ms-2">+<%= _daysLate %> jour<%= _daysLate > 1 ? 's' : '' %> de retard</span>
+            <% } else if (session.statut === 'En cours') { %>
+              <span class="badge bg-primary">En cours</span>
+            <% } else if (session.statut === 'Terminée') { %>
+              <span class="badge bg-success">Terminée</span>
+            <% } else { %>
+              <span class="badge bg-secondary"><%= session.statut %></span>
+            <% } %>
+          </p>
+
+          <h6>Période</h6>
+          <p class="mb-1">
+            <strong>Début:</strong> <%= session.date_debut ? new Date(session.date_debut).toLocaleDateString('fr-CA') : '-' %>
+          </p>
+          <p class="mb-3">
+            <strong>Fin prévue:</strong>
+            <% if (_fin) { %>
+              <span class="<%= _isLate ? 'text-danger fw-bold' : '' %>">
+                <%= _fin.toLocaleDateString('fr-CA') %>
+                <% if (_isLate) { %> <i class="bi bi-exclamation-triangle-fill"></i><% } %>
+              </span>
+            <% } else { %>—<% } %>
+          </p>
+
+          <% if (session.notes) { %>
+            <h6>Notes</h6>
+            <p class="mb-0"><%= session.notes %></p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Checklist Progress -->
+    <div class="col-md-8 mb-4">
+      <div class="card">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-list-check"></i> Progression de la Formation</h5>
+          <% if (checklist.length > 0) { %>
+            <button class="btn btn-sm btn-light" onclick="rolloverItems()" title="Reporter les éléments non complétés au jour suivant">
+              <i class="bi bi-arrow-right-circle"></i> Reporter au jour suivant
+            </button>
+          <% } %>
+        </div>
+        <div class="card-body">
+          <% if (checklist.length === 0) { %>
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle"></i>
+              La checklist n'a pas encore été créée pour cette session.
+            </div>
+          <% } else { %>
+            <!-- Progress Summary - DYNAMIC -->
+            <div class="row mb-3">
+              <div class="col-md-4">
+                <% 
+                  const total = checklist.length;
+                  const completed = checklist.filter(item => item.completed).length;
+                  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+                %>
+                <div class="card bg-light">
+                  <div class="card-body text-center">
+                    <h3 class="mb-0" id="progress-percentage"><%= percentage %>%</h3>
+                    <small class="text-muted">
+                      <span id="progress-completed"><%= completed %></span>/<span id="progress-total"><%= total %></span> complétés
+                    </small>
+                    <div class="progress mt-2" style="height: 10px;">
+                      <div id="progress-bar" class="progress-bar bg-success" style="width: <%= percentage %>%"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-8">
+                <div class="alert alert-info mb-0">
+                  <i class="bi bi-lightbulb"></i>
+                  <strong>Astuce:</strong> Cochez les éléments. Cliquez sur le crayon pour modifier.
+                </div>
+              </div>
+            </div>
+
+            <!-- Filter by Day -->
+            <div class="btn-group mb-3" role="group">
+              <button type="button" class="btn btn-outline-primary active" onclick="filterDay('all', this)">
+                Tous
+              </button>
+              <% 
+                const days = [...new Set(checklist.map(i => i.jour))].sort();
+                days.forEach(day => { 
+              %>
+                <button type="button" class="btn btn-outline-primary" onclick="filterDay('<%= day %>', this)">
+                  Jour <%= day %>
+                </button>
+              <% }); %>
+            </div>
+
+            <!-- Checklist by Category -->
+            <% 
+              const groupedItems = {};
+              checklist.forEach(item => {
+                const key = `${item.jour}-${item.categorie}`;
+                if (!groupedItems[key]) {
+                  groupedItems[key] = {
+                    jour: item.jour,
+                    categorie: item.categorie,
+                    items: []
+                  };
+                }
+                groupedItems[key].items.push(item);
+              });
+              
+              Object.values(groupedItems).forEach(group => {
+            %>
+              <div class="card mb-2 day-filter day-<%= group.jour %>">
+                <div class="card-header" style="background-color: #f8f9fa;">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                      <span class="badge bg-primary me-2">Jour <%= group.jour %></span>
+                      <%= group.categorie %>
+                    </h6>
+                    <small class="text-muted">
+                      <span class="completed-count"><%= group.items.filter(i => i.completed).length %></span>/<%= group.items.length %>
+                    </small>
+                  </div>
+                </div>
+                <div class="card-body p-2">
+                  <table class="table table-sm table-hover mb-0">
+                    <tbody>
+                      <% group.items.forEach(item => { %>
+                        <tr id="item-row-<%= item.id %>" 
+                            style="<%= item.completed ? 'opacity: 0.6;' : '' %>">
+                          <td width="30">
+                            <div class="form-check">
+                              <input class="form-check-input checklist-checkbox" 
+                                     type="checkbox" 
+                                     data-item-id="<%= item.id %>"
+                                     <%= item.completed ? 'checked' : '' %>>
+                            </div>
+                          </td>
+                          <td>
+                            <span class="item-display" id="item-display-<%= item.id %>">
+                              <% if (item.sous_categorie) { %>
+                                <small class="text-muted"><strong><%= item.sous_categorie %>:</strong></small>
+                              <% } %>
+                              <span class="item-text"><%= item.quoi_expliquer %></span>
+                            </span>
+                            <div class="item-edit d-none" id="item-edit-<%= item.id %>">
+                              <input type="text" class="form-control form-control-sm mb-1 edit-sous" 
+                                     value="<%= item.sous_categorie || '' %>" 
+                                     placeholder="Sous-catégorie">
+                              <textarea class="form-control form-control-sm edit-quoi" rows="2"><%= item.quoi_expliquer %></textarea>
+                              <div class="mt-1">
+                                <button class="btn btn-sm btn-success" onclick="saveEdit(<%= item.id %>)">
+                                  <i class="bi bi-check"></i> Sauver
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="cancelEdit(<%= item.id %>)">
+                                  <i class="bi bi-x"></i> Annuler
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                          <td width="80" class="text-end">
+                            <button class="btn btn-sm btn-outline-warning" onclick="editItem(<%= item.id %>)" title="Modifier">
+                              <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteItem(<%= item.id %>)" title="Supprimer">
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            <% }); %>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const sessionId = <%= session.id %>;
+
+// Filter by day
+function filterDay(day, btn) {
+  const buttons = document.querySelectorAll('.btn-group button');
+  buttons.forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  
+  const items = document.querySelectorAll('.day-filter');
+  items.forEach(item => {
+    if (day === 'all' || item.classList.contains('day-' + day)) {
+      item.style.display = 'block';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+}
+
+// Update progress bar dynamically (no page reload!)
+function updateProgressBar() {
+  const checkboxes = document.querySelectorAll('.checklist-checkbox');
+  const total = checkboxes.length;
+  const completed = document.querySelectorAll('.checklist-checkbox:checked').length;
+  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+  
+  document.getElementById('progress-percentage').textContent = percentage + '%';
+  document.getElementById('progress-completed').textContent = completed;
+  document.getElementById('progress-total').textContent = total;
+  document.getElementById('progress-bar').style.width = percentage + '%';
+  
+  // Update group counts
+  document.querySelectorAll('.day-filter').forEach(group => {
+    const groupCompleted = group.querySelectorAll('.checklist-checkbox:checked').length;
+    const countEl = group.querySelector('.completed-count');
+    if (countEl) {
+      countEl.textContent = groupCompleted;
+    }
+  });
+}
+
+// Handle checkbox changes
+document.querySelectorAll('.checklist-checkbox').forEach(cb => {
+  cb.addEventListener('change', function() {
+    const itemId = this.dataset.itemId;
+    const completed = this.checked;
+    const row = document.getElementById('item-row-' + itemId);
+    const checkbox = this;
+    
+    // Update row appearance immediately
+    if (completed) {
+      row.style.opacity = '0.6';
+    } else {
+      row.style.opacity = '1';
+    }
+    
+    // Update progress bar immediately (no waiting for server!)
+    updateProgressBar();
+    
+    // Save to server in background
+    fetch('/training/' + sessionId + '/checklist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        item_id: itemId,
+        completed: completed
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) {
+        alert('Erreur lors de la sauvegarde');
+        checkbox.checked = !completed;
+        updateProgressBar();
+      }
+    })
+    .catch(err => {
+      console.error('Erreur:', err);
+      alert('Erreur de connexion');
+      checkbox.checked = !completed;
+      updateProgressBar();
+    });
+  });
+});
+
+// Edit item
+function editItem(itemId) {
+  document.getElementById('item-display-' + itemId).classList.add('d-none');
+  document.getElementById('item-edit-' + itemId).classList.remove('d-none');
+}
+
+// Cancel edit
+function cancelEdit(itemId) {
+  document.getElementById('item-display-' + itemId).classList.remove('d-none');
+  document.getElementById('item-edit-' + itemId).classList.add('d-none');
+}
+
+// Save edit
+function saveEdit(itemId) {
+  const editDiv = document.getElementById('item-edit-' + itemId);
+  const sous = editDiv.querySelector('.edit-sous').value;
+  const quoi = editDiv.querySelector('.edit-quoi').value;
+  
+  if (!quoi.trim()) {
+    alert('La description ne peut pas être vide');
+    return;
+  }
+  
+  fetch('/training/' + sessionId + '/checklist/' + itemId + '/edit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sous_categorie: sous,
+      quoi_expliquer: quoi
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const display = document.getElementById('item-display-' + itemId);
+      let html = '';
+      if (sous) {
+        html += '<small class="text-muted"><strong>' + sous + ':</strong></small> ';
+      }
+      html += '<span class="item-text">' + quoi + '</span>';
+      display.innerHTML = html;
+      
+      cancelEdit(itemId);
+    } else {
+      alert('Erreur lors de la sauvegarde');
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    alert('Erreur de connexion');
+  });
+}
+
+// Delete item
+function deleteItem(itemId) {
+  if (!confirm('Supprimer cet élément?')) return;
+  
+  fetch('/training/' + sessionId + '/checklist/' + itemId + '/delete', {
+    method: 'POST'
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const row = document.getElementById('item-row-' + itemId);
+      row.remove();
+      updateProgressBar();
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    alert('Erreur de connexion');
+  });
+}
+
+// Rollover incomplete items to next day
+function rolloverItems() {
+  if (!confirm('Reporter tous les éléments non complétés vers le jour suivant?\n\nLes éléments du jour 1 non cochés iront au jour 2, ceux du jour 2 au jour 3, etc.')) {
+    return;
+  }
+  
+  fetch('/training/' + sessionId + '/rollover', {
+    method: 'POST'
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      alert(data.message || 'Éléments reportés avec succès');
+      location.reload();
+    } else {
+      alert(data.error || 'Erreur lors du report');
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    alert('Erreur de connexion');
+  });
+}
+</script>
+
+<%- include('../partials/footer') %>

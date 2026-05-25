@@ -1,0 +1,537 @@
+<%- include('../partials/header') %>
+
+<style>
+  /* ── Status colours ──────────────────────────────────────── */
+  :root {
+    --sv-stable-bg:     #86EFAC;
+    --sv-stable-text:   #166534;
+    --sv-watch-bg:      #FDE047;
+    --sv-watch-text:    #854D0E;
+    --sv-risk-bg:       #FCA5A5;
+    --sv-risk-text:     #991B1B;
+    --sv-empty-bg:      #F3F4F6;
+    --sv-empty-text:    #9CA3AF;
+    --sv-today-bg:      #EFF6FF;
+  }
+
+  /* ── Grid ────────────────────────────────────────────────── */
+  .sv-table { border-collapse: collapse; min-width: 100%; }
+  .sv-table th, .sv-table td {
+    border: 1px solid #e5e7eb;
+    padding: 0;
+    vertical-align: middle;
+  }
+  .sv-table thead th {
+    background: #f8f9fa;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-align: center;
+    padding: 8px 6px;
+    white-space: nowrap;
+  }
+  .sv-table thead th.col-today { background: var(--sv-today-bg); border-color: var(--dc-blue); }
+
+  /* Employee column */
+  .col-emp {
+    min-width: 200px;
+    position: sticky;
+    left: 0;
+    background: #fff;
+    z-index: 2;
+  }
+  .emp-cell {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border-left: 4px solid #e5e7eb;
+    padding: 8px 10px;
+    height: 100%;
+  }
+  .emp-cell.dept-ops     { border-left-color: #10B981; }
+  .emp-cell.dept-tech    { border-left-color: #3B82F6; }
+  .emp-cell.dept-log     { border-left-color: #EF4444; }
+  .emp-cell.dept-exp     { border-left-color: #F59E0B; }
+  .emp-cell.dept-other   { border-left-color: #8B5CF6; }
+
+  .emp-avatar-sm {
+    width: 34px; height: 34px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0;
+    border: 1.5px solid #dee2e6;
+    margin-right: 8px;
+  }
+  .emp-initials-sm {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--dc-navy, #0d2137);
+    color: #fff; display: flex; align-items: center;
+    justify-content: center; font-size: .8rem; font-weight: 700;
+    flex-shrink: 0; margin-right: 8px;
+  }
+
+  /* Day cells */
+  .col-day { min-width: 110px; }
+  .sv-cell {
+    width: 100%; height: 64px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3px; cursor: pointer;
+    background: var(--sv-empty-bg);
+    transition: filter .12s, transform .08s;
+    user-select: none;
+  }
+  .sv-cell:hover { filter: brightness(0.93); transform: scale(0.97); }
+  .sv-cell:active { transform: scale(0.93); }
+  .sv-cell.sv-stable   { background: var(--sv-stable-bg); }
+  .sv-cell.sv-watch    { background: var(--sv-watch-bg);  }
+  .sv-cell.sv-risk     { background: var(--sv-risk-bg);   }
+  .sv-cell.sv-today-empty { background: var(--sv-today-bg); }
+
+  .sv-icon   { font-size: 1.3rem; line-height: 1; }
+  .sv-label  { font-size: 0.6rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: inherit; }
+  .sv-comment-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #374151; opacity: 0.45;
+    position: absolute; top: 5px; right: 5px;
+  }
+  td.col-day { position: relative; }
+
+  /* Legend */
+  .sv-legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .sv-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #555; }
+  .sv-legend-dot { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; }
+
+  /* ── Modal ───────────────────────────────────────────────── */
+  .sv-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 2000;
+    align-items: center; justify-content: center;
+  }
+  .sv-modal-overlay.open { display: flex; }
+  .sv-modal {
+    background: #fff; border-radius: 12px;
+    width: 340px; max-width: 96vw;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+    overflow: hidden; animation: sv-pop .15s ease;
+  }
+  @keyframes sv-pop {
+    from { transform: scale(0.88); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+  .sv-modal-head {
+    padding: 18px 22px 12px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .sv-modal-head h6 { margin: 0; font-size: 1rem; font-weight: 700; color: #111; }
+  .sv-modal-head p  { margin: 4px 0 0; font-size: 0.82rem; color: #6B7280; }
+  .sv-modal-body    { padding: 16px 22px 20px; }
+
+  /* Status buttons in modal */
+  .sv-btn-status {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 11px 16px; border: none;
+    border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; margin-bottom: 8px; transition: filter .12s;
+  }
+  .sv-btn-status:hover { filter: brightness(0.93); }
+  .sv-btn-stable  { background: var(--sv-stable-bg); color: var(--sv-stable-text); }
+  .sv-btn-watch   { background: var(--sv-watch-bg);  color: var(--sv-watch-text);  }
+  .sv-btn-risk    { background: var(--sv-risk-bg);   color: var(--sv-risk-text);   }
+  .sv-btn-clear   {
+    background: var(--sv-empty-bg); color: #6B7280;
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 9px 16px; border: 1px solid #e5e7eb;
+    border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; margin-top: 4px; transition: filter .12s;
+  }
+  .sv-btn-clear:hover { filter: brightness(0.95); }
+
+  /* Comment step */
+  #sv-comment-step { display: none; }
+  .sv-comment-header {
+    padding: 10px 14px; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 700; margin-bottom: 12px;
+  }
+  .sv-comment-header.watch { background: var(--sv-watch-bg); color: var(--sv-watch-text); }
+  .sv-comment-header.risk  { background: var(--sv-risk-bg);  color: var(--sv-risk-text);  }
+  #sv-comment-text {
+    width: 100%; border: 1px solid #ced4da; border-radius: 6px;
+    padding: 8px 10px; font-size: 0.9rem; resize: vertical;
+    min-height: 80px; font-family: inherit;
+  }
+  #sv-comment-text:focus { outline: none; border-color: var(--dc-blue); }
+  .sv-modal-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .sv-btn-back {
+    flex: 0 0 auto; padding: 8px 14px; border: 1px solid #dee2e6;
+    background: #f8f9fa; color: #555; border-radius: 6px;
+    font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  }
+  .sv-btn-confirm {
+    flex: 1; padding: 8px 14px; border: none;
+    border-radius: 6px; font-size: 0.9rem; font-weight: 700;
+    cursor: pointer; color: #fff;
+  }
+  .sv-btn-confirm.watch { background: #ca8a04; }
+  .sv-btn-confirm.risk  { background: #dc2626; }
+
+  /* Toast */
+  .sv-toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 3000;
+    background: #1f2937; color: #fff;
+    padding: 10px 18px; border-radius: 8px; font-size: 0.85rem;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    transform: translateY(80px); opacity: 0;
+    transition: transform .25s, opacity .25s;
+    pointer-events: none;
+  }
+  .sv-toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── Mobile ──────────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .col-emp   { min-width: 130px; }
+    .col-day   { min-width: 70px; }
+    .sv-cell   { height: 52px; }
+    .sv-icon   { font-size: 1.1rem; }
+    .sv-label  { display: none; }
+    .emp-initials-sm, .emp-avatar-sm { width: 28px; height: 28px; font-size: .72rem; }
+  }
+</style>
+
+<!-- ── Page header ──────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h2 class="mb-0"><i class="bi bi-clipboard2-pulse me-2"></i>Suivi Employés</h2>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <!-- Shift filter -->
+    <form method="GET" action="/suivi" class="d-flex gap-2 align-items-center">
+      <input type="hidden" name="week" value="<%= weekStart %>">
+      <select name="shift" class="form-select form-select-sm" style="max-width:130px" onchange="this.form.submit()">
+        <option value="" <%= filterShift === '' ? 'selected' : '' %>>Tous les quarts</option>
+        <option value="Jour"  <%= filterShift === 'Jour'  ? 'selected' : '' %>>☀️ Jour</option>
+        <option value="Soir"  <%= filterShift === 'Soir'  ? 'selected' : '' %>>🌙 Soir</option>
+        <option value="Nuit"  <%= filterShift === 'Nuit'  ? 'selected' : '' %>>🌑 Nuit</option>
+      </select>
+    </form>
+  </div>
+</div>
+
+<!-- ── Week navigation ─────────────────────────────────── -->
+<div class="card mb-3">
+  <div class="card-body py-2 d-flex align-items-center justify-content-between">
+    <a href="/suivi?week=<%= prevWeek %>&shift=<%= filterShift %>" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-chevron-left"></i> <span class="btn-label">Semaine précédente</span>
+    </a>
+    <strong class="text-center small"><%= weekLabel %></strong>
+    <a href="/suivi?week=<%= nextWeek %>&shift=<%= filterShift %>" class="btn btn-outline-secondary btn-sm">
+      <span class="btn-label">Semaine suivante</span> <i class="bi bi-chevron-right"></i>
+    </a>
+  </div>
+</div>
+
+<!-- ── Legend ─────────────────────────────────────────── -->
+<div class="sv-legend mb-3">
+  <div class="sv-legend-item">
+    <div class="sv-legend-dot" style="background:var(--sv-stable-bg);border:1px solid #86EFAC;"></div>
+    <span>✓ Stable</span>
+  </div>
+  <div class="sv-legend-item">
+    <div class="sv-legend-dot" style="background:var(--sv-watch-bg);border:1px solid #FDE047;"></div>
+    <span>⚠ À surveiller</span>
+  </div>
+  <div class="sv-legend-item">
+    <div class="sv-legend-dot" style="background:var(--sv-risk-bg);border:1px solid #FCA5A5;"></div>
+    <span>! À risque</span>
+  </div>
+  <div class="sv-legend-item">
+    <div class="sv-legend-dot" style="background:#e5e7eb;width:8px;height:8px;border-radius:50%;"></div>
+    <span style="font-size:0.72rem;color:#9CA3AF;">💬 = commentaire</span>
+  </div>
+</div>
+
+<% if (employees.length === 0) { %>
+  <div class="card text-center py-5">
+    <div class="card-body">
+      <i class="bi bi-clipboard2-x" style="font-size:3rem;color:#ccc;"></i>
+      <p class="text-muted mt-3 mb-3">Aucun employé actif trouvé pour ce département / quart.</p>
+      <a href="/employees" class="btn btn-primary">Gérer les employés</a>
+    </div>
+  </div>
+<% } else { %>
+
+<div class="card">
+  <div class="card-body p-0" style="overflow-x:auto;">
+    <table class="sv-table">
+      <thead>
+        <tr>
+          <th class="col-emp" style="text-align:left; padding-left:14px;">
+            Employé <span class="badge bg-secondary ms-1" style="font-weight:500;font-size:0.7rem;"><%= employees.length %></span>
+          </th>
+          <% days.forEach((d, i) => { %>
+            <th class="col-day <%= d === today ? 'col-today' : '' %>">
+              <div><%= dayLabels[i] %></div>
+              <div style="font-weight:400; font-size:0.7rem; color:#6B7280;"><%= dayDates[i] %></div>
+            </th>
+          <% }); %>
+        </tr>
+      </thead>
+      <tbody>
+        <% employees.forEach(emp => {
+          // Dept left-border class
+          const deptMap = {
+            'Operations':'dept-ops','Technicians':'dept-tech',
+            'Logistics':'dept-log','Logistique':'dept-log',
+            'Expédition':'dept-exp','Expedition':'dept-exp'
+          };
+          const deptClass = deptMap[emp.department] || 'dept-other';
+        %>
+        <tr>
+          <!-- Employee cell -->
+          <td class="col-emp">
+            <div class="emp-cell <%= deptClass %>">
+              <% if (emp.photo) { %>
+                <img src="<%= emp.photo %>" alt="<%= emp.nom %>" class="emp-avatar-sm"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="emp-initials-sm" style="display:none;"><%= (emp.nom||'E').charAt(0).toUpperCase() %></div>
+              <% } else { %>
+                <div class="emp-initials-sm"><%= (emp.nom||'E').charAt(0).toUpperCase() %></div>
+              <% } %>
+              <div>
+                <div class="fw-semibold" style="font-size:0.88rem;line-height:1.2;"><%= emp.nom %></div>
+                <div style="font-size:0.7rem;color:#6B7280;">
+                  <%= emp.shift === 'Soir' ? '🌙' : (emp.shift === 'Nuit' ? '🌑' : '☀️') %>
+                  <%= emp.shift || 'Jour' %>
+                  <% if (emp.poste) { %> · <%= emp.poste %><% } %>
+                </div>
+              </div>
+            </div>
+          </td>
+
+          <!-- Day cells -->
+          <% days.forEach((d, di) => {
+            const key   = `${emp.id}_${d}`;
+            const entry = suiviMap[key];
+            const st    = entry ? entry.statut : '';
+            const hasComment = entry && entry.commentaire;
+            let svClass = '', svIcon = '—', svLabel = 'Aucun';
+            if (st === 'Stable')        { svClass='sv-stable'; svIcon='✓'; svLabel='Stable'; }
+            else if (st === 'À surveiller') { svClass='sv-watch';  svIcon='⚠'; svLabel='Surveiller'; }
+            else if (st === 'À risque') { svClass='sv-risk';   svIcon='!'; svLabel='À risque'; }
+            else if (d === today)       { svClass='sv-today-empty'; }
+          %>
+          <td class="col-day">
+            <div class="sv-cell <%= svClass %>"
+                 data-emp-id="<%= emp.id %>"
+                 data-emp-nom="<%= emp.nom %>"
+                 data-date="<%= d %>"
+                 data-daylabel="<%= dayLabels[di] %> <%= dayDates[di] %>"
+                 data-statut="<%= st %>"
+                 data-comment="<%= entry && entry.commentaire ? entry.commentaire.replace(/"/g,'&quot;') : '' %>"
+                 onclick="openModal(this)">
+              <span class="sv-icon"><%= svIcon %></span>
+              <span class="sv-label" style="color:<%= svClass==='sv-stable' ? 'var(--sv-stable-text)' : svClass==='sv-watch' ? 'var(--sv-watch-text)' : svClass==='sv-risk' ? 'var(--sv-risk-text)' : 'var(--sv-empty-text)' %>"><%= svLabel %></span>
+              <% if (hasComment) { %><div class="sv-comment-dot"></div><% } %>
+            </div>
+          </td>
+          <% }); %>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<% } %>
+
+<!-- ── Status Modal ──────────────────────────────────── -->
+<div class="sv-modal-overlay" id="sv-overlay" onclick="closeModalOutside(event)">
+  <div class="sv-modal" id="sv-modal">
+    <div class="sv-modal-head">
+      <h6 id="sv-modal-emp">—</h6>
+      <p id="sv-modal-date">—</p>
+    </div>
+    <div class="sv-modal-body">
+
+      <!-- Step 1: choose status -->
+      <div id="sv-step1">
+        <button class="sv-btn-status sv-btn-stable"  onclick="pickStatus('Stable')">
+          <span style="font-size:1.2rem;">✓</span> Stable
+        </button>
+        <button class="sv-btn-status sv-btn-watch"   onclick="pickStatus('À surveiller')">
+          <span style="font-size:1.2rem;">⚠</span> À surveiller
+          <span style="font-size:0.72rem;opacity:.7;margin-left:auto;">commentaire requis</span>
+        </button>
+        <button class="sv-btn-status sv-btn-risk"    onclick="pickStatus('À risque')">
+          <span style="font-size:1.2rem;">!</span> À risque
+          <span style="font-size:0.72rem;opacity:.7;margin-left:auto;">commentaire requis</span>
+        </button>
+        <button class="sv-btn-clear" onclick="clearStatus()">
+          <span style="font-size:1rem;">✕</span> Effacer / Repos
+        </button>
+      </div>
+
+      <!-- Step 2: comment (for watch / risk) -->
+      <div id="sv-comment-step">
+        <div class="sv-comment-header" id="sv-comment-header">⚠ À surveiller</div>
+        <label style="font-size:0.85rem;font-weight:600;color:#374151;display:block;margin-bottom:6px;">
+          Commentaire <span style="color:#dc2626;">*</span>
+        </label>
+        <textarea id="sv-comment-text" placeholder="Décrivez la situation…"></textarea>
+        <div class="sv-modal-actions">
+          <button class="sv-btn-back" onclick="backToStep1()">← Retour</button>
+          <button class="sv-btn-confirm" id="sv-confirm-btn" onclick="confirmWithComment()">Confirmer</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="sv-toast" id="sv-toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────
+let _cell = null;  // current cell DOM element
+let _pendingStatus = '';
+
+// ── Open modal ─────────────────────────────────────────────
+function openModal(cell) {
+  _cell = cell;
+  document.getElementById('sv-modal-emp').textContent  = cell.dataset.empNom;
+  document.getElementById('sv-modal-date').textContent = cell.dataset.daylabel;
+  // Reset to step 1
+  document.getElementById('sv-step1').style.display = '';
+  document.getElementById('sv-comment-step').style.display = 'none';
+  document.getElementById('sv-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('sv-overlay').classList.remove('open');
+  _cell = null;
+  _pendingStatus = '';
+}
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('sv-overlay')) closeModal();
+}
+
+// ── Pick status ────────────────────────────────────────────
+function pickStatus(status) {
+  if (status === 'Stable') {
+    saveEntry(status, '');
+    return;
+  }
+  // Needs comment
+  _pendingStatus = status;
+  const isWatch = status === 'À surveiller';
+  const hdr = document.getElementById('sv-comment-header');
+  hdr.textContent = (isWatch ? '⚠ ' : '! ') + status;
+  hdr.className   = 'sv-comment-header ' + (isWatch ? 'watch' : 'risk');
+  const btn = document.getElementById('sv-confirm-btn');
+  btn.className   = 'sv-btn-confirm ' + (isWatch ? 'watch' : 'risk');
+  // Pre-fill existing comment if any
+  document.getElementById('sv-comment-text').value = _cell.dataset.comment || '';
+  // Show step 2
+  document.getElementById('sv-step1').style.display = 'none';
+  document.getElementById('sv-comment-step').style.display = 'block';
+  document.getElementById('sv-comment-text').focus();
+}
+
+function backToStep1() {
+  document.getElementById('sv-step1').style.display = '';
+  document.getElementById('sv-comment-step').style.display = 'none';
+  _pendingStatus = '';
+}
+
+function confirmWithComment() {
+  const comment = document.getElementById('sv-comment-text').value.trim();
+  if (!comment) {
+    document.getElementById('sv-comment-text').focus();
+    document.getElementById('sv-comment-text').style.borderColor = '#dc2626';
+    setTimeout(() => { document.getElementById('sv-comment-text').style.borderColor = ''; }, 1500);
+    return;
+  }
+  saveEntry(_pendingStatus, comment);
+}
+
+// ── Clear ──────────────────────────────────────────────────
+function clearStatus() {
+  if (!_cell) return;
+  closeModal();
+  fetch(`/suivi/entry/${_cell.dataset.empId}/${_cell.dataset.date}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(() => {
+      updateCell(_cell, '', '');
+      showToast('Statut effacé');
+    })
+    .catch(() => showToast('Erreur réseau', true));
+}
+
+// ── Save (POST) ────────────────────────────────────────────
+function saveEntry(statut, commentaire) {
+  if (!_cell) return;
+  const cell = _cell;
+  closeModal();
+
+  fetch('/suivi/entry', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      employee_id: cell.dataset.empId,
+      date:        cell.dataset.date,
+      statut,
+      commentaire
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) return showToast('Erreur: ' + data.error, true);
+    updateCell(cell, statut, commentaire);
+    showToast('Statut enregistré ✓');
+  })
+  .catch(() => showToast('Erreur réseau', true));
+}
+
+// ── Update cell DOM ────────────────────────────────────────
+function updateCell(cell, statut, commentaire) {
+  // Update data attrs
+  cell.dataset.statut  = statut;
+  cell.dataset.comment = commentaire || '';
+
+  // Remove old classes
+  cell.classList.remove('sv-stable','sv-watch','sv-risk','sv-today-empty');
+
+  let icon = '—', label = 'Aucun', labelColor = 'var(--sv-empty-text)';
+  if      (statut === 'Stable')        { cell.classList.add('sv-stable'); icon='✓'; label='Stable';     labelColor='var(--sv-stable-text)'; }
+  else if (statut === 'À surveiller')  { cell.classList.add('sv-watch');  icon='⚠'; label='Surveiller'; labelColor='var(--sv-watch-text)';  }
+  else if (statut === 'À risque')      { cell.classList.add('sv-risk');   icon='!'; label='À risque';   labelColor='var(--sv-risk-text)';   }
+
+  cell.querySelector('.sv-icon').textContent  = icon;
+  const lblEl = cell.querySelector('.sv-label');
+  if (lblEl) { lblEl.textContent = label; lblEl.style.color = labelColor; }
+
+  // Comment dot
+  let dot = cell.querySelector('.sv-comment-dot');
+  if (commentaire) {
+    if (!dot) {
+      dot = document.createElement('div');
+      dot.className = 'sv-comment-dot';
+      cell.appendChild(dot);
+    }
+  } else if (dot) {
+    dot.remove();
+  }
+}
+
+// ── Toast ─────────────────────────────────────────────────
+function showToast(msg, isErr) {
+  const t = document.getElementById('sv-toast');
+  t.textContent = msg;
+  t.style.background = isErr ? '#dc2626' : '#1f2937';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// Keyboard: Escape closes modal
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+</script>
+
+<%- include('../partials/footer') %>

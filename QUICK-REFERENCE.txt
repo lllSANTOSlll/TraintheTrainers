@@ -1,0 +1,42 @@
+=================================================================
+    DISTECH TRAINING APP - QUICK REFERENCE
+=================================================================
+
+🚀 TO START:
+    1. Double-click: START_APP.bat
+    2. Wait 3 seconds
+    3. Browser opens automatically
+    4. Login: admin / admin123
+
+🛑 TO STOP:
+    - Close the black command window
+    - OR press Ctrl+C
+
+📍 LOCATION:
+    App URL: http://localhost:3001
+    (Only works when START_APP.bat is running)
+
+👥 DEFAULT ACCOUNTS:
+    Username: admin    Password: admin123 (⭐ Admin)
+    
+    Change passwords after first login!
+
+🔐 USER ROLES:
+    ⭐ Admin        - Full access, manage users
+    👔 Superviseur  - Create/assign sessions, manage templates
+    🎓 Formateur    - Work on assigned sessions only
+    👤 User         - Work on assigned sessions only
+
+⚠️ IMPORTANT:
+    - Keep command window open while using app
+    - Close window to stop app
+    - Only ONE person can write to database at a time
+      (if using shared network database)
+
+📞 SUPPORT:
+    Contact: HD001
+    Email: (your email here)
+
+=================================================================
+Version 1.0 - May 2026 - Distech Controls Operations
+=================================================================
