@@ -45,11 +45,17 @@
     .sidebar {
       position: fixed;
       top: 0; bottom: 0; left: 0;
-      z-index: 100;
-      width: 250px;
+      z-index: 200;
+      width: 58px;
       background-color: var(--dc-navy);
       display: flex;
       flex-direction: column;
+      transition: width 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+    .sidebar.sb-expanded {
+      width: 250px;
+      box-shadow: 4px 0 28px rgba(0, 0, 0, 0.35);
     }
 
     /* Logo area */
@@ -63,8 +69,13 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 16px 18px;
+      padding: 14px 18px;
       text-decoration: none;
+      transition: padding 0.26s ease;
+    }
+    .sidebar:not(.sb-expanded) .logo-inner {
+      padding: 14px 0;
+      justify-content: center;
     }
     .logo-mark {
       width: 44px;
@@ -76,6 +87,11 @@
       align-items: center;
       justify-content: center;
       padding: 4px;
+      transition: width 0.26s ease, height 0.26s ease;
+    }
+    .sidebar:not(.sb-expanded) .logo-mark {
+      width: 38px;
+      height: 38px;
     }
     .logo-mark img {
       width: 100%;
@@ -86,6 +102,7 @@
       display: flex;
       flex-direction: column;
       line-height: 1.1;
+      flex-shrink: 0;
     }
     .logo-text .brand-name {
       font-family: 'Figtree', sans-serif;
@@ -141,6 +158,7 @@
       text-align: center;
       flex-shrink: 0;
       opacity: 0.8;
+      transition: font-size 0.22s ease, width 0.22s ease;
     }
     .sidebar .nav-link:hover {
       background-color: rgba(255,255,255,0.07);
@@ -156,18 +174,180 @@
     }
     .sidebar .nav-link.active i { opacity: 1; }
 
+    /* ── Sidebar collapse / expand animations ────────────── */
+    /* Text labels: shown only when expanded */
+    .nav-link-text {
+      white-space: nowrap;
+      display: none;        /* completely out of flow when collapsed */
+    }
+    .sidebar.sb-expanded .nav-link-text {
+      display: inline;
+    }
+
+    /* ── Collapsed icon rail ─────────────────────────────── */
+    .sidebar:not(.sb-expanded) .nav-link {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 0 !important;
+      padding: 10px 0 !important;
+      border-left: 3px solid transparent !important;
+      border-right: 3px solid transparent !important;
+      box-sizing: border-box !important;
+      width: 58px !important;
+    }
+    /* Symmetric 3px borders on both sides → icon sits at exact center of 58px */
+    .sidebar:not(.sb-expanded) .nav-link i {
+      flex-shrink: 0 !important;
+      font-size: 1.25rem !important;
+      width: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      opacity: 0.65;
+    }
+    .sidebar:not(.sb-expanded) .nav-link:hover {
+      background: rgba(255,255,255,0.08) !important;
+    }
+    .sidebar:not(.sb-expanded) .nav-link:hover i   { opacity: 0.95; }
+    .sidebar:not(.sb-expanded) .nav-link.active     {
+      background: rgba(0,154,218,0.18) !important;
+      border-left-color: var(--dc-blue) !important;
+    }
+    .sidebar:not(.sb-expanded) .nav-link.active i   { opacity: 1; }
+    /* Section labels — collapse */
+    .nav-section-label {
+      overflow: hidden;
+      max-height: 0;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      opacity: 0;
+      transition: max-height 0.24s ease, opacity 0.16s ease, padding 0.24s ease;
+    }
+    .sidebar.sb-expanded .nav-section-label {
+      max-height: 40px;
+      padding-top: 16px !important;
+      padding-bottom: 4px !important;
+      opacity: 1;
+    }
+    /* Logo text — collapse */
+    .logo-text {
+      overflow: hidden;
+      white-space: nowrap;
+      max-width: 0;
+      opacity: 0;
+      transition: opacity 0.18s ease 0.04s, max-width 0.24s ease;
+    }
+    .sidebar.sb-expanded .logo-text {
+      max-width: 180px;
+      opacity: 1;
+    }
+    /* Mini calendar — collapse */
+    .sidebar-calendar {
+      overflow: hidden;
+      max-height: 0;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      opacity: 0;
+      transition: max-height 0.28s ease, opacity 0.18s ease, padding 0.28s ease;
+    }
+    .sidebar.sb-expanded .sidebar-calendar {
+      max-height: 300px;
+      padding-top: 10px !important;
+      padding-bottom: 14px !important;
+      opacity: 1;
+    }
+
     /* ── Top Navbar ──────────────────────────────────────── */
-    main { margin-left: 250px; padding: 70px 24px 24px; }
+    main { margin-left: 58px; padding: 70px 24px 24px; }
 
     .navbar {
       position: fixed;
-      top: 0; right: 0; left: 250px;
+      top: 0; right: 0; left: 58px;
       z-index: 99;
       background-color: var(--dc-navbar-bg);
       border-bottom: 2px solid var(--dc-navbar-border);
       box-shadow: 0 1px 6px rgba(0,23,67,0.08);
       padding: 0 20px;
       height: 56px;
+    }
+
+    /* ── Mobile hamburger button ──────────────────────────── */
+    .sidebar-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--dc-navbar-text);
+      font-size: 1.4rem;
+      padding: 4px 8px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    /* ── Sidebar overlay (mobile backdrop) ───────────────── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 1040;
+    }
+    .sidebar-overlay.active { display: block; }
+
+    /* ── Mobile responsive breakpoint ────────────────────── */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 250px;
+        transform: translateX(-250px);
+        transition: transform 0.28s ease;
+        z-index: 1050;
+        overflow: visible;
+      }
+      .sidebar.mobile-open {
+        transform: translateX(0);
+        box-shadow: 4px 0 28px rgba(0,0,0,0.35);
+      }
+      /* Always show text on mobile when open */
+      .sidebar .nav-link-text { opacity: 1; max-width: 200px; }
+      .sidebar .nav-section-label { max-height: 40px; padding-top: 16px !important; padding-bottom: 4px !important; opacity: 1; }
+      .sidebar .logo-text { max-width: 180px; opacity: 1; }
+      .sidebar .sidebar-calendar { max-height: 300px; padding-top: 10px !important; padding-bottom: 14px !important; opacity: 1; }
+      .sidebar:not(.sb-expanded) .nav-link { padding: 9px 18px; justify-content: flex-start; }
+      .sidebar-toggle { display: inline-flex; align-items: center; }
+      main { margin-left: 0; padding: 66px 10px 20px; }
+      .navbar { left: 0; padding: 0 10px; height: 56px; }
+      .navbar .d-flex.gap-2 { gap: 4px !important; }
+
+      /* Hide text labels, keep only icons/core elements */
+      .user-info { display: none !important; }
+      .dept-badge { display: none !important; }
+      .navbar-brand { font-size: 0.88rem; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+      /* Dept selector: compact */
+      .navbar form select { max-width: 100px !important; font-size: 0.75rem !important; padding: 2px 4px !important; }
+      .navbar .bi-building { display: none !important; }
+
+      /* Logout: icon only */
+      .navbar a[href="/logout"] .logout-text { display: none; }
+
+      /* Language switcher: flag only, hide code */
+      #lang-code { display: none; }
+      #lang-dropdown-btn { padding: 2px 6px !important; }
+
+      /* Hide sidebar calendar on mobile */
+      .sidebar-calendar { display: none; }
+
+      /* Page header action buttons: icon only */
+      .btn-label { display: none; }
+
+      /* Tables: horizontal scroll */
+      .table-responsive { -webkit-overflow-scrolling: touch; }
+
+      /* Hide non-essential table columns on mobile */
+      .col-hide-mobile { display: none; }
+    }
+    @media (max-width: 480px) {
+      .navbar-brand { max-width: 80px; font-size: 0.8rem; }
+      .navbar form select { max-width: 80px !important; }
     }
     .navbar-brand {
       font-family: 'Figtree', sans-serif;
@@ -398,8 +578,11 @@
 </head>
 <body>
 
+  <!-- ── Mobile sidebar backdrop ──────────────────────────── -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
   <!-- ── SIDEBAR ─────────────────────────────────────────── -->
-  <nav class="sidebar">
+  <nav class="sidebar" id="sidebar">
 
     <!-- Logo -->
     <div class="logo-section">
@@ -419,79 +602,101 @@
       <ul class="nav flex-column">
 
         <li class="nav-item">
-          <a class="nav-link <%= currentPath === '/dashboard' ? 'active' : '' %>" href="/dashboard">
-            <i class="bi bi-speedometer2"></i> Tableau de bord
+          <a class="nav-link <%= currentPath === '/dashboard' ? 'active' : '' %>" href="/dashboard" title="Tableau de bord">
+            <i class="bi bi-speedometer2"></i><span class="nav-link-text"> Tableau de bord</span>
           </a>
         </li>
 
         <% if (user.role === 'admin' || user.role === 'supervisor') { %>
         <div class="nav-section-label">Opérations</div>
         <li class="nav-item">
-          <a class="nav-link <%= currentPath.startsWith('/employees') ? 'active' : '' %>" href="/employees">
-            <i class="bi bi-people-fill"></i> Employés
+          <a class="nav-link <%= currentPath.startsWith('/employees') ? 'active' : '' %>" href="/employees" title="Employés">
+            <i class="bi bi-people-fill"></i><span class="nav-link-text"> Employés</span>
           </a>
         </li>
 
         <% if (canPerm('matrix_view') || (user.role === 'admin' && (adminDept === '' || adminDept === 'Operations' || adminDept === 'Technicians'))) { %>
         <li class="nav-item">
-          <a class="nav-link <%= currentPath.startsWith('/matrix') ? 'active' : '' %>" href="/matrix">
-            <i class="bi bi-grid-3x3"></i> Matrice de formation
+          <a class="nav-link <%= currentPath.startsWith('/matrix') ? 'active' : '' %>" href="/matrix" title="Matrice de formation">
+            <i class="bi bi-grid-3x3"></i><span class="nav-link-text"> Matrice de formation</span>
           </a>
         </li>
         <% } %>
         <% if (canPerm('schedule_view') || (user.role === 'admin' && (adminDept === '' || adminDept === 'Operations'))) { %>
         <li class="nav-item">
-          <a class="nav-link <%= currentPath.startsWith('/schedule') ? 'active' : '' %>" href="/schedule">
-            <i class="bi bi-calendar-week"></i> Planification
+          <a class="nav-link <%= currentPath.startsWith('/schedule') ? 'active' : '' %>" href="/schedule" title="Planification">
+            <i class="bi bi-calendar-week"></i><span class="nav-link-text"> Planification</span>
           </a>
         </li>
         <% } %>
         <% if (user.role === 'admin' && adminDept === '') { %>
         <li class="nav-item">
-          <a class="nav-link <%= currentPath.startsWith('/display') ? 'active' : '' %>" href="/display">
-            <i class="bi bi-display"></i> Stations Display
+          <a class="nav-link <%= currentPath.startsWith('/display') ? 'active' : '' %>" href="/display" title="Stations Display">
+            <i class="bi bi-display"></i><span class="nav-link-text"> Stations Display</span>
           </a>
         </li>
         <% } %>
         <% } %>
 
+        <div class="nav-section-label">Suivi</div>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/suivi') ? 'active' : '' %>" href="/suivi" title="Suivi Employés">
+            <i class="bi bi-clipboard2-pulse"></i><span class="nav-link-text"> Suivi Employés</span>
+          </a>
+        </li>
+
         <div class="nav-section-label">Formation</div>
         <li class="nav-item">
-          <a class="nav-link <%= currentPath.startsWith('/trainers') ? 'active' : '' %>" href="/trainers">
-            <i class="bi bi-mortarboard"></i> Formateurs
+          <a class="nav-link <%= currentPath.startsWith('/trainers') ? 'active' : '' %>" href="/trainers" title="Formateurs">
+            <i class="bi bi-mortarboard"></i><span class="nav-link-text"> Formateurs</span>
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link <%= currentPath.startsWith('/training') ? 'active' : '' %>" href="/training">
-            <i class="bi bi-calendar-check"></i> Sessions
+          <a class="nav-link <%= currentPath.startsWith('/training') ? 'active' : '' %>" href="/training" title="Sessions">
+            <i class="bi bi-calendar-check"></i><span class="nav-link-text"> Sessions</span>
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link <%= currentPath.startsWith('/checklists') ? 'active' : '' %>" href="/checklists">
-            <i class="bi bi-list-check"></i> Checklists
+          <a class="nav-link <%= currentPath.startsWith('/checklists') ? 'active' : '' %>" href="/checklists" title="Checklists">
+            <i class="bi bi-list-check"></i><span class="nav-link-text"> Checklists</span>
           </a>
         </li>
 
         <% if (user.role === 'admin') { %>
         <div class="nav-section-label">Administration</div>
         <li class="nav-item">
-          <a class="nav-link <%= currentPath.startsWith('/admin/users') ? 'active' : '' %>" href="/admin/users">
-            <i class="bi bi-person-gear"></i> Utilisateurs
+          <a class="nav-link <%= currentPath.startsWith('/admin/analytics') ? 'active' : '' %>" href="/admin/analytics" title="KPI & Analytique">
+            <i class="bi bi-graph-up-arrow"></i><span class="nav-link-text"> KPI & Analytique</span>
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link <%= currentPath.startsWith('/admin/settings') ? 'active' : '' %>" href="/admin/settings">
-            <i class="bi bi-sliders"></i> Paramètres
+          <a class="nav-link <%= currentPath.startsWith('/admin/coverage') ? 'active' : '' %>" href="/admin/coverage" title="Couverture & Polyvalence">
+            <i class="bi bi-shield-check"></i><span class="nav-link-text"> Couverture & Polyvalence</span>
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link <%= currentPath.startsWith('/admin/permissions') ? 'active' : '' %>" href="/admin/permissions">
-            <i class="bi bi-shield-lock"></i> Permissions
+          <a class="nav-link <%= currentPath.startsWith('/admin/actions') ? 'active' : '' %>" href="/admin/actions" title="Actions Correctives">
+            <i class="bi bi-exclamation-triangle"></i><span class="nav-link-text"> Actions Correctives</span>
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link <%= currentPath.startsWith('/sharepoint') ? 'active' : '' %>" href="/sharepoint/sync">
-            <i class="bi bi-cloud-arrow-up"></i> SharePoint / Export
+          <a class="nav-link <%= currentPath.startsWith('/admin/users') ? 'active' : '' %>" href="/admin/users" title="Utilisateurs">
+            <i class="bi bi-person-gear"></i><span class="nav-link-text"> Utilisateurs</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/admin/settings') ? 'active' : '' %>" href="/admin/settings" title="Paramètres">
+            <i class="bi bi-sliders"></i><span class="nav-link-text"> Paramètres</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/admin/permissions') ? 'active' : '' %>" href="/admin/permissions" title="Permissions">
+            <i class="bi bi-shield-lock"></i><span class="nav-link-text"> Permissions</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/sharepoint') ? 'active' : '' %>" href="/sharepoint/sync" title="SharePoint / Export">
+            <i class="bi bi-cloud-arrow-up"></i><span class="nav-link-text"> SharePoint / Export</span>
           </a>
         </li>
         <% } %>
@@ -512,6 +717,42 @@
       </a>
     </div>
     <div class="sc-tooltip" id="sc-tooltip"></div>
+
+  <!-- Restore sidebar scroll BEFORE first paint (inline = synchronous) -->
+  <script>
+    (function(){
+      var s = sessionStorage.getItem('sidebar_scroll');
+      if (s) {
+        var nav = document.querySelector('.sidebar-nav');
+        if (nav) nav.scrollTop = parseInt(s, 10);
+      }
+    })();
+  </script>
+
+  <!-- ── Hover-to-expand sidebar (desktop only) ─────────── -->
+  <script>
+  (function() {
+    var sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    var expandDelay, collapseDelay;
+
+    sidebar.addEventListener('mouseenter', function() {
+      if (window.innerWidth <= 768) return;
+      clearTimeout(collapseDelay);
+      expandDelay = setTimeout(function() {
+        sidebar.classList.add('sb-expanded');
+      }, 60);
+    });
+
+    sidebar.addEventListener('mouseleave', function() {
+      if (window.innerWidth <= 768) return;
+      clearTimeout(expandDelay);
+      collapseDelay = setTimeout(function() {
+        sidebar.classList.remove('sb-expanded');
+      }, 220);
+    });
+  })();
+  </script>
 
   </nav>
 
@@ -656,6 +897,9 @@
 
   <!-- ── TOP NAVBAR ─────────────────────────────────────── -->
   <nav class="navbar d-flex align-items-center">
+    <button class="sidebar-toggle me-2" id="sidebar-toggle" aria-label="Menu">
+      <i class="bi bi-list"></i>
+    </button>
     <span class="navbar-brand mb-0"><%= title %></span>
     <div class="d-flex align-items-center gap-2 ms-auto">
 
@@ -865,7 +1109,7 @@
       </div>
 
       <a href="/logout" class="btn btn-sm" style="border:1px solid var(--dc-navy);color:var(--dc-navy);font-size:0.82rem;">
-        <i class="bi bi-box-arrow-right"></i> Déconnexion
+        <i class="bi bi-box-arrow-right"></i><span class="logout-text"> Déconnexion</span>
       </a>
 
       <script>
@@ -960,5 +1204,46 @@
       </script>
     </div>
   </nav>
+
+  <!-- ── Mobile sidebar toggle script ─────────────────────── -->
+  <script>
+  (function() {
+    const toggle  = document.getElementById('sidebar-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    function openSidebar() {
+      sidebar.classList.add('mobile-open');
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar() {
+      sidebar.classList.remove('mobile-open');
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    if (toggle)  toggle.addEventListener('click', openSidebar);
+    if (overlay) overlay.addEventListener('click', closeSidebar);
+
+    // Close sidebar when a nav link is tapped on mobile
+    sidebar && sidebar.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', () => {
+        if (window.innerWidth <= 768) closeSidebar();
+      });
+    });
+  })();
+  </script>
+
+  <script>
+  // ── Save sidebar scroll on every scroll ───────────────────
+  (function() {
+    const nav = document.querySelector('.sidebar-nav');
+    if (!nav) return;
+    nav.addEventListener('scroll', () => {
+      sessionStorage.setItem('sidebar_scroll', nav.scrollTop);
+    });
+  })();
+  </script>
 
   <main>

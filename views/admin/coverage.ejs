@@ -1,0 +1,189 @@
+<%- include('../partials/header') %>
+
+<style>
+  .risk-badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:.72rem; font-weight:700; }
+  .risk-critical { background:#FEE2E2; color:#991B1B; }
+  .risk-danger   { background:#FEF3C7; color:#92400E; }
+  .risk-warning  { background:#FFF3CD; color:#856404; }
+  .risk-ok       { background:#D1FAE5; color:#065F46; }
+  .poly-bar { height:10px; border-radius:5px; background:#e5e7eb; overflow:hidden; min-width:80px; }
+  .poly-fill { height:100%; border-radius:5px; transition: width .4s; }
+  .stat-pill { border-radius:8px; padding:14px 18px; color:#fff; text-align:center; }
+  .stat-pill .sv  { font-size:1.8rem; font-weight:800; line-height:1; }
+  .stat-pill .sl  { font-size:.72rem; opacity:.85; margin-top:3px; }
+  .section-hdr { font-size:.7rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#888; margin:24px 0 10px; border-bottom:1px solid #eee; padding-bottom:6px; }
+  .emp-rank { font-size:.72rem; color:#aaa; font-weight:700; margin-right:6px; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h2 class="mb-0"><i class="bi bi-shield-check me-2"></i>Couverture & Polyvalence</h2>
+  <div class="d-flex gap-2">
+    <a href="/admin/analytics" class="btn btn-outline-primary btn-sm"><i class="bi bi-graph-up-arrow me-1"></i>KPI</a>
+    <a href="/admin/actions"   class="btn btn-outline-danger  btn-sm"><i class="bi bi-exclamation-triangle me-1"></i>Actions</a>
+  </div>
+</div>
+
+<!-- ── Shift filter ───────────────────────────────────────── -->
+<div class="d-flex gap-2 align-items-center mb-4 flex-wrap">
+  <span class="text-muted small fw-semibold me-1">Quart :</span>
+  <a href="/admin/coverage"
+     class="btn btn-sm <%= filterShift === '' ? 'btn-dark' : 'btn-outline-secondary' %>">
+    Tous
+  </a>
+  <a href="/admin/coverage?shift=Jour"
+     class="btn btn-sm <%= filterShift === 'Jour' ? 'btn-warning' : 'btn-outline-warning' %>">
+    ☀️ Jour
+  </a>
+  <a href="/admin/coverage?shift=Soir"
+     class="btn btn-sm <%= filterShift === 'Soir' ? 'btn-primary' : 'btn-outline-primary' %>">
+    🌙 Soir
+  </a>
+  <a href="/admin/coverage?shift=Nuit"
+     class="btn btn-sm <%= filterShift === 'Nuit' ? 'btn-secondary' : 'btn-outline-secondary' %>">
+    🌑 Nuit
+  </a>
+  <% if (filterShift) { %>
+    <span class="badge bg-info ms-1"><%= employees %> opérateur(s) — quart <%= filterShift %></span>
+  <% } else { %>
+    <span class="text-muted small ms-1"><%= employees %> opérateur(s) actifs</span>
+  <% } %>
+</div>
+
+<!-- ── Summary cards ──────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-pill" style="background:#EF4444;">
+      <div class="sv"><%= critical %></div>
+      <div class="sl">🔴 Stations critiques<br><span style="opacity:.7;font-size:.65rem;">(0 formés)</span></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-pill" style="background:#F59E0B;">
+      <div class="sv"><%= danger %></div>
+      <div class="sl">🟡 Stations à risque<br><span style="opacity:.7;font-size:.65rem;">(1 formé seulement)</span></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-pill" style="background:#3B82F6;">
+      <div class="sv"><%= employees %></div>
+      <div class="sl">👥 Employés actifs</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-pill" style="background:#10B981;">
+      <div class="sv"><%= avgPoly %>%</div>
+      <div class="sl">📊 Polyvalence moyenne</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- ── Left: Station coverage ────────────────────────── -->
+  <div class="col-12 col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-grid-3x3 me-2"></i>Couverture par station</span>
+        <span class="badge bg-secondary" style="font-weight:500;"><%= total %> stations</span>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Station</th>
+              <th class="text-center">Formés</th>
+              <th class="text-center">En form.</th>
+              <th class="text-center">Risque</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% coverage.sort((a,b) => a.trained - b.trained).forEach(s => { %>
+            <tr>
+              <td class="fw-medium" style="font-size:.85rem;"><%= s.label %></td>
+              <td class="text-center">
+                <span class="badge" style="background:var(--dc-navy);"><%= s.trained %></span>
+              </td>
+              <td class="text-center">
+                <% if (s.inProg > 0) { %>
+                  <span class="badge" style="background:#3B82F6;"><%= s.inProg %></span>
+                <% } else { %>
+                  <span style="color:#ccc;">—</span>
+                <% } %>
+              </td>
+              <td class="text-center">
+                <% if (s.risk === 'critical') { %>
+                  <span class="risk-badge risk-critical">🔴 Critique</span>
+                <% } else if (s.risk === 'danger') { %>
+                  <span class="risk-badge risk-danger">🟡 Risqué</span>
+                <% } else if (s.risk === 'warning') { %>
+                  <span class="risk-badge risk-warning">🟠 Faible</span>
+                <% } else { %>
+                  <span class="risk-badge risk-ok">✓ OK</span>
+                <% } %>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-2 d-flex flex-wrap gap-3" style="font-size:.75rem;color:#555;">
+      <span><span class="risk-badge risk-critical" style="font-size:.68rem;">🔴</span> 0 formés</span>
+      <span><span class="risk-badge risk-danger"   style="font-size:.68rem;">🟡</span> 1 seul formé</span>
+      <span><span class="risk-badge risk-warning"  style="font-size:.68rem;">🟠</span> 2 formés</span>
+      <span><span class="risk-badge risk-ok"        style="font-size:.68rem;">✓</span> 3+ formés</span>
+    </div>
+  </div>
+
+  <!-- ── Right: Polyvalence ranking ────────────────────── -->
+  <div class="col-12 col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-bar-chart-steps me-2"></i>Classement polyvalence</span>
+        <span class="badge bg-secondary" style="font-weight:500;">/ <%= total %> stations</span>
+      </div>
+      <div class="card-body p-0">
+        <div style="max-height:500px;overflow-y:auto;">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Employé</th>
+                <th class="text-center">Score</th>
+                <th>Polyvalence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% polyvalence.forEach((e, i) => {
+                const barColor = e.pct >= 70 ? '#10B981' : e.pct >= 40 ? '#3B82F6' : e.pct >= 20 ? '#F59E0B' : '#EF4444';
+              %>
+              <tr>
+                <td><span class="emp-rank"><%= i+1 %></span></td>
+                <td>
+                  <div class="fw-medium" style="font-size:.85rem;"><%= e.nom %></div>
+                  <div style="font-size:.68rem;color:#9CA3AF;">
+                    <%= e.shift === 'Soir' ? '🌙' : '☀️' %> <%= e.shift || 'Jour' %>
+                    <% if (e.dept) { %> · <%= e.dept %><% } %>
+                  </div>
+                </td>
+                <td class="text-center fw-bold" style="font-size:.85rem;"><%= e.score %></td>
+                <td style="min-width:120px;">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="poly-bar flex-fill">
+                      <div class="poly-fill" style="width:<%= e.pct %>%;background:<%= barColor %>;"></div>
+                    </div>
+                    <span style="font-size:.72rem;font-weight:700;color:<%= barColor %>;min-width:32px;"><%= e.pct %>%</span>
+                  </div>
+                </td>
+              </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

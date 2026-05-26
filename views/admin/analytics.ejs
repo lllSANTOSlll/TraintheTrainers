@@ -1,0 +1,231 @@
+<%- include('../partials/header') %>
+
+<style>
+  .kpi-card { border-radius:10px; padding:20px 22px; color:#fff; display:flex; align-items:center; justify-content:space-between; }
+  .kpi-card i { font-size:2.4rem; opacity:.25; }
+  .kpi-card .kpi-val { font-size:2rem; font-weight:800; line-height:1; }
+  .kpi-card .kpi-lbl { font-size:.78rem; opacity:.85; margin-top:4px; }
+  .chart-card { background:#fff; border-radius:10px; box-shadow:0 1px 4px rgba(0,23,67,.08); padding:20px; margin-bottom:20px; }
+  .chart-card h6 { font-weight:700; color:var(--dc-navy); margin-bottom:16px; font-size:.9rem; }
+  .section-title { font-size:.7rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#888; margin:20px 0 10px; }
+  @media(max-width:768px){ .kpi-card .kpi-val{font-size:1.5rem;} }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h2 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>KPI & Analytique</h2>
+  <div class="d-flex gap-2">
+    <a href="/admin/coverage" class="btn btn-outline-primary btn-sm"><i class="bi bi-shield-check me-1"></i>Couverture</a>
+    <a href="/admin/actions"  class="btn btn-outline-danger  btn-sm"><i class="bi bi-exclamation-triangle me-1"></i>Actions correctives</a>
+  </div>
+</div>
+
+<!-- ── Stat Cards ──────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="background:var(--dc-navy);">
+      <div>
+        <div class="kpi-val"><%= empStats.actifs || 0 %></div>
+        <div class="kpi-lbl">Employés actifs</div>
+      </div>
+      <i class="bi bi-people-fill"></i>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="background:#10B981;">
+      <div>
+        <div class="kpi-val"><%= Math.round(empStats.avg_poly || 0) %></div>
+        <div class="kpi-lbl">Stations moy. / employé</div>
+      </div>
+      <i class="bi bi-grid-3x3"></i>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="background:#EF4444;">
+      <div>
+        <div class="kpi-val"><%= (suiviWeek.risque || 0) + (suiviWeek.surveiller || 0) %></div>
+        <div class="kpi-lbl">À surveiller / risque (7j)</div>
+      </div>
+      <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card" style="background:#F59E0B;">
+      <div>
+        <div class="kpi-val"><%= actionStats.open_actions || 0 %></div>
+        <div class="kpi-lbl">Actions correctives ouvertes</div>
+      </div>
+      <i class="bi bi-clipboard2-x-fill"></i>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts ──────────────────────────────────────────── -->
+<div class="row g-3">
+  <div class="col-12 col-lg-7">
+    <div class="chart-card">
+      <h6><i class="bi bi-bar-chart-line me-2"></i>Tendance Suivi Employés — 8 dernières semaines</h6>
+      <canvas id="chartSuivi" height="200"></canvas>
+    </div>
+  </div>
+  <div class="col-12 col-lg-5">
+    <div class="chart-card">
+      <h6><i class="bi bi-calendar-check me-2"></i>Sessions de formation — 6 derniers mois</h6>
+      <canvas id="chartSessions" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-6">
+    <div class="chart-card">
+      <h6><i class="bi bi-pie-chart me-2"></i>Répartition des statuts Suivi (période)</h6>
+      <canvas id="chartPie" height="220"></canvas>
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="chart-card">
+      <h6><i class="bi bi-clipboard2-x me-2"></i>Actions correctives par statut</h6>
+      <canvas id="chartActions" height="220"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── Quick links ─────────────────────────────────────── -->
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="d-flex gap-3 flex-wrap">
+      <a href="/admin/coverage" class="btn btn-primary btn-sm"><i class="bi bi-shield-check me-1"></i>Voir couverture & polyvalence</a>
+      <a href="/admin/actions"  class="btn btn-danger  btn-sm"><i class="bi bi-plus-circle me-1"></i>Gérer les actions correctives</a>
+      <a href="/suivi"          class="btn btn-outline-secondary btn-sm"><i class="bi bi-clipboard2-pulse me-1"></i>Suivi Employés</a>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+Chart.defaults.font.family = "'Figtree','Roboto','Segoe UI',sans-serif";
+Chart.defaults.color = '#555';
+
+const suiviRaw    = <%- suiviRows %>;
+const sessionRaw  = <%- sessionRows %>;
+
+// ── Build week labels (last 8 ISO weeks) ──────────────────
+function getLastNWeeks(n) {
+  const weeks = [];
+  const now = new Date();
+  for (let i = n-1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i * 7);
+    const year = d.getFullYear();
+    // ISO week number
+    const jan1 = new Date(year, 0, 1);
+    const week = Math.ceil((((d - jan1) / 86400000) + jan1.getDay() + 1) / 7);
+    weeks.push(`${year}-W${String(week).padStart(2,'0')}`);
+  }
+  return [...new Set(weeks)];
+}
+const weekLabels = getLastNWeeks(8);
+const STATUTS = ['Stable','À surveiller','À risque'];
+const COLORS_SUIVI = {
+  'Stable':        '#86EFAC',
+  'À surveiller':  '#FDE047',
+  'À risque':      '#FCA5A5',
+};
+
+function buildSuiviDatasets() {
+  return STATUTS.map(st => ({
+    label: st,
+    backgroundColor: COLORS_SUIVI[st],
+    borderRadius: 4,
+    data: weekLabels.map(w => {
+      const row = suiviRaw.find(r => r.week === w && r.statut === st);
+      return row ? row.cnt : 0;
+    })
+  }));
+}
+
+// ── Chart 1: Suivi bar stacked ─────────────────────────────
+new Chart(document.getElementById('chartSuivi'), {
+  type: 'bar',
+  data: { labels: weekLabels.map(w => w.replace(/\d{4}-/,'')), datasets: buildSuiviDatasets() },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom', labels:{ boxWidth:12 } } },
+    scales: {
+      x: { stacked: true, grid:{ display:false } },
+      y: { stacked: true, beginAtZero: true, ticks:{ stepSize:1 } }
+    }
+  }
+});
+
+// ── Chart 2: Sessions bar grouped ─────────────────────────
+const sessionStatuts = ['Terminée','En cours','En retard'];
+const sessionColors  = ['#10B981','#3B82F6','#EF4444'];
+const monthLabels    = [...new Set(sessionRaw.map(r => r.month))].sort().slice(-6);
+
+new Chart(document.getElementById('chartSessions'), {
+  type: 'bar',
+  data: {
+    labels: monthLabels.map(m => {
+      const [y,mo] = m.split('-');
+      const MOIS = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+      return MOIS[parseInt(mo)-1] + ' ' + y.slice(2);
+    }),
+    datasets: sessionStatuts.map((st, i) => ({
+      label: st,
+      backgroundColor: sessionColors[i],
+      borderRadius: 4,
+      data: monthLabels.map(m => {
+        const row = sessionRaw.find(r => r.month === m && r.statut === st);
+        return row ? row.cnt : 0;
+      })
+    }))
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position:'bottom', labels:{ boxWidth:12 } } },
+    scales: { x:{ grid:{ display:false } }, y:{ beginAtZero:true, ticks:{ stepSize:1 } } }
+  }
+});
+
+// ── Chart 3: Suivi pie ─────────────────────────────────────
+const pieTotals = STATUTS.map(st => suiviRaw.filter(r => r.statut === st).reduce((s,r) => s+r.cnt, 0));
+new Chart(document.getElementById('chartPie'), {
+  type: 'doughnut',
+  data: {
+    labels: STATUTS,
+    datasets: [{ data: pieTotals, backgroundColor: Object.values(COLORS_SUIVI), borderWidth: 2 }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position:'bottom', labels:{ boxWidth:14 } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } }
+    }
+  }
+});
+
+// ── Chart 4: Actions correctives ──────────────────────────
+fetch('/admin/actions-stats')
+  .then(r => r.ok ? r.json() : { Ouvert:0, 'En cours':0, Résolu:0 })
+  .then(data => {
+    new Chart(document.getElementById('chartActions'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Ouvert','En cours','Résolu'],
+        datasets: [{
+          data: [data.Ouvert||0, data['En cours']||0, data['Résolu']||0],
+          backgroundColor: ['#FCA5A5','#FDE047','#86EFAC'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position:'bottom', labels:{ boxWidth:14 } } }
+      }
+    });
+  })
+  .catch(() => {});
+</script>
+
+<%- include('../partials/footer') %>

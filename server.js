@@ -18,6 +18,8 @@ const employeeRoutes = require('./routes/employees');
 const matrixRoutes = require('./routes/matrix');
 const scheduleRoutes = require('./routes/schedule');
 const displayRoutes = require('./routes/display');
+const suiviRoutes          = require('./routes/suivi');
+const adminAnalyticsRoutes = require('./routes/adminAnalytics');
 
 const app = express();
 const PORT = 5000;
@@ -105,6 +107,8 @@ app.use('/employees', employeeRoutes);
 app.use('/matrix', matrixRoutes);
 app.use('/schedule', scheduleRoutes);
 app.use('/display', displayRoutes);
+app.use('/suivi',   suiviRoutes);
+app.use('/admin',   adminAnalyticsRoutes);
 app.use(express.static(path.join(__dirname, 'views')));
 // Home route
 
@@ -323,6 +327,16 @@ app.get('/api/holidays', (req, res) => {
   sql += ' ORDER BY h.date_start';
 
   db.all(sql, params, (err, rows) => res.json(err ? [] : rows));
+});
+
+// Actions correctives stats (for KPI chart)
+app.get('/admin/actions-stats', (req, res) => {
+  if (!req.session.user || req.session.user.role !== 'admin') return res.status(403).json({});
+  db.all(`SELECT statut, COUNT(*) as cnt FROM corrective_actions GROUP BY statut`, [], (err, rows) => {
+    const result = {};
+    (rows || []).forEach(r => { result[r.statut] = r.cnt; });
+    res.json(result);
+  });
 });
 
 app.get('/api/dashboard/stats', (req, res) => {

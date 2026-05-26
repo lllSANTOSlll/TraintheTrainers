@@ -175,9 +175,9 @@ function switchTab(tab) {
 }
 
 const ROLE_DEFAULTS = <%- JSON.stringify({
-  user:       { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:1, sessions_view_all:0, sessions_checklist:1, sessions_create:0, checklists_edit:0, checklists_import:0, admin_delete:0, admin_users:0, admin_settings:0 },
-  trainer:    { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:1, sessions_view_all:0, sessions_checklist:1, sessions_create:0, checklists_edit:0, checklists_import:0, admin_delete:0, admin_users:0, admin_settings:0 },
-  supervisor: { employees_view:1, employees_edit:1, employees_import:1, matrix_view:1, schedule_view:1, sessions_view_own:1, sessions_view_all:1, sessions_checklist:1, sessions_create:1, checklists_edit:1, checklists_import:1, admin_delete:0, admin_users:0, admin_settings:0 },
+  user:       { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:1, sessions_view_all:0, sessions_checklist:1, sessions_create:0, checklists_edit:0, checklists_import:0, suivi_view:0, suivi_edit:0, analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
+  trainer:    { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:1, sessions_view_all:0, sessions_checklist:1, sessions_create:0, checklists_edit:0, checklists_import:0, suivi_view:0, suivi_edit:0, analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
+  supervisor: { employees_view:1, employees_edit:1, employees_import:1, matrix_view:1, schedule_view:1, sessions_view_own:1, sessions_view_all:1, sessions_checklist:1, sessions_create:1, checklists_edit:1, checklists_import:1, suivi_view:1, suivi_edit:1, analytics_view:0, coverage_view:1, actions_view:1, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
 }) %>;
 
 function resetToDefaults() {
