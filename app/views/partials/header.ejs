@@ -607,22 +607,25 @@
           </a>
         </li>
 
-        <% if (user.role === 'admin' || user.role === 'supervisor') { %>
+        <% if (canPerm('employees_view') || canPerm('matrix_view') || canPerm('schedule_view') || user.role === 'admin') { %>
         <div class="nav-section-label">Opérations</div>
+        <% } %>
+        <% if (canPerm('employees_view')) { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/employees') ? 'active' : '' %>" href="/employees" title="Employés">
             <i class="bi bi-people-fill"></i><span class="nav-link-text"> Employés</span>
           </a>
         </li>
+        <% } %>
 
-        <% if (canPerm('matrix_view') || (user.role === 'admin' && (adminDept === '' || adminDept === 'Operations' || adminDept === 'Technicians'))) { %>
+        <% if (canPerm('matrix_view')) { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/matrix') ? 'active' : '' %>" href="/matrix" title="Matrice de formation">
             <i class="bi bi-grid-3x3"></i><span class="nav-link-text"> Matrice de formation</span>
           </a>
         </li>
         <% } %>
-        <% if (canPerm('schedule_view') || (user.role === 'admin' && (adminDept === '' || adminDept === 'Operations'))) { %>
+        <% if (canPerm('schedule_view')) { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/schedule') ? 'active' : '' %>" href="/schedule" title="Planification">
             <i class="bi bi-calendar-week"></i><span class="nav-link-text"> Planification</span>
@@ -636,14 +639,15 @@
           </a>
         </li>
         <% } %>
-        <% } %>
 
+        <% if (canPerm('suivi_view')) { %>
         <div class="nav-section-label">Suivi</div>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/suivi') ? 'active' : '' %>" href="/suivi" title="Suivi Employés">
             <i class="bi bi-clipboard2-pulse"></i><span class="nav-link-text"> Suivi Employés</span>
           </a>
         </li>
+        <% } %>
 
         <div class="nav-section-label">Formation</div>
         <li class="nav-item">
@@ -656,29 +660,39 @@
             <i class="bi bi-calendar-check"></i><span class="nav-link-text"> Sessions</span>
           </a>
         </li>
+        <% if (canPerm('checklists_edit') || canPerm('checklists_import')) { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/checklists') ? 'active' : '' %>" href="/checklists" title="Checklists">
             <i class="bi bi-list-check"></i><span class="nav-link-text"> Checklists</span>
           </a>
         </li>
+        <% } %>
 
-        <% if (user.role === 'admin') { %>
+        <% if (canPerm('analytics_view') || canPerm('coverage_view') || canPerm('actions_view') || user.role === 'admin') { %>
         <div class="nav-section-label">Administration</div>
+        <% } %>
+        <% if (canPerm('analytics_view')) { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/admin/analytics') ? 'active' : '' %>" href="/admin/analytics" title="KPI & Analytique">
             <i class="bi bi-graph-up-arrow"></i><span class="nav-link-text"> KPI & Analytique</span>
           </a>
         </li>
+        <% } %>
+        <% if (canPerm('coverage_view')) { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/admin/coverage') ? 'active' : '' %>" href="/admin/coverage" title="Couverture & Polyvalence">
             <i class="bi bi-shield-check"></i><span class="nav-link-text"> Couverture & Polyvalence</span>
           </a>
         </li>
+        <% } %>
+        <% if (canPerm('actions_view')) { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/admin/actions') ? 'active' : '' %>" href="/admin/actions" title="Actions Correctives">
             <i class="bi bi-exclamation-triangle"></i><span class="nav-link-text"> Actions Correctives</span>
           </a>
         </li>
+        <% } %>
+        <% if (user.role === 'admin') { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/admin/users') ? 'active' : '' %>" href="/admin/users" title="Utilisateurs">
             <i class="bi bi-person-gear"></i><span class="nav-link-text"> Utilisateurs</span>
