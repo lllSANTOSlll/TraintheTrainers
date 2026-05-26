@@ -16,6 +16,10 @@
   .new-col-input { border:none; background:transparent; font-weight:700; text-align:center; width:100%; font-size:0.83rem; outline:none; border-bottom:2px dashed #ffc107; }
   .new-col-input::placeholder { color:#aaa; font-weight:400; }
   .alert-saved { position:fixed; top:70px; right:20px; z-index:9999; }
+@media (max-width: 768px) {
+  .col-emp { min-width: 110px; }
+  .col-data { min-width: 80px; }
+}
 </style>
 
 <% if (saved) { %>

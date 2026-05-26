@@ -19,6 +19,11 @@
   .att-icon { font-size:1.6rem; flex-shrink:0; }
   .att-name { flex:1; min-width:0; font-weight:500; font-size:.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .att-meta { font-size:.75rem; color:#6c757d; white-space:nowrap; }
+@media (max-width: 768px) {
+  .col-lg-4, .col-lg-8 { flex: 0 0 100%; max-width: 100%; }
+  .station-grid { grid-template-columns: repeat(auto-fill, minmax(100px,1fr)); }
+  .att-drop { padding: 16px; }
+}
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">

@@ -27,9 +27,9 @@
             <tr>
               <th>Nom et Prénom</th>
               <th>Poste</th>
-              <th>Département</th>
-              <th>Domaine d'expertise</th>
-              <th>Statut</th>
+              <th class="col-hide-mobile">Département</th>
+              <th class="col-hide-mobile">Domaine d'expertise</th>
+              <th class="col-hide-mobile">Statut</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -46,9 +46,9 @@
                 <tr data-statut="<%= trainer.statut_validation || '' %>">
                   <td><strong><%= trainer.nom_prenom %></strong></td>
                   <td><%= trainer.poste_actuel || '-' %></td>
-                  <td><%= trainer.departement || '-' %></td>
-                  <td><%= trainer.domaine_expertise || '-' %></td>
-                  <td>
+                  <td class="col-hide-mobile"><%= trainer.departement || '-' %></td>
+                  <td class="col-hide-mobile"><%= trainer.domaine_expertise || '-' %></td>
+                  <td class="col-hide-mobile">
                     <% if (trainer.statut_validation === 'Validé') { %>
                       <span class="badge bg-success">Validé</span>
                     <% } else { %>

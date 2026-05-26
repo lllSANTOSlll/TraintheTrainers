@@ -8,6 +8,8 @@ const DEFAULTS = {
     matrix_view:0, schedule_view:0,
     sessions_view_own:1, sessions_view_all:0, sessions_checklist:1,
     sessions_create:0, checklists_edit:0, checklists_import:0,
+    suivi_view:0, suivi_edit:0,
+    analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0,
     admin_delete:0, admin_users:0, admin_settings:0,
   },
   trainer: {
@@ -15,6 +17,8 @@ const DEFAULTS = {
     matrix_view:0, schedule_view:0,
     sessions_view_own:1, sessions_view_all:0, sessions_checklist:1,
     sessions_create:0, checklists_edit:0, checklists_import:0,
+    suivi_view:0, suivi_edit:0,
+    analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0,
     admin_delete:0, admin_users:0, admin_settings:0,
   },
   supervisor: {
@@ -22,6 +26,8 @@ const DEFAULTS = {
     matrix_view:1, schedule_view:1,
     sessions_view_own:1, sessions_view_all:1, sessions_checklist:1,
     sessions_create:1, checklists_edit:1, checklists_import:1,
+    suivi_view:1, suivi_edit:1,
+    analytics_view:0, coverage_view:1, actions_view:1, actions_edit:0,
     admin_delete:0, admin_users:0, admin_settings:0,
   },
   admin: {
@@ -29,15 +35,17 @@ const DEFAULTS = {
     matrix_view:1, schedule_view:1,
     sessions_view_own:1, sessions_view_all:1, sessions_checklist:1,
     sessions_create:1, checklists_edit:1, checklists_import:1,
+    suivi_view:1, suivi_edit:1,
+    analytics_view:1, coverage_view:1, actions_view:1, actions_edit:1,
     admin_delete:1, admin_users:1, admin_settings:1,
   },
 };
 
 // ── Default department extra permissions (all OFF by default) ─────────
 const DEPT_DEFAULTS = {
-  Operations:  { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:0, sessions_view_all:0, sessions_checklist:0, sessions_create:0, checklists_edit:0, checklists_import:0, admin_delete:0, admin_users:0, admin_settings:0 },
-  Technicians: { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:0, sessions_view_all:0, sessions_checklist:0, sessions_create:0, checklists_edit:0, checklists_import:0, admin_delete:0, admin_users:0, admin_settings:0 },
-  Logistics:   { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:0, sessions_view_all:0, sessions_checklist:0, sessions_create:0, checklists_edit:0, checklists_import:0, admin_delete:0, admin_users:0, admin_settings:0 },
+  Operations:  { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:0, sessions_view_all:0, sessions_checklist:0, sessions_create:0, checklists_edit:0, checklists_import:0, suivi_view:0, suivi_edit:0, analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
+  Technicians: { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:0, sessions_view_all:0, sessions_checklist:0, sessions_create:0, checklists_edit:0, checklists_import:0, suivi_view:0, suivi_edit:0, analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
+  Logistics:   { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:0, sessions_view_all:0, sessions_checklist:0, sessions_create:0, checklists_edit:0, checklists_import:0, suivi_view:0, suivi_edit:0, analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
 };
 
 // ── Permission labels (display order) ─────────────────────────────────
@@ -53,6 +61,12 @@ const PERMISSION_LABELS = [
   { key:'sessions_create',    label:'Créer sessions / assigner',          group:'SESSIONS DE FORMATION' },
   { key:'checklists_edit',    label:'Créer / modifier modèles checklist', group:'SESSIONS DE FORMATION' },
   { key:'checklists_import',  label:'Importer Word',                      group:'SESSIONS DE FORMATION' },
+  { key:'suivi_view',         label:'Voir le Suivi Employés',             group:'SUIVI EMPLOYÉS' },
+  { key:'suivi_edit',         label:'Modifier statuts / commentaires',    group:'SUIVI EMPLOYÉS' },
+  { key:'analytics_view',     label:'KPI & Analytique',                   group:'ADMINISTRATION' },
+  { key:'coverage_view',      label:'Couverture & Polyvalence',           group:'ADMINISTRATION' },
+  { key:'actions_view',       label:'Voir les Actions Correctives',       group:'ADMINISTRATION' },
+  { key:'actions_edit',       label:'Créer / modifier Actions Correctives', group:'ADMINISTRATION' },
   { key:'admin_delete',       label:'Supprimer modèles / sessions',       group:'ADMINISTRATION' },
   { key:'admin_users',        label:'Gérer les utilisateurs',             group:'ADMINISTRATION' },
   { key:'admin_settings',     label:'Configuration SharePoint / Thème',   group:'ADMINISTRATION' },

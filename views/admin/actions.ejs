@@ -1,0 +1,272 @@
+<%- include('../partials/header') %>
+
+<style>
+  .statut-pill { display:inline-block; padding:3px 11px; border-radius:20px; font-size:.72rem; font-weight:700; }
+  .st-ouvert   { background:#FEE2E2; color:#991B1B; }
+  .st-encours  { background:#FEF3C7; color:#92400E; }
+  .st-resolu   { background:#D1FAE5; color:#065F46; }
+  .sev-risque  { background:#FCA5A5; color:#991B1B; border-radius:6px; padding:2px 8px; font-size:.7rem; font-weight:700; }
+  .sev-watch   { background:#FDE047; color:#854D0E; border-radius:6px; padding:2px 8px; font-size:.7rem; font-weight:700; }
+  .action-row:hover { background:#fafafa; }
+  .due-overdue { color:#dc2626; font-weight:700; }
+  .due-soon    { color:#d97706; font-weight:600; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h2 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Actions Correctives</h2>
+  <div class="d-flex gap-2">
+    <a href="/admin/analytics" class="btn btn-outline-primary btn-sm"><i class="bi bi-graph-up-arrow me-1"></i>KPI</a>
+    <a href="/admin/coverage"  class="btn btn-outline-success btn-sm"><i class="bi bi-shield-check me-1"></i>Couverture</a>
+    <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#newActionModal">
+      <i class="bi bi-plus-circle me-1"></i><span class="btn-label">Nouvelle action</span>
+    </button>
+  </div>
+</div>
+
+<% if (saved) { %>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle me-1"></i> Enregistré avec succès.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<!-- ── Filter tabs ─────────────────────────────────────── -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  <a href="/admin/actions" class="btn btn-sm <%= filterStatut === '' ? 'btn-dark' : 'btn-outline-secondary' %>">Tous</a>
+  <a href="/admin/actions?statut=Ouvert"   class="btn btn-sm <%= filterStatut === 'Ouvert'   ? 'btn-danger'  : 'btn-outline-danger'  %>">🔴 Ouvert (<%= actions.filter(a=>a.statut==='Ouvert').length %>)</a>
+  <a href="/admin/actions?statut=En cours" class="btn btn-sm <%= filterStatut === 'En cours' ? 'btn-warning' : 'btn-outline-warning' %>">🟡 En cours (<%= actions.filter(a=>a.statut==='En cours').length %>)</a>
+  <a href="/admin/actions?statut=Résolu"   class="btn btn-sm <%= filterStatut === 'Résolu'   ? 'btn-success' : 'btn-outline-success' %>">✅ Résolu (<%= actions.filter(a=>a.statut==='Résolu').length %>)</a>
+</div>
+
+<!-- ── Actions table ───────────────────────────────────── -->
+<% if (actions.length === 0) { %>
+  <div class="card text-center py-5">
+    <div class="card-body">
+      <i class="bi bi-clipboard2-check" style="font-size:3rem;color:#ccc;"></i>
+      <p class="text-muted mt-3 mb-3">Aucune action corrective trouvée.</p>
+      <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#newActionModal">
+        <i class="bi bi-plus-circle me-1"></i>Créer une action
+      </button>
+    </div>
+  </div>
+<% } else { %>
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Employé</th>
+            <th class="col-hide-mobile">Date suivi</th>
+            <th class="col-hide-mobile">Statut initial</th>
+            <th>Problème</th>
+            <th class="col-hide-mobile">Responsable</th>
+            <th class="col-hide-mobile">Échéance</th>
+            <th>Statut</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% const today = new Date().toISOString().slice(0,10); %>
+          <% actions.forEach(a => {
+            const overdue = a.due_date && a.due_date < today && a.statut !== 'Résolu';
+            const soon    = a.due_date && !overdue && a.due_date <= new Date(Date.now()+7*86400000).toISOString().slice(0,10) && a.statut !== 'Résolu';
+          %>
+          <tr class="action-row">
+            <td class="text-muted small">#<%= a.id %></td>
+            <td>
+              <div class="fw-medium" style="font-size:.88rem;"><%= a.emp_nom %></div>
+              <div class="d-md-none text-muted" style="font-size:.7rem;"><%= a.suivi_date || '' %></div>
+            </td>
+            <td class="col-hide-mobile small text-muted"><%= a.suivi_date || '—' %></td>
+            <td class="col-hide-mobile">
+              <% if (a.statut_initial === 'À risque') { %>
+                <span class="sev-risque">! À risque</span>
+              <% } else if (a.statut_initial === 'À surveiller') { %>
+                <span class="sev-watch">⚠ Surveiller</span>
+              <% } else { %>
+                <span class="text-muted small"><%= a.statut_initial || '—' %></span>
+              <% } %>
+            </td>
+            <td style="max-width:200px;">
+              <div style="font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<%= a.probleme %>">
+                <%= a.probleme %>
+              </div>
+              <% if (a.action_plan) { %>
+                <div style="font-size:.72rem;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<%= a.action_plan %>">
+                  📋 <%= a.action_plan %>
+                </div>
+              <% } %>
+            </td>
+            <td class="col-hide-mobile small"><%= a.responsable || '—' %></td>
+            <td class="col-hide-mobile small">
+              <% if (a.due_date) { %>
+                <span class="<%= overdue ? 'due-overdue' : soon ? 'due-soon' : '' %>">
+                  <%= overdue ? '⚠ ' : '' %><%= a.due_date %>
+                </span>
+              <% } else { %>
+                <span class="text-muted">—</span>
+              <% } %>
+            </td>
+            <td>
+              <% if (a.statut === 'Ouvert') { %>
+                <span class="statut-pill st-ouvert">🔴 Ouvert</span>
+              <% } else if (a.statut === 'En cours') { %>
+                <span class="statut-pill st-encours">🟡 En cours</span>
+              <% } else { %>
+                <span class="statut-pill st-resolu">✅ Résolu</span>
+              <% } %>
+            </td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-warning me-1"
+                onclick='openEdit(<%= JSON.stringify(a) %>)' title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <form action="/admin/actions/<%= a.id %>/delete" method="POST" class="d-inline"
+                    onsubmit="return confirm('Supprimer cette action ?')">
+                <button class="btn btn-sm btn-outline-danger" title="Supprimer">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<!-- ══ NEW ACTION MODAL ══════════════════════════════════ -->
+<div class="modal fade" id="newActionModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:var(--dc-navy);color:#fff;">
+        <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Nouvelle action corrective</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="/admin/actions" method="POST">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Employé <span class="text-danger">*</span></label>
+              <select name="employee_id" class="form-select" required>
+                <option value="">— Choisir un employé —</option>
+                <% employees.forEach(e => { %>
+                  <option value="<%= e.id %>"><%= e.nom %> (<%= e.shift || 'Jour' %><% if(e.department){%> · <%=e.department%><%}%>)</option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Date du suivi</label>
+              <input type="date" name="suivi_date" class="form-control">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Statut initial</label>
+              <select name="statut_initial" class="form-select">
+                <option value="">—</option>
+                <option value="À surveiller">⚠ À surveiller</option>
+                <option value="À risque">🔴 À risque</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Problème / Observation <span class="text-danger">*</span></label>
+              <textarea name="probleme" class="form-control" rows="2" required placeholder="Décrire la situation observée…"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Plan d'action</label>
+              <textarea name="action_plan" class="form-control" rows="2" placeholder="Mesures correctives prévues…"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Responsable</label>
+              <input type="text" name="responsable" class="form-control" placeholder="Nom du responsable">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Date d'échéance</label>
+              <input type="date" name="due_date" class="form-control">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-danger"><i class="bi bi-check-circle me-1"></i>Créer l'action</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EDIT ACTION MODAL ═════════════════════════════════ -->
+<div class="modal fade" id="editActionModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#F59E0B;color:#fff;">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Modifier l'action corrective</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editForm" method="POST">
+        <div class="modal-body">
+          <div id="editEmpName" class="fw-bold mb-3" style="font-size:1rem;"></div>
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Problème / Observation</label>
+              <textarea name="probleme" id="edit_probleme" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Plan d'action</label>
+              <textarea name="action_plan" id="edit_action_plan" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Responsable</label>
+              <input type="text" name="responsable" id="edit_responsable" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Date d'échéance</label>
+              <input type="date" name="due_date" id="edit_due_date" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Statut</label>
+              <select name="statut" id="edit_statut" class="form-select">
+                <option value="Ouvert">🔴 Ouvert</option>
+                <option value="En cours">🟡 En cours</option>
+                <option value="Résolu">✅ Résolu</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Notes de suivi</label>
+              <textarea name="notes" id="edit_notes" class="form-control" rows="2" placeholder="Observations, mises à jour…"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-warning"><i class="bi bi-check-circle me-1"></i>Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function openEdit(a) {
+  document.getElementById('editForm').action = `/admin/actions/${a.id}/update`;
+  document.getElementById('editEmpName').textContent = '👤 ' + a.emp_nom;
+  document.getElementById('edit_probleme').value    = a.probleme    || '';
+  document.getElementById('edit_action_plan').value = a.action_plan || '';
+  document.getElementById('edit_responsable').value = a.responsable || '';
+  document.getElementById('edit_due_date').value    = a.due_date    || '';
+  document.getElementById('edit_statut').value      = a.statut      || 'Ouvert';
+  document.getElementById('edit_notes').value       = a.notes       || '';
+  new bootstrap.Modal(document.getElementById('editActionModal')).show();
+}
+
+// Auto-dismiss saved alert
+setTimeout(() => {
+  const el = document.querySelector('.alert-success');
+  if (el) el.remove();
+}, 3500);
+</script>
+
+<%- include('../partials/footer') %>

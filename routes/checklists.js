@@ -169,14 +169,27 @@ router.delete('/:id/items/:itemId', isSupervisorOrAdmin, (req, res) => {
   });
 });
 
-// Download Word template
+// Download Word template — if ?file=name.docx serve that specific file,
+// otherwise render a page listing all available templates
 router.get('/template-download', isSupervisorOrAdmin, (req, res) => {
-  const templatePath = path.join(__dirname, '../templates/Template_Checklist_Formation.docx');
-  if (fs.existsSync(templatePath)) {
-    res.download(templatePath, 'Template_Checklist_Formation.docx');
-  } else {
-    res.status(404).send('Template non trouvé');
+  const templatesDir = path.join(__dirname, '../templates');
+  const { file } = req.query;
+
+  if (file) {
+    // Sanitize: allow only .docx filenames, no path traversal
+    const safe = path.basename(file);
+    if (!safe.endsWith('.docx')) return res.status(400).send('Fichier invalide');
+    const filePath = path.join(templatesDir, safe);
+    if (fs.existsSync(filePath)) return res.download(filePath, safe);
+    return res.status(404).send('Template non trouvé : ' + safe);
   }
+
+  // No file specified — list all available templates
+  let files = [];
+  if (fs.existsSync(templatesDir)) {
+    files = fs.readdirSync(templatesDir).filter(f => f.endsWith('.docx'));
+  }
+  res.render('checklists/templates', { title: 'Templates Word', files });
 });
 
 // Show import form

@@ -187,6 +187,13 @@
 .ts-pill.ts-mid   { border-radius:0; }
 .ts-pill.ts-end   { border-radius:0 4px 4px 0; }
 .ts-pill.ts-only  { border-radius:4px; }
+@media (max-width: 768px) {
+  .ts-cal-day { min-height: 44px; padding: 1px; }
+  .ts-day-num { font-size: 0.65rem; }
+  .ts-pill { font-size: 0.6rem; padding: 1px 3px; white-space: normal; word-break: break-word; }
+  #ts-cal-card .card-header { flex-direction: column; gap: 4px; align-items: flex-start !important; }
+  #ts-month-label { min-width: auto !important; }
+}
 </style>
 
 <script>

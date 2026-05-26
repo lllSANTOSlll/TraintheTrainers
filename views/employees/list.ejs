@@ -11,14 +11,14 @@
   <div class="d-flex gap-2 flex-wrap">
     <% if (user.role === 'admin') { %>
       <button class="btn btn-outline-warning btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#bulk-dept-panel">
-        <i class="bi bi-building me-1"></i>Assigner département
+        <i class="bi bi-building me-1"></i><span class="btn-label">Assigner département</span>
       </button>
     <% } %>
-    <a href="/employees/import" class="btn btn-outline-secondary">
-      <i class="bi bi-upload me-1"></i>Importer CSV
+    <a href="/employees/import" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-upload me-1"></i><span class="btn-label">Import CSV</span>
     </a>
-    <a href="/employees/new" class="btn btn-primary">
-      <i class="bi bi-plus-circle me-1"></i>Nouvel employé
+    <a href="/employees/new" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-circle me-1"></i><span class="btn-label">Nouvel employé</span>
     </a>
   </div>
 </div>
@@ -109,10 +109,10 @@
           <thead class="table-light">
             <tr>
               <th>Employé</th>
-              <th>Poste</th>
-              <th>Shift</th>
-              <th>Équipe</th>
-              <th class="text-center">Stations</th>
+              <th class="col-hide-mobile">Poste</th>
+              <th class="col-hide-mobile">Shift</th>
+              <th class="col-hide-mobile">Équipe</th>
+              <th class="text-center col-hide-mobile">Stations</th>
               <th>Statut</th>
               <th class="text-end">Actions</th>
             </tr>
@@ -123,17 +123,22 @@
               <td>
                 <div class="d-flex align-items-center gap-2">
                   <% if (e.photo) { %>
-                    <img src="<%= e.photo %>" alt="<%= e.nom %>" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+                    <img src="<%= e.photo %>" alt="<%= e.nom %>" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div class="emp-avatar" style="display:none;"><%= (e.nom || 'E').charAt(0).toUpperCase() %></div>
                   <% } else { %>
                     <div class="emp-avatar"><%= (e.nom || 'E').charAt(0).toUpperCase() %></div>
                   <% } %>
-                  <a href="/employees/<%= e.id %>" class="fw-medium text-decoration-none"><%= e.nom %></a>
+                  <div>
+                    <a href="/employees/<%= e.id %>" class="fw-medium text-decoration-none d-block"><%= e.nom %></a>
+                    <div class="d-md-none text-muted" style="font-size:0.72rem;"><%= e.poste || '' %><% if(e.shift){ %> · <%= e.shift %><% } %></div>
+                  </div>
                 </div>
               </td>
-              <td class="text-muted small"><%= e.poste || '—' %></td>
-              <td><%= e.shift || '—' %></td>
-              <td><%= e.equipe || '—' %></td>
-              <td class="text-center">
+              <td class="text-muted small col-hide-mobile"><%= e.poste || '—' %></td>
+              <td class="col-hide-mobile"><%= e.shift || '—' %></td>
+              <td class="col-hide-mobile"><%= e.equipe || '—' %></td>
+              <td class="text-center col-hide-mobile">
                 <span class="badge bg-primary rounded-pill"><%= e.nb_stations || 0 %></span>
               </td>
               <td>

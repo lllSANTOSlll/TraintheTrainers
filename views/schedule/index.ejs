@@ -1,4 +1,4 @@
-<%- include('../partials/header') %>
+﻿<%- include('../partials/header') %>
 
 <style>
   .schedule-table { border-collapse: collapse; min-width: 100%; }
@@ -13,6 +13,19 @@
   .sched-select:focus { outline: none; border-color: var(--primary-color); }
   .sched-select.has-value { background: #e8f4fd; font-weight: 600; }
   .alert-saved { position: fixed; top: 70px; right: 20px; z-index: 9999; }
+@media (max-width: 768px) {
+  .schedule-table thead { display: none; }
+  .schedule-table, .schedule-table tbody, .schedule-table tr, .schedule-table td { display: block; width: 100%; }
+  .schedule-table tr { border: 1px solid #dee2e6; border-radius: 8px; margin-bottom: 8px; padding: 8px; background: #fff; }
+  .schedule-table td { border: none; padding: 4px 6px; }
+  .col-emp { position: static; width: 100%; min-width: unset; }
+  .col-shift-td { display: inline-block; font-size: 0.75rem; color: #6c757d; }
+  .day-col { display: flex; align-items: center; gap: 6px; min-width: unset; }
+  .day-col::before { content: attr(data-day); font-size: 0.7rem; color: #999; min-width: 30px; }
+  .sched-select { font-size: 0.78rem; }
+  /* Week nav: stack buttons */
+  .schedule-table-wrapper { overflow-x: auto; }
+}
 </style>
 
 <% if (typeof query !== 'undefined' && query && query.saved) { %>
@@ -121,7 +134,7 @@
               %>
                 <% if (hol) { %>
                   <%/* Holiday cell — locked, not editable */%>
-                  <td class="day-col p-1 text-center" style="background:#fff3e0;">
+                  <td class="day-col p-1 text-center" data-day="<%= dayLabels[di].slice(0,3) %>" style="background:#fff3e0;">
                     <input type="hidden" name="<%= e.id %>_<%= d %>" value="<%= hol.type %>">
                     <span class="badge" style="background:#ff6b35; font-size:0.78rem; padding:4px 8px;" title="<%= hol.notes || hol.type %>">
                       🏖️ <%= hol.type %>
@@ -131,7 +144,7 @@
                     <% } %>
                   </td>
                 <% } else { %>
-                  <td class="day-col p-1">
+                  <td class="day-col p-1" data-day="<%= dayLabels[di].slice(0,3) %>">
                     <select class="sched-select <%= curVal ? 'has-value' : '' %>"
                             name="<%= e.id %>_<%= d %>"
                             onchange="this.classList.toggle('has-value', !!this.value)">
