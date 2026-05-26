@@ -1,7 +1,7 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { isAuthenticated, isAdmin, isSupervisorOrAdmin, getDeptFilter } = require('../middleware/auth');
+const { isAuthenticated, isAdmin, isSupervisorOrAdmin, requirePermission, getDeptFilter } = require('../middleware/auth');
 const multer = require('multer');
 const mammoth = require('mammoth');
 const path = require('path');
@@ -21,7 +21,7 @@ const upload = multer({
         file.originalname.endsWith('.docx')) {
       cb(null, true);
     } else {
-      cb(new Error('Seuls les fichiers .docx sont acceptés'));
+      cb(new Error('Seuls les fichiers .docx sont acceptÃ©s'));
     }
   }
 });
@@ -41,7 +41,7 @@ router.get('/', (req, res) => {
   db.all(sql, params, (err, templates) => {
     if (err) { console.error(err); return res.status(500).send('Erreur serveur'); }
     res.render('checklists/list', {
-      title: 'Modèles de Checklist',
+      title: 'ModÃ¨les de Checklist',
       templates: templates || [],
       message: req.query.message
     });
@@ -49,16 +49,16 @@ router.get('/', (req, res) => {
 });
 
 // New template form
-router.get('/new', isSupervisorOrAdmin, (req, res) => {
+router.get('/new', requirePermission('checklists_edit'), (req, res) => {
   res.render('checklists/form', { 
-    title: 'Nouveau Modèle', 
+    title: 'Nouveau ModÃ¨le', 
     template: null,
     action: '/checklists'
   });
 });
 
 // Create template
-router.post('/', isSupervisorOrAdmin, (req, res) => {
+router.post('/', requirePermission('checklists_edit'), (req, res) => {
   const { title, description } = req.body;
   const dept = getDeptFilter(req) || '';
 
@@ -72,7 +72,7 @@ router.post('/', isSupervisorOrAdmin, (req, res) => {
 });
 
 // Edit template form
-router.get('/:id/edit', isSupervisorOrAdmin, (req, res) => {
+router.get('/:id/edit', requirePermission('checklists_edit'), (req, res) => {
   db.get('SELECT * FROM checklist_templates WHERE id = ?', [req.params.id], (err, template) => {
     if (err || !template) return res.status(404).send('Non trouve');
     res.render('checklists/form', {
@@ -84,7 +84,7 @@ router.get('/:id/edit', isSupervisorOrAdmin, (req, res) => {
 });
 
 // Update template
-router.put('/:id', isSupervisorOrAdmin, (req, res) => {
+router.put('/:id', requirePermission('checklists_edit'), (req, res) => {
   const { title, description, department } = req.body;
   const dept = req.session.user.role === 'admin'
     ? (department || '')
@@ -105,7 +105,7 @@ router.delete('/:id', isAdmin, (req, res) => {
 });
 
 // Manage items
-router.get('/:id/items', isSupervisorOrAdmin, (req, res) => {
+router.get('/:id/items', requirePermission('checklists_edit'), (req, res) => {
   db.get('SELECT * FROM checklist_templates WHERE id = ?', [req.params.id], (err, template) => {
     if (!template) return res.status(404).send('Non trouve');
     db.all('SELECT * FROM checklist_template_items WHERE template_id = ? ORDER BY ordre, jour',
@@ -123,7 +123,7 @@ router.get('/:id/items', isSupervisorOrAdmin, (req, res) => {
 });
 
 // Add item (AJAX)
-router.post('/:id/items', isSupervisorOrAdmin, (req, res) => {
+router.post('/:id/items', requirePermission('checklists_edit'), (req, res) => {
   const { jour, categorie, sous_categorie, quoi_expliquer } = req.body;
   
   db.get('SELECT MAX(ordre) as max FROM checklist_template_items WHERE template_id = ?',
@@ -146,7 +146,7 @@ router.post('/:id/items', isSupervisorOrAdmin, (req, res) => {
 });
 
 // Edit item (AJAX)
-router.post('/:id/items/:itemId/edit', isSupervisorOrAdmin, (req, res) => {
+router.post('/:id/items/:itemId/edit', requirePermission('checklists_edit'), (req, res) => {
   const { jour, categorie, sous_categorie, quoi_expliquer } = req.body;
   
   const sql = `UPDATE checklist_template_items 
@@ -163,15 +163,15 @@ router.post('/:id/items/:itemId/edit', isSupervisorOrAdmin, (req, res) => {
 });
 
 // Delete item (AJAX)
-router.delete('/:id/items/:itemId', isSupervisorOrAdmin, (req, res) => {
+router.delete('/:id/items/:itemId', requirePermission('checklists_edit'), (req, res) => {
   db.run('DELETE FROM checklist_template_items WHERE id = ?', [req.params.itemId], (err) => {
     res.json({ success: !err });
   });
 });
 
-// Download Word template — if ?file=name.docx serve that specific file,
+// Download Word template â€” if ?file=name.docx serve that specific file,
 // otherwise render a page listing all available templates
-router.get('/template-download', isSupervisorOrAdmin, (req, res) => {
+router.get('/template-download', requirePermission('checklists_import'), (req, res) => {
   const templatesDir = path.join(__dirname, '../templates');
   const { file } = req.query;
 
@@ -181,10 +181,10 @@ router.get('/template-download', isSupervisorOrAdmin, (req, res) => {
     if (!safe.endsWith('.docx')) return res.status(400).send('Fichier invalide');
     const filePath = path.join(templatesDir, safe);
     if (fs.existsSync(filePath)) return res.download(filePath, safe);
-    return res.status(404).send('Template non trouvé : ' + safe);
+    return res.status(404).send('Template non trouvÃ© : ' + safe);
   }
 
-  // No file specified — list all available templates
+  // No file specified â€” list all available templates
   let files = [];
   if (fs.existsSync(templatesDir)) {
     files = fs.readdirSync(templatesDir).filter(f => f.endsWith('.docx'));
@@ -193,7 +193,7 @@ router.get('/template-download', isSupervisorOrAdmin, (req, res) => {
 });
 
 // Show import form
-router.get('/import', isSupervisorOrAdmin, (req, res) => {
+router.get('/import', requirePermission('checklists_import'), (req, res) => {
   res.render('checklists/import', {
     title: 'Importer une Checklist',
     error: req.query.error,
@@ -202,16 +202,16 @@ router.get('/import', isSupervisorOrAdmin, (req, res) => {
 });
 
 // Process Word document import
-router.post('/import', isSupervisorOrAdmin, upload.single('docfile'), async (req, res) => {
+router.post('/import', requirePermission('checklists_import'), upload.single('docfile'), async (req, res) => {
   if (!req.file) {
-    return res.redirect('/checklists/import?error=Aucun fichier sélectionné');
+    return res.redirect('/checklists/import?error=Aucun fichier sÃ©lectionnÃ©');
   }
 
   const { template_title, template_description } = req.body;
   
   if (!template_title) {
     fs.unlinkSync(req.file.path);
-    return res.redirect('/checklists/import?error=Le titre du modèle est requis');
+    return res.redirect('/checklists/import?error=Le titre du modÃ¨le est requis');
   }
 
   try {
@@ -258,7 +258,7 @@ router.post('/import', isSupervisorOrAdmin, upload.single('docfile'), async (req
     fs.unlinkSync(req.file.path);
 
     if (rows.length === 0) {
-      return res.redirect('/checklists/import?error=Aucun tableau trouvé dans le document. Assurez-vous d\'utiliser le template fourni.');
+      return res.redirect('/checklists/import?error=Aucun tableau trouvÃ© dans le document. Assurez-vous d\'utiliser le template fourni.');
     }
 
     // Filter out header row and empty rows
@@ -274,7 +274,7 @@ router.post('/import', isSupervisorOrAdmin, upload.single('docfile'), async (req
     });
 
     if (dataRows.length === 0) {
-      return res.redirect('/checklists/import?error=Aucune donnée valide trouvée dans le tableau');
+      return res.redirect('/checklists/import?error=Aucune donnÃ©e valide trouvÃ©e dans le tableau');
     }
 
     // Create the template
@@ -284,7 +284,7 @@ router.post('/import', isSupervisorOrAdmin, upload.single('docfile'), async (req
       function(err) {
         if (err) {
           console.error(err);
-          return res.redirect('/checklists/import?error=Erreur lors de la création du modèle');
+          return res.redirect('/checklists/import?error=Erreur lors de la crÃ©ation du modÃ¨le');
         }
         
         const templateId = this.lastID;
@@ -304,7 +304,7 @@ router.post('/import', isSupervisorOrAdmin, upload.single('docfile'), async (req
               if (err) console.error('Error inserting item:', err);
               added++;
               if (added === totalToAdd) {
-                res.redirect(`/checklists/${templateId}/items?message=${added} éléments importés avec succès!`);
+                res.redirect(`/checklists/${templateId}/items?message=${added} Ã©lÃ©ments importÃ©s avec succÃ¨s!`);
               }
             }
           );

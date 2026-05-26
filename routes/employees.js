@@ -4,9 +4,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const db = require('../config/database');
-const { isSupervisorOrAdmin, getDeptFilter } = require('../middleware/auth');
+const { requirePermission, getDeptFilter } = require('../middleware/auth');
 
-router.use(isSupervisorOrAdmin);
+router.use(requirePermission('employees_view'));
 
 // CSV import — memory storage
 const upload = multer({ storage: multer.memoryStorage() });

@@ -1,23 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { isSupervisorOrAdmin, getDeptFilter } = require('../middleware/auth');
+const { requirePermission, getDeptFilter } = require('../middleware/auth');
 
-router.use(isSupervisorOrAdmin);
+router.use(requirePermission('matrix_view'));
 
-// Allow Operations and Technicians; block others
-router.use((req, res, next) => {
-  const user = req.session.user;
-  const dept = user.role === 'admin' ? (req.session.adminDept || '') : (user.department || '');
-  if (user.role !== 'admin' && dept !== 'Operations' && dept !== 'Technicians') {
-    return res.status(403).render('error', {
-      title: 'Non disponible',
-      message: 'La matrice de formation n\'est pas encore disponible pour ce département.',
-      error: { status: 403 }
-    });
-  }
-  next();
-});
+// Department access is now controlled via requirePermission('matrix_view')
 
 const STATIONS = [
   { key: 'ip_vav',      label: 'IP VAV' },

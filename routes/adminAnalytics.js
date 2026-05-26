@@ -1,9 +1,9 @@
 const express = require('express');
 const router  = express.Router();
 const db      = require('../config/database');
-const { isAdmin } = require('../middleware/auth');
+const { requirePermission } = require('../middleware/auth');
 
-router.use(isAdmin);
+router.use(requirePermission('analytics_view'));
 
 // ── Stations list (Operations) ─────────────────────────────
 const STATIONS = [
