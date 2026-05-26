@@ -4,12 +4,12 @@ const router = express.Router();
 const db = require('../config/database');
 const { isAuthenticated, isAdmin } = require('../middleware/auth');
 
-// All routes require admin authentication
 router.use(isAuthenticated);
-router.use(isAdmin);
+// NOTE: isAdmin is applied per-route below so /admin/analytics etc.
+// (handled by adminAnalyticsRoutes) are not blocked here.
 
 // List all users
-router.get('/users', (req, res) => {
+router.get('/users', isAdmin, (req, res) => {
   const sql = 'SELECT id, username, email, full_name, role, department, created_at FROM users ORDER BY created_at DESC';
 
   db.all(sql, [], (err, users) => {
@@ -26,7 +26,7 @@ router.get('/users', (req, res) => {
 });
 
 // New user form
-router.get('/users/new', (req, res) => {
+router.get('/users/new', isAdmin, (req, res) => {
   res.render('admin/user-form', {
     title: 'Nouvel Utilisateur',
     editUser: null,
@@ -35,7 +35,7 @@ router.get('/users/new', (req, res) => {
 });
 
 // Create user
-router.post('/users', async (req, res) => {
+router.post('/users', isAdmin, async (req, res) => {
   const { username, password, email, full_name, role, department } = req.body;
 
   if (!username || !password) {
@@ -61,7 +61,7 @@ router.post('/users', async (req, res) => {
 });
 
 // Edit user form
-router.get('/users/:id/edit', (req, res) => {
+router.get('/users/:id/edit', isAdmin, (req, res) => {
   const sql = 'SELECT id, username, email, full_name, role, department FROM users WHERE id = ?';
   
   db.get(sql, [req.params.id], (err, editUser) => {
@@ -77,7 +77,7 @@ router.get('/users/:id/edit', (req, res) => {
 });
 
 // Update user
-router.put('/users/:id', async (req, res) => {
+router.put('/users/:id', isAdmin, async (req, res) => {
   const { username, password, email, full_name, role, department } = req.body;
   const dept = role === 'admin' ? '' : (department || '');
 
@@ -104,7 +104,7 @@ router.put('/users/:id', async (req, res) => {
 });
 
 // Delete user
-router.delete('/users/:id', (req, res) => {
+router.delete('/users/:id', isAdmin, (req, res) => {
   const userId = req.params.id;
   
   // Prevent deleting self
