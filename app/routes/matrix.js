@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { isSupervisorOrAdmin, getDeptFilter } = require('../middleware/auth');
+const { requirePermission, getDeptFilter } = require('../middleware/auth');
 
-router.use(isSupervisorOrAdmin);
+router.use(requirePermission('matrix_view'));
 
 // Allow Operations and Technicians; block others
 router.use((req, res, next) => {
