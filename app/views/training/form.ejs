@@ -51,9 +51,9 @@
             </div>
 
             <div class="mb-3">
-              <label for="poste" class="form-label">Station / Poste</label>
+              <label for="poste" class="form-label">Station / Poste de formation</label>
               <select class="form-select" id="poste" name="poste">
-                <option value="">— Sélectionner une station —</option>
+                <option value="">— Sélectionner —</option>
               </select>
               <div class="form-text" id="poste-hint">Les stations marquées ✓ sont déjà maîtrisées par l'employé</div>
             </div>
@@ -132,7 +132,8 @@
 
 <script>
 (function() {
-  const STATIONS = <%- JSON.stringify(typeof stations !== 'undefined' ? stations : []) %>;
+  const STATIONS    = <%- JSON.stringify(typeof stations    !== 'undefined' ? stations    : []) %>;
+  const MATRIX_COLS = <%- JSON.stringify(typeof matrixCols !== 'undefined' ? matrixCols : []) %>;
   const employees = <%- JSON.stringify((typeof employees !== 'undefined' ? employees : []).map(e => {
     const obj = { id: e.id, nom: e.nom, equipe: e.equipe || '', dept: e.department || '', superviseur: e.superviseur || '', trained: [] };
     if (typeof stations !== 'undefined') {
@@ -164,16 +165,37 @@
   if (hiddenInput.value) searchInput.value = hiddenInput.value;
 
   function fillStations(emp, restorePoste) {
-    posteSelect.innerHTML = '<option value="">— Sélectionner une station —</option>';
+    posteSelect.innerHTML = '<option value="">— Sélectionner —</option>';
     const trainedKeys = emp ? emp.trained.map(t => t.key) : [];
-    STATIONS.forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = s.label;
-      opt.textContent = s.label + (trainedKeys.includes(s.key) ? ' ✓' : '');
-      posteSelect.appendChild(opt);
-    });
-    if (emp) {
+
+    // ── Stations group (if any) ─────────────────────────────
+    if (STATIONS.length > 0) {
+      const grp = MATRIX_COLS.length > 0 ? document.createElement('optgroup') : null;
+      if (grp) { grp.label = 'Stations'; posteSelect.appendChild(grp); }
+      STATIONS.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.label;
+        opt.textContent = s.label + (trainedKeys.includes(s.key) ? ' ✓' : '');
+        (grp || posteSelect).appendChild(opt);
+      });
+    }
+
+    // ── Matrix columns group (if any) ───────────────────────
+    if (MATRIX_COLS.length > 0) {
+      const grp = STATIONS.length > 0 ? document.createElement('optgroup') : null;
+      if (grp) { grp.label = 'Matrice de formation'; posteSelect.appendChild(grp); }
+      MATRIX_COLS.forEach(col => {
+        const opt = document.createElement('option');
+        opt.value = col.name;
+        opt.textContent = col.name;
+        (grp || posteSelect).appendChild(opt);
+      });
+    }
+
+    if (emp && STATIONS.length > 0) {
       posteHint.textContent = emp.trained.length + ' station(s) déjà formée(s) (✓) sur ' + STATIONS.length + ' pour ' + emp.nom;
+    } else if (emp) {
+      posteHint.textContent = 'Colonnes de la matrice de formation';
     }
     if (restorePoste) posteSelect.value = restorePoste;
   }

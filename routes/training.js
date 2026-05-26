@@ -67,28 +67,54 @@ const STATIONS = [
   { key: 'immersion',   label: 'Immersion' },
 ];
 
+// Returns { stations, matrixCols } based on effective department:
+//   Logistics   → matrixCols only
+//   Technicians → stations + matrixCols
+//   Others      → stations only
+function getPostesForDept(req, callback) {
+  const user = req.session.user;
+  const dept = user.role === 'admin'
+    ? (req.session.adminDept || 'Operations')
+    : (user.department || 'Operations');
+
+  if (dept === 'Logistics') {
+    db.all('SELECT name FROM matrix_columns WHERE department = ? ORDER BY ordre, id', [dept], (err, cols) => {
+      callback([], cols || []);
+    });
+  } else if (dept === 'Technicians') {
+    db.all('SELECT name FROM matrix_columns WHERE department = ? ORDER BY ordre, id', [dept], (err, cols) => {
+      callback(STATIONS, cols || []);
+    });
+  } else {
+    // Operations, admin (no dept), or anything else → stations only
+    callback(STATIONS, []);
+  }
+}
+
 // New training session form
 router.get('/new', (req, res) => {
   const trainersSql = 'SELECT id, nom_prenom FROM trainers WHERE statut_validation = "Validé" ORDER BY nom_prenom';
   const templatesSql = 'SELECT id, title, description FROM checklist_templates ORDER BY title';
   const usersSql = 'SELECT id, username, full_name, role FROM users WHERE role IN ("trainer", "user") ORDER BY full_name, username';
-  // Fetch all station columns so JS can build per-employee trained list
   const stationCols = STATIONS.map(s => s.key).join(', ');
-  const employeesSql = `SELECT id, nom, equipe, department, ${stationCols} FROM employees WHERE statut = "Actif" OR statut IS NULL ORDER BY nom`;
+  const employeesSql = `SELECT id, nom, equipe, department, superviseur, ${stationCols} FROM employees WHERE statut = "Actif" OR statut IS NULL ORDER BY nom`;
 
-  db.all(trainersSql, [], (err, trainers) => {
-    db.all(templatesSql, [], (err2, templates) => {
-      db.all(usersSql, [], (err3, users) => {
-        db.all(employeesSql, [], (err4, employees) => {
-          res.render('training/form', {
-            title: 'Nouvelle Session de Formation',
-            trainers: trainers || [],
-            templates: templates || [],
-            users: users || [],
-            employees: employees || [],
-            stations: STATIONS,
-            session: null,
-            action: '/training'
+  getPostesForDept(req, (stations, matrixCols) => {
+    db.all(trainersSql, [], (err, trainers) => {
+      db.all(templatesSql, [], (err2, templates) => {
+        db.all(usersSql, [], (err3, users) => {
+          db.all(employeesSql, [], (err4, employees) => {
+            res.render('training/form', {
+              title: 'Nouvelle Session de Formation',
+              trainers: trainers || [],
+              templates: templates || [],
+              users: users || [],
+              employees: employees || [],
+              stations,
+              matrixCols,
+              session: null,
+              action: '/training'
+            });
           });
         });
       });
@@ -211,23 +237,26 @@ router.get('/:id/edit', canAccessSession, (req, res) => {
   const templatesSql = 'SELECT id, title, description FROM checklist_templates ORDER BY title';
   const usersSql = 'SELECT id, username, full_name, role FROM users WHERE role IN ("trainer", "user") ORDER BY full_name, username';
   const stationCols = STATIONS.map(s => s.key).join(', ');
-  const employeesSql = `SELECT id, nom, equipe, department, ${stationCols} FROM employees WHERE statut = "Actif" OR statut IS NULL ORDER BY nom`;
+  const employeesSql = `SELECT id, nom, equipe, department, superviseur, ${stationCols} FROM employees WHERE statut = "Actif" OR statut IS NULL ORDER BY nom`;
 
-  db.get(sessionSql, [req.params.id], (err, session) => {
-    if (!session) return res.status(404).send('Non trouvée');
-    db.all(trainersSql, [], (err, trainers) => {
-      db.all(templatesSql, [], (err2, templates) => {
-        db.all(usersSql, [], (err3, users) => {
-          db.all(employeesSql, [], (err4, employees) => {
-            res.render('training/form', {
-              title: 'Modifier Session',
-              session,
-              trainers: trainers || [],
-              templates: templates || [],
-              users: users || [],
-              employees: employees || [],
-              stations: STATIONS,
-              action: `/training/${session.id}?_method=PUT`
+  getPostesForDept(req, (stations, matrixCols) => {
+    db.get(sessionSql, [req.params.id], (err, session) => {
+      if (!session) return res.status(404).send('Non trouvée');
+      db.all(trainersSql, [], (err, trainers) => {
+        db.all(templatesSql, [], (err2, templates) => {
+          db.all(usersSql, [], (err3, users) => {
+            db.all(employeesSql, [], (err4, employees) => {
+              res.render('training/form', {
+                title: 'Modifier Session',
+                session,
+                trainers: trainers || [],
+                templates: templates || [],
+                users: users || [],
+                employees: employees || [],
+                stations,
+                matrixCols,
+                action: `/training/${session.id}?_method=PUT`
+              });
             });
           });
         });
