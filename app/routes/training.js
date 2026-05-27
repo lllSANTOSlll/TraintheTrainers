@@ -101,19 +101,37 @@ function getPostesForDept(req, callback) {
   }
 }
 
+// Build employees query filtered by department for non-admins
+function getEmployeesSql(req) {
+  const stationCols = STATIONS.map(s => s.key).join(', ');
+  const base = `SELECT id, nom, equipe, department, superviseur, ${stationCols} FROM employees`;
+  const role = req.session.user.role;
+  const dept = req.session.user.department || '';
+
+  if (role !== 'admin' && dept) {
+    return {
+      sql: `${base} WHERE department = ? AND (statut = "Actif" OR statut IS NULL) ORDER BY nom`,
+      params: [dept]
+    };
+  }
+  return {
+    sql: `${base} WHERE statut = "Actif" OR statut IS NULL ORDER BY nom`,
+    params: []
+  };
+}
+
 // New training session form
 router.get('/new', (req, res) => {
   const trainersSql = 'SELECT id, nom_prenom FROM trainers WHERE statut_validation = "Validé" ORDER BY nom_prenom';
   const templatesSql = 'SELECT id, title, description FROM checklist_templates ORDER BY title';
   const usersSql = 'SELECT id, username, full_name, role FROM users WHERE role IN ("trainer", "user") ORDER BY full_name, username';
-  const stationCols = STATIONS.map(s => s.key).join(', ');
-  const employeesSql = `SELECT id, nom, equipe, department, superviseur, ${stationCols} FROM employees WHERE statut = "Actif" OR statut IS NULL ORDER BY nom`;
+  const { sql: employeesSql, params: empParams } = getEmployeesSql(req);
 
   getPostesForDept(req, (stations, matrixCols) => {
     db.all(trainersSql, [], (err, trainers) => {
       db.all(templatesSql, [], (err2, templates) => {
         db.all(usersSql, [], (err3, users) => {
-          db.all(employeesSql, [], (err4, employees) => {
+          db.all(employeesSql, empParams, (err4, employees) => {
             res.render('training/form', {
               title: 'Nouvelle Session de Formation',
               trainers: trainers || [],
@@ -263,8 +281,7 @@ router.get('/:id/edit', canAccessSession, (req, res) => {
   const trainersSql = 'SELECT id, nom_prenom FROM trainers WHERE statut_validation = "Validé"';
   const templatesSql = 'SELECT id, title, description FROM checklist_templates ORDER BY title';
   const usersSql = 'SELECT id, username, full_name, role FROM users WHERE role IN ("trainer", "user") ORDER BY full_name, username';
-  const stationCols = STATIONS.map(s => s.key).join(', ');
-  const employeesSql = `SELECT id, nom, equipe, department, superviseur, ${stationCols} FROM employees WHERE statut = "Actif" OR statut IS NULL ORDER BY nom`;
+  const { sql: employeesSql, params: empParams } = getEmployeesSql(req);
 
   getPostesForDept(req, (stations, matrixCols) => {
     db.get(sessionSql, [req.params.id], (err, session) => {
@@ -272,7 +289,7 @@ router.get('/:id/edit', canAccessSession, (req, res) => {
       db.all(trainersSql, [], (err, trainers) => {
         db.all(templatesSql, [], (err2, templates) => {
           db.all(usersSql, [], (err3, users) => {
-            db.all(employeesSql, [], (err4, employees) => {
+            db.all(employeesSql, empParams, (err4, employees) => {
               res.render('training/form', {
                 title: 'Modifier Session',
                 session,
