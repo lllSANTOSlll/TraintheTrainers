@@ -21,7 +21,7 @@ const upload = multer({
         file.originalname.endsWith('.docx')) {
       cb(null, true);
     } else {
-      cb(new Error('Seuls les fichiers .docx sont acceptÃ©s'));
+      cb(new Error('Seuls les fichiers .docx sont acceptés'));
     }
   }
 });
@@ -41,7 +41,7 @@ router.get('/', (req, res) => {
   db.all(sql, params, (err, templates) => {
     if (err) { console.error(err); return res.status(500).send('Erreur serveur'); }
     res.render('checklists/list', {
-      title: 'ModÃ¨les de Checklist',
+      title: 'Modèles de Checklist',
       templates: templates || [],
       message: req.query.message
     });
@@ -51,7 +51,7 @@ router.get('/', (req, res) => {
 // New template form
 router.get('/new', requirePermission('checklists_edit'), (req, res) => {
   res.render('checklists/form', { 
-    title: 'Nouveau ModÃ¨le', 
+    title: 'Nouveau Modèle',
     template: null,
     action: '/checklists'
   });
@@ -169,7 +169,7 @@ router.delete('/:id/items/:itemId', requirePermission('checklists_edit'), (req, 
   });
 });
 
-// Download Word template â€” if ?file=name.docx serve that specific file,
+// Download Word template – if ?file=name.docx serve that specific file,
 // otherwise render a page listing all available templates
 router.get('/template-download', requirePermission('checklists_import'), (req, res) => {
   const templatesDir = path.join(__dirname, '../templates');
@@ -181,10 +181,10 @@ router.get('/template-download', requirePermission('checklists_import'), (req, r
     if (!safe.endsWith('.docx')) return res.status(400).send('Fichier invalide');
     const filePath = path.join(templatesDir, safe);
     if (fs.existsSync(filePath)) return res.download(filePath, safe);
-    return res.status(404).send('Template non trouvÃ© : ' + safe);
+    return res.status(404).send('Template non trouvé : ' + safe);
   }
 
-  // No file specified â€” list all available templates
+  // No file specified – list all available templates
   let files = [];
   if (fs.existsSync(templatesDir)) {
     files = fs.readdirSync(templatesDir).filter(f => f.endsWith('.docx'));
@@ -204,14 +204,14 @@ router.get('/import', requirePermission('checklists_import'), (req, res) => {
 // Process Word document import
 router.post('/import', requirePermission('checklists_import'), upload.single('docfile'), async (req, res) => {
   if (!req.file) {
-    return res.redirect('/checklists/import?error=Aucun fichier sÃ©lectionnÃ©');
+    return res.redirect('/checklists/import?error=Aucun fichier sélectionné');
   }
 
   const { template_title, template_description } = req.body;
   
   if (!template_title) {
     fs.unlinkSync(req.file.path);
-    return res.redirect('/checklists/import?error=Le titre du modÃ¨le est requis');
+    return res.redirect('/checklists/import?error=Le titre du modèle est requis');
   }
 
   try {

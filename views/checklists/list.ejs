@@ -3,17 +3,21 @@
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-list-check"></i> Modèles de Checklist</h2>
-    <% if (user.role === 'admin') { %>
-      <div>
-        <a href="/checklists/template-download" class="btn btn-outline-info">
-          <i class="bi bi-file-earmark-word"></i> Télécharger Template
-        </a>
-        <a href="/checklists/import" class="btn btn-success">
-          <i class="bi bi-file-earmark-arrow-up"></i> Importer Word
-        </a>
-        <a href="/checklists/new" class="btn btn-primary">
-          <i class="bi bi-plus-circle"></i> Nouveau Modèle
-        </a>
+    <% if (canPerm('checklists_edit') || canPerm('checklists_import')) { %>
+      <div class="d-flex gap-2">
+        <% if (canPerm('checklists_import')) { %>
+          <a href="/checklists/template-download" class="btn btn-outline-info">
+            <i class="bi bi-file-earmark-word"></i> Télécharger Template
+          </a>
+          <a href="/checklists/import" class="btn btn-success">
+            <i class="bi bi-file-earmark-arrow-up"></i> Importer Word
+          </a>
+        <% } %>
+        <% if (canPerm('checklists_edit')) { %>
+          <a href="/checklists/new" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nouveau Modèle
+          </a>
+        <% } %>
       </div>
     <% } %>
   </div>
@@ -31,8 +35,8 @@
         <div class="alert alert-info">
           <i class="bi bi-info-circle"></i>
           <strong>Aucun modèle de checklist.</strong>
-          <% if (user.role === 'admin') { %>
-            <br>Créez votre premier modèle (Water Spider, Opérateur, QA, etc.)
+          <% if (canPerm('checklists_edit')) { %>
+            <br>Créez votre premier modèle en cliquant sur <strong>Nouveau Modèle</strong>.
           <% } %>
         </div>
       </div>
@@ -57,11 +61,13 @@
                 <a href="/checklists/<%= t.id %>/items" class="btn btn-primary">
                   <i class="bi bi-pencil-square"></i> Gérer Items
                 </a>
-                <% if (user.role === 'admin') { %>
+                <% if (canPerm('checklists_edit')) { %>
                   <a href="/checklists/<%= t.id %>/edit" class="btn btn-warning" title="Modifier titre">
                     <i class="bi bi-gear"></i>
                   </a>
-                  <form method="POST" action="/checklists/<%= t.id %>?_method=DELETE" 
+                <% } %>
+                <% if (user.role === 'admin') { %>
+                  <form method="POST" action="/checklists/<%= t.id %>?_method=DELETE"
                         style="display: inline; margin: 0;"
                         onsubmit="return confirm('Supprimer ce modèle?')">
                     <button type="submit" class="btn btn-danger" title="Supprimer">
