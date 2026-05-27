@@ -51,7 +51,9 @@ db.run(`CREATE TABLE IF NOT EXISTS corrective_actions (
 // 1. KPI ANALYTICS  GET /admin/analytics
 // ══════════════════════════════════════════════════════════
 router.get('/analytics', (req, res) => {
-  const dept = req.session.adminDept || '';
+  const dept = req.session.user.role === 'admin'
+    ? (req.session.adminDept || '')
+    : (req.session.user.department || '');
 
   // Run 5 queries in parallel
   const q1 = new Promise((resolve, reject) => {
@@ -108,7 +110,10 @@ router.get('/analytics', (req, res) => {
 // 2. COVERAGE RISK  GET /admin/coverage
 // ══════════════════════════════════════════════════════════
 router.get('/coverage', (req, res) => {
-  const dept        = req.session.adminDept || '';
+  // Supervisors are locked to their own department; admins use the dept selector
+  const dept = req.session.user.role === 'admin'
+    ? (req.session.adminDept || '')
+    : (req.session.user.department || '');
   const filterShift = req.query.shift || '';
   const deptCond    = dept ? `AND department = ?` : '';
   const params      = dept ? [dept] : [];
