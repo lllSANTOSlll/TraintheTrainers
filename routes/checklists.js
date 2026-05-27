@@ -258,7 +258,7 @@ router.post('/import', requirePermission('checklists_import'), upload.single('do
     fs.unlinkSync(req.file.path);
 
     if (rows.length === 0) {
-      return res.redirect('/checklists/import?error=Aucun tableau trouvÃ© dans le document. Assurez-vous d\'utiliser le template fourni.');
+      return res.redirect('/checklists/import?error=Aucun tableau trouvé dans le document. Assurez-vous d\'utiliser le template fourni.');
     }
 
     // Filter out header row and empty rows
@@ -274,7 +274,7 @@ router.post('/import', requirePermission('checklists_import'), upload.single('do
     });
 
     if (dataRows.length === 0) {
-      return res.redirect('/checklists/import?error=Aucune donnÃ©e valide trouvÃ©e dans le tableau');
+      return res.redirect('/checklists/import?error=Aucune donnée valide trouvée dans le tableau');
     }
 
     // Create the template
@@ -284,7 +284,7 @@ router.post('/import', requirePermission('checklists_import'), upload.single('do
       function(err) {
         if (err) {
           console.error(err);
-          return res.redirect('/checklists/import?error=Erreur lors de la crÃ©ation du modÃ¨le');
+          return res.redirect('/checklists/import?error=Erreur lors de la création du modèle');
         }
         
         const templateId = this.lastID;
@@ -304,7 +304,7 @@ router.post('/import', requirePermission('checklists_import'), upload.single('do
               if (err) console.error('Error inserting item:', err);
               added++;
               if (added === totalToAdd) {
-                res.redirect(`/checklists/${templateId}/items?message=${added} Ã©lÃ©ments importÃ©s avec succÃ¨s!`);
+                res.redirect(`/checklists/${templateId}/items?message=${added} éléments importés avec succès!`);
               }
             }
           );

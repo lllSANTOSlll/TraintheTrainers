@@ -9,12 +9,12 @@ router.use(isAuthenticated);
 router.get('/', (req, res) => {
   const userId = req.session.user.id;
   const userRole = req.session.user.role;
-  
+
   let sql;
   let params = [];
-  
-  if (userRole === 'admin') {
-    // Admin sees ALL sessions
+
+  if (userRole === 'admin' || userRole === 'supervisor') {
+    // Admin and supervisors see ALL sessions
     sql = `SELECT ts.*, t.nom_prenom as trainer_name, e.superviseur as employee_supervisor
            FROM training_sessions ts
            JOIN trainers t ON ts.trainer_id = t.id
@@ -26,7 +26,7 @@ router.get('/', (req, res) => {
            FROM training_sessions ts
            JOIN trainers t ON ts.trainer_id = t.id
            LEFT JOIN employees e ON e.nom = ts.employee_name
-           WHERE ts.assigned_user_id = ?
+           WHERE ts.assigned_user_id = ? OR ts.assigned_user_id IS NULL
            ORDER BY ts.date_debut DESC`;
     params = [userId];
   }
@@ -125,14 +125,15 @@ router.get('/new', (req, res) => {
 // Create training session
 router.post('/', (req, res) => {
   const { trainer_id, employee_name, date_debut, date_fin, poste, statut, notes, template_id } = req.body;
+  const creatorId = req.session.user.id;
 
   const sql = `INSERT INTO training_sessions
-    (trainer_id, employee_name, date_debut, date_fin, poste, statut, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    (trainer_id, employee_name, date_debut, date_fin, poste, statut, notes, assigned_user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
   db.run(sql, [
     trainer_id, employee_name, date_debut, date_fin, poste,
-    statut || 'En cours', notes
+    statut || 'En cours', notes, creatorId
   ],
     function(err) {
       if (err) {
@@ -179,23 +180,24 @@ function canAccessSession(req, res, next) {
   const sessionId = req.params.id;
   const userId = req.session.user.id;
   const userRole = req.session.user.role;
-  
-  if (userRole === 'admin') {
-    return next(); // Admins access everything
+
+  // Admins and supervisors access everything
+  if (userRole === 'admin' || userRole === 'supervisor') {
+    return next();
   }
-  
-  // Check if session is assigned to this user
+
+  // Trainers/users: allowed if session is assigned to them or has no assignment (legacy)
   db.get('SELECT assigned_user_id FROM training_sessions WHERE id = ?',
     [sessionId],
     (err, session) => {
       if (err || !session) {
         return res.status(404).send('Session non trouvée');
       }
-      
-      if (session.assigned_user_id === userId) {
+
+      if (session.assigned_user_id === userId || session.assigned_user_id === null) {
         return next();
       }
-      
+
       res.status(403).render('error', {
         title: 'Accès refusé',
         message: 'Cette session ne vous est pas assignée.',
