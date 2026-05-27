@@ -112,48 +112,122 @@ router.get('/coverage', (req, res) => {
   const filterShift = req.query.shift || '';
   const deptCond    = dept ? `AND department = ?` : '';
   const params      = dept ? [dept] : [];
-  if (filterShift) { params.push(filterShift); }
-  const shiftCond = filterShift ? `AND shift = ?` : '';
+  if (filterShift) params.push(filterShift);
+  const shiftCond   = filterShift ? `AND shift = ?` : '';
+
+  const useMatrix = dept === 'Logistics' || dept === 'Technicians';
 
   // Active employees
-  db.all(`SELECT * FROM employees WHERE (statut='Actif' OR statut='Active') ${deptCond} ${shiftCond} ORDER BY nb_stations DESC`,
+  db.all(`SELECT * FROM employees WHERE (statut='Actif' OR statut='Active') ${deptCond} ${shiftCond} ORDER BY nom`,
     params, (err, employees) => {
       if (err) return res.render('error', { title: 'Erreur', message: err.message, user: req.session.user });
 
-      // Station coverage counts
-      const coverage = STATIONS.map(s => {
-        const trained = employees.filter(e => (e[s.key] || '').trim() === 'Oui').length;
-        const inProg  = employees.filter(e => (e[s.key] || '').trim() === 'En formation').length;
-        let risk = 'ok';
-        if (trained === 0) risk = 'critical';
-        else if (trained === 1) risk = 'danger';
-        else if (trained <= 2) risk = 'warning';
-        return { ...s, trained, inProg, risk };
-      });
+      if (!useMatrix) {
+        // ── Operations / all-dept view: use hardcoded STATIONS ───────
+        const coverage = STATIONS.map(s => {
+          const trained = employees.filter(e => (e[s.key] || '').trim() === 'Oui').length;
+          const inProg  = employees.filter(e => (e[s.key] || '').trim() === 'En formation').length;
+          let risk = 'ok';
+          if (trained === 0) risk = 'critical';
+          else if (trained === 1) risk = 'danger';
+          else if (trained <= 2) risk = 'warning';
+          return { label: s.label, trained, inProg, risk };
+        });
 
-      // Polyvalence per employee (% of total STATIONS)
-      const total = STATIONS.length;
-      const polyvalence = employees.map(e => ({
-        nom:   e.nom,
-        shift: e.shift,
-        dept:  e.department,
-        score: e.nb_stations || 0,
-        pct:   total ? Math.round(((e.nb_stations || 0) / total) * 100) : 0
-      })).sort((a, b) => b.score - a.score);
+        const total = STATIONS.length;
+        const polyvalence = employees.map(e => ({
+          nom: e.nom, shift: e.shift, dept: e.department,
+          score: e.nb_stations || 0,
+          pct: total ? Math.round(((e.nb_stations || 0) / total) * 100) : 0
+        })).sort((a, b) => b.score - a.score);
 
-      // Summary stats
-      const critical = coverage.filter(c => c.risk === 'critical').length;
-      const danger   = coverage.filter(c => c.risk === 'danger').length;
-      const warning  = coverage.filter(c => c.risk === 'warning').length;
-      const avgPoly  = polyvalence.length
-        ? Math.round(polyvalence.reduce((s, e) => s + e.pct, 0) / polyvalence.length)
-        : 0;
+        const critical = coverage.filter(c => c.risk === 'critical').length;
+        const danger   = coverage.filter(c => c.risk === 'danger').length;
+        const warning  = coverage.filter(c => c.risk === 'warning').length;
+        const avgPoly  = polyvalence.length
+          ? Math.round(polyvalence.reduce((s, e) => s + e.pct, 0) / polyvalence.length) : 0;
 
-      res.render('admin/coverage', {
-        title: 'Couverture & Polyvalence', user: req.session.user,
-        coverage, polyvalence, employees: employees.length,
-        critical, danger, warning, avgPoly, total,
-        dept, filterShift
+        return res.render('admin/coverage', {
+          title: 'Couverture & Polyvalence', user: req.session.user,
+          coverage, polyvalence, employees: employees.length,
+          critical, danger, warning, avgPoly, total,
+          dept, filterShift
+        });
+      }
+
+      // ── Logistics / Technicians: use matrix_columns + matrix_values ──
+      db.all('SELECT * FROM matrix_columns WHERE department = ? ORDER BY ordre, id', [dept], (err2, columns) => {
+        if (err2 || !columns.length) {
+          return res.render('admin/coverage', {
+            title: 'Couverture & Polyvalence', user: req.session.user,
+            coverage: [], polyvalence: [], employees: employees.length,
+            critical: 0, danger: 0, warning: 0, avgPoly: 0, total: 0,
+            dept, filterShift
+          });
+        }
+
+        const empIds = employees.map(e => e.id);
+        if (!empIds.length) {
+          return res.render('admin/coverage', {
+            title: 'Couverture & Polyvalence', user: req.session.user,
+            coverage: [], polyvalence: [], employees: 0,
+            critical: 0, danger: 0, warning: 0, avgPoly: 0, total: columns.length,
+            dept, filterShift
+          });
+        }
+
+        db.all(
+          `SELECT * FROM matrix_values WHERE employee_id IN (${empIds.map(() => '?').join(',')})`,
+          empIds, (err3, values) => {
+            if (err3) return res.render('error', { title: 'Erreur', message: err3.message, user: req.session.user });
+
+            // Build valuesMap: { emp_id: { col_id: value } }
+            const valuesMap = {};
+            values.forEach(v => {
+              if (!valuesMap[v.employee_id]) valuesMap[v.employee_id] = {};
+              valuesMap[v.employee_id][v.column_id] = v.value;
+            });
+
+            const total = columns.length;
+
+            // Coverage per column: count employees with a non-empty value
+            const coverage = columns.map(col => {
+              const trained = employees.filter(e => {
+                const val = (valuesMap[e.id] && valuesMap[e.id][col.id]) || '';
+                return val.trim() !== '';
+              }).length;
+              let risk = 'ok';
+              if (trained === 0) risk = 'critical';
+              else if (trained === 1) risk = 'danger';
+              else if (trained <= 2) risk = 'warning';
+              return { label: col.name, trained, inProg: 0, risk };
+            });
+
+            // Polyvalence per employee: count columns with a value
+            const polyvalence = employees.map(e => {
+              const empVals = valuesMap[e.id] || {};
+              const score = columns.filter(col => (empVals[col.id] || '').trim() !== '').length;
+              return {
+                nom: e.nom, shift: e.shift, dept: e.department,
+                score,
+                pct: total ? Math.round((score / total) * 100) : 0
+              };
+            }).sort((a, b) => b.score - a.score);
+
+            const critical = coverage.filter(c => c.risk === 'critical').length;
+            const danger   = coverage.filter(c => c.risk === 'danger').length;
+            const warning  = coverage.filter(c => c.risk === 'warning').length;
+            const avgPoly  = polyvalence.length
+              ? Math.round(polyvalence.reduce((s, e) => s + e.pct, 0) / polyvalence.length) : 0;
+
+            res.render('admin/coverage', {
+              title: 'Couverture & Polyvalence', user: req.session.user,
+              coverage, polyvalence, employees: employees.length,
+              critical, danger, warning, avgPoly, total,
+              dept, filterShift
+            });
+          }
+        );
       });
     });
 });
