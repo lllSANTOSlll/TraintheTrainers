@@ -9,17 +9,27 @@ router.use(isAuthenticated);
 router.get('/', (req, res) => {
   const userId = req.session.user.id;
   const userRole = req.session.user.role;
+  const userDept = req.session.user.department || '';
 
   let sql;
   let params = [];
 
-  if (userRole === 'admin' || userRole === 'supervisor') {
-    // Admin and supervisors see ALL sessions
+  if (userRole === 'admin') {
+    // Admin sees ALL sessions
     sql = `SELECT ts.*, t.nom_prenom as trainer_name, e.superviseur as employee_supervisor
            FROM training_sessions ts
            JOIN trainers t ON ts.trainer_id = t.id
            LEFT JOIN employees e ON e.nom = ts.employee_name
            ORDER BY ts.date_debut DESC`;
+  } else if (userRole === 'supervisor') {
+    // Supervisors see sessions for employees in their department only
+    sql = `SELECT ts.*, t.nom_prenom as trainer_name, e.superviseur as employee_supervisor
+           FROM training_sessions ts
+           JOIN trainers t ON ts.trainer_id = t.id
+           LEFT JOIN employees e ON e.nom = ts.employee_name
+           WHERE e.department = ?
+           ORDER BY ts.date_debut DESC`;
+    params = [userDept];
   } else {
     // Trainers and users only see sessions assigned to them
     sql = `SELECT ts.*, t.nom_prenom as trainer_name, e.superviseur as employee_supervisor
@@ -180,20 +190,35 @@ function canAccessSession(req, res, next) {
   const sessionId = req.params.id;
   const userId = req.session.user.id;
   const userRole = req.session.user.role;
+  const userDept = req.session.user.department || '';
 
-  // Admins and supervisors access everything
-  if (userRole === 'admin' || userRole === 'supervisor') {
-    return next();
+  if (userRole === 'admin') {
+    return next(); // Admin sees everything
   }
 
-  // Trainers/users: allowed if session is assigned to them or has no assignment (legacy)
-  db.get('SELECT assigned_user_id FROM training_sessions WHERE id = ?',
+  db.get(`SELECT ts.assigned_user_id, e.department as emp_dept
+          FROM training_sessions ts
+          LEFT JOIN employees e ON e.nom = ts.employee_name
+          WHERE ts.id = ?`,
     [sessionId],
     (err, session) => {
       if (err || !session) {
         return res.status(404).send('Session non trouvée');
       }
 
+      // Supervisor: allow if employee is in their department
+      if (userRole === 'supervisor') {
+        if (!session.emp_dept || session.emp_dept === userDept) {
+          return next();
+        }
+        return res.status(403).render('error', {
+          title: 'Accès refusé',
+          message: 'Cette session appartient à un autre département.',
+          error: { status: 403 }
+        });
+      }
+
+      // Trainers/users: allowed if assigned to them or no assignment (legacy)
       if (session.assigned_user_id === userId || session.assigned_user_id === null) {
         return next();
       }

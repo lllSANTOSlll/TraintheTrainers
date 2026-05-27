@@ -49,7 +49,8 @@ router.post('/login', (req, res) => {
 
     req.session.user = {
       id: user.id, username: user.username,
-      email: user.email, full_name: user.full_name, role: user.role
+      email: user.email, full_name: user.full_name, role: user.role,
+      department: user.department || ''
     };
     res.redirect('/dashboard');
   });
