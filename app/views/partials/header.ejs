@@ -638,6 +638,11 @@
             <i class="bi bi-grid-3x3-gap"></i><span class="nav-link-text"> Postes de travail</span>
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/planification-postes') ? 'active' : '' %>" href="/planification-postes" title="Plan. par Poste">
+            <i class="bi bi-layout-three-columns"></i><span class="nav-link-text"> Plan. par Poste</span>
+          </a>
+        </li>
         <% } %>
         <% if (user.role === 'admin' && adminDept === '') { %>
         <li class="nav-item">

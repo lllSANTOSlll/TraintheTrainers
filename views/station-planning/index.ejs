@@ -1,0 +1,214 @@
+<%- include('../partials/header') %>
+
+<style>
+.sp-table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+.sp-table th, .sp-table td { border: 1px solid #dee2e6; padding: 0; vertical-align: top; }
+.sp-table thead th { background: var(--dc-navy); color: #fff; text-align: center; padding: 8px 4px; font-size: 0.82rem; }
+.sp-table thead th.col-station { text-align: left; padding-left: 12px; width: 160px; }
+.sp-table .day-header-date { display: block; font-weight: normal; font-size: 0.72rem; opacity: 0.75; }
+
+.sp-table .station-name-cell {
+  padding: 0;
+  background: #f8f9fa;
+  border-right: 2px solid var(--dc-navy);
+}
+.station-label {
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dc-navy);
+  line-height: 1.3;
+}
+.station-type-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  background: #e3ecf7;
+  color: var(--dc-navy);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-top: 2px;
+}
+
+.slot-cell { padding: 3px; }
+.slot-select {
+  width: 100%;
+  font-size: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 3px 4px;
+  background: #fff;
+  color: #333;
+  margin-bottom: 2px;
+}
+.slot-select:last-child { margin-bottom: 0; }
+.slot-select.filled { background: #e8f4fd; border-color: var(--dc-blue); font-weight: 600; color: var(--dc-navy); }
+.slot-select option { font-weight: normal; }
+
+.type-group-row td {
+  background: #e9edf2;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--dc-navy);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #cdd3da;
+}
+</style>
+
+<div class="container-fluid">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0"><i class="bi bi-grid-3x3-gap"></i> Planification par Poste</h2>
+    <div class="d-flex gap-2">
+      <a href="/schedule" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-people"></i> Vue par Opérateur
+      </a>
+      <button type="submit" form="sp-form" class="btn btn-success btn-sm">
+        <i class="bi bi-check-circle"></i> Enregistrer
+      </button>
+    </div>
+  </div>
+
+  <% if (message) { %>
+    <div class="alert alert-success alert-dismissible fade show py-2">
+      <i class="bi bi-check-circle"></i> <%= message %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <!-- Week navigation -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <a href="/planification-postes?week=<%= prevWeek %>" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-chevron-left"></i> Semaine précédente
+    </a>
+    <strong><%= weekLabel %></strong>
+    <a href="/planification-postes?week=<%= nextWeek %>" class="btn btn-outline-secondary btn-sm">
+      Semaine suivante <i class="bi bi-chevron-right"></i>
+    </a>
+  </div>
+
+  <% if (!stations.length) { %>
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle"></i>
+      Aucun poste défini pour ce département.
+      <% if (canPerm('stations_edit')) { %>
+        <a href="/stations/new" class="alert-link">Créer des postes de travail</a> d'abord.
+      <% } %>
+    </div>
+  <% } else { %>
+
+  <form id="sp-form" method="POST" action="/planification-postes/save">
+    <input type="hidden" name="week_start" value="<%= monday %>">
+    <input type="hidden" name="assignments" id="assignments-input">
+
+    <div class="card shadow-sm">
+      <div class="card-body p-0" style="overflow-x:auto;">
+        <table class="sp-table">
+          <thead>
+            <tr>
+              <th class="col-station">Poste</th>
+              <% DAYS.forEach(function(day, i) { %>
+                <th>
+                  <%= day %>
+                  <span class="day-header-date"><%= dayDates[i] %></span>
+                </th>
+              <% }); %>
+            </tr>
+          </thead>
+          <tbody>
+            <%
+              // Group stations by type label
+              const STATION_TYPES = {
+                ip_vav:'IP VAV', ip_stat:'IP STAT', ip_ctrl_2:'IP CTRL 2',
+                smartvue:'Smartvue', unitouch:'Unitouch', iom:'IOM',
+                ip_303:'IP 303', test_1:'1 TEST', s1000:'S1000',
+                ecbl_4_6:'ECBL 4/6', ecbl_2_3:'ECBL 2/3', ecbl_vav_s:'ECBL VAV/S',
+                kit_demobox:'Kit Demobox', vavn_103:'103 VAVN', display:'Display',
+                ecy_4_6:'ECY 4/6', ecbos:'ECBOS', resence:'Resence',
+                horyzon:'Horyzon', ecy_2_3:'ECY 2/3', immersion:'Immersion'
+              };
+              let lastKey = null;
+            %>
+            <% stations.forEach(function(station) {
+              const typeLabel = STATION_TYPES[station.station_key] || station.station_key;
+              const stationAssign = assignments[station.id] || {};
+              const qualifiedEmps = employeesByKey[station.station_key] || [];
+            %>
+              <% if (station.station_key !== lastKey) {
+                lastKey = station.station_key;
+              %>
+              <tr class="type-group-row">
+                <td colspan="<%= 1 + DAYS.length %>">
+                  <i class="bi bi-grid-3x3-gap-fill me-1"></i><%= typeLabel %>
+                  <span class="text-muted fw-normal ms-2" style="text-transform:none; font-size:0.7rem;">
+                    (<%= qualifiedEmps.length %> opérateur(s) formé(s))
+                  </span>
+                </td>
+              </tr>
+              <% } %>
+
+              <tr>
+                <td class="station-name-cell">
+                  <div class="station-label">
+                    <%= station.name %>
+                    <div>
+                      <span class="station-type-badge"><%= station.max_operators %> op. max</span>
+                    </div>
+                  </div>
+                </td>
+                <% for (let d = 0; d < 7; d++) {
+                  const dayAssign = stationAssign[d] || {};
+                %>
+                  <td class="slot-cell">
+                    <% for (let s = 0; s < station.max_operators; s++) {
+                      const val = dayAssign[s] || '';
+                      const key = station.id + '_' + d + '_' + s;
+                    %>
+                      <select class="slot-select <%= val ? 'filled' : '' %>"
+                              data-key="<%= key %>"
+                              onchange="markFilled(this)">
+                        <option value="">—</option>
+                        <% qualifiedEmps.forEach(function(emp) { %>
+                          <option value="<%= emp.nom %>" <%= val === emp.nom ? 'selected' : '' %>>
+                            <%= emp.nom %><%= emp.shift ? ' · ' + emp.shift : '' %>
+                          </option>
+                        <% }); %>
+                      </select>
+                    <% } %>
+                  </td>
+                <% } %>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end mt-3">
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-check-circle"></i> Enregistrer la planification
+      </button>
+    </div>
+  </form>
+
+  <% } %>
+</div>
+
+<script>
+function markFilled(sel) {
+  sel.classList.toggle('filled', sel.value !== '');
+}
+
+// On submit: collect all select values into a JSON object
+document.getElementById('sp-form').addEventListener('submit', function(e) {
+  const data = {};
+  document.querySelectorAll('.slot-select').forEach(sel => {
+    if (sel.value) data[sel.dataset.key] = sel.value;
+  });
+  document.getElementById('assignments-input').value = JSON.stringify(data);
+});
+</script>
+
+<%- include('../partials/footer') %>
