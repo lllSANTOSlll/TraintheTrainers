@@ -110,6 +110,16 @@ router.get('/', (req, res) => {
       const isoDates = getDayISODates(weekStart);
       const weekEnd  = isoDates[6];
 
+      // Load station instances for this dept
+      const instDept = dept !== null ? dept : '';
+      const instSql  = instDept
+        ? 'SELECT * FROM station_instances WHERE department = ? ORDER BY station_key, name'
+        : 'SELECT * FROM station_instances ORDER BY station_key, name';
+      const instParams = instDept ? [instDept] : [];
+
+      db.all(instSql, instParams, (errI, stationInstances) => {
+        const instances = stationInstances || [];
+
       // Load holidays that overlap this week
       db.all(
         `SELECT * FROM employee_holidays WHERE date_start <= ? AND date_end >= ?`,
@@ -119,7 +129,6 @@ router.get('/', (req, res) => {
 
           const holidaySet = buildHolidaySet(holidays, isoDates);
 
-          // Build per-employee holiday map: empId -> { type, notes } for each iso date
           const holidayInfo = {};
           holidays.forEach(h => {
             isoDates.forEach((iso, idx) => {
@@ -132,7 +141,7 @@ router.get('/', (req, res) => {
 
           res.render('schedule/index', {
             title: 'Planification',
-            employees, stations: STATIONS,
+            employees, stations: STATIONS, stationInstances: instances,
             days: DAYS, dayLabels: DAY_LABELS,
             dayDates: getDayDates(weekStart),
             isoDates,
@@ -147,6 +156,7 @@ router.get('/', (req, res) => {
           });
         }
       );
+      }); // end station instances
     });
   });
 });

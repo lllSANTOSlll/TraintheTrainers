@@ -102,10 +102,18 @@
             </tr>
           </thead>
           <tbody>
+            <%
+              // Use station instances if defined, else fall back to hardcoded stations
+              const useInstances = typeof stationInstances !== 'undefined' && stationInstances.length > 0;
+            %>
             <% employees.forEach(e => {
               const sched      = schedMap[e.id] || {};
               const empHols    = (holidayInfo && holidayInfo[e.id]) || {};
               const trained    = stations.filter(s => (e[s.key]||'').trim() === 'Oui').map(s => s.key);
+              // Station options: instances the employee is trained on, or fallback to type labels
+              const empInstances = useInstances
+                ? stationInstances.filter(inst => trained.includes(inst.station_key))
+                : stations.filter(s => trained.includes(s.key)).map(s => ({ name: s.label, station_key: s.key }));
               const hasHolThisWeek = days.some(d => empHols[d]);
             %>
             <tr>
@@ -149,9 +157,9 @@
                             name="<%= e.id %>_<%= d %>"
                             onchange="this.classList.toggle('has-value', !!this.value)">
                       <option value="">— Repos —</option>
-                      <% stations.filter(s => trained.includes(s.key)).forEach(s => { %>
-                        <option value="<%= s.key %>" <%= curVal === s.key ? 'selected' : '' %>>
-                          <%= s.label %>
+                      <% empInstances.forEach(inst => { %>
+                        <option value="<%= inst.name %>" <%= curVal === inst.name ? 'selected' : '' %>>
+                          <%= inst.name %>
                         </option>
                       <% }); %>
                     </select>
