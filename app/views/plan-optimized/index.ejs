@@ -16,6 +16,8 @@
   border-right:2px solid var(--dc-navy); min-width:150px;
 }
 .station-name { font-weight:600; font-size:0.85rem; color:var(--dc-navy); }
+.station-cell.is-child { padding-left:28px; }
+.station-cell.is-child .station-name { font-weight:500; font-size:0.82rem; }
 .station-type { font-size:0.7rem; color:#6b7280; }
 
 /* ── Criticality dropdown cells ── */
@@ -37,12 +39,12 @@
 .crit-select[data-crit="4"] { background:#fee2e2; color:#dc2626; border-color:#fca5a5; }
 .crit-select option { background:#fff; color:#111; font-weight:600; }
 
-/* Group row */
+/* Group row — parent station type, aligned far left */
 .group-row td {
-  background:#e9edf2; padding:3px 12px;
-  font-size:0.72rem; font-weight:700; color:var(--dc-navy);
-  text-transform:uppercase; letter-spacing:0.05em;
-  border-bottom:1px solid #cdd3da;
+  background:#dde3ea; padding:5px 12px;
+  font-size:0.8rem; font-weight:800; color:var(--dc-navy);
+  text-transform:uppercase; letter-spacing:0.06em;
+  border-bottom:1px solid #cdd3da; border-top:1px solid #cdd3da;
 }
 
 /* Legend */
@@ -145,8 +147,14 @@
                 </tr>
               <% } %>
               <tr>
-                <td class="station-cell">
-                  <div class="station-name"><i class="bi bi-grid-3x3-gap me-1" style="opacity:0.5;"></i><%= station.name %></div>
+                <td class="station-cell <%= isGroup ? 'is-child' : '' %>">
+                  <div class="station-name">
+                    <% if (isGroup) { %>
+                      <span style="color:#cbd5e1; margin-right:4px;">└</span>
+                    <% } else { %>
+                      <i class="bi bi-grid-3x3-gap me-1" style="opacity:0.5;"></i>
+                    <% } %><%= station.name %>
+                  </div>
                 </td>
                 <% dayISO.forEach(function(iso) {
                   const val = stCrit[iso] !== undefined ? String(stCrit[iso]) : '';
