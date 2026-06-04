@@ -94,7 +94,10 @@ router.get('/', (req, res) => {
       // 3. Load saved assignments for this week + shift
       const stationIds = stations.map(s => s.id);
       const empIds     = employees.map(e => e.id);
-      const month      = monday.slice(0, 7); // YYYY-MM
+      // Use LAST month's productivity scores for planning this month
+      const lastMonthDate = new Date(monday + 'T12:00:00');
+      lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+      const month = lastMonthDate.toISOString().slice(0, 7); // YYYY-MM of last month
 
       db.all(
         `SELECT * FROM station_schedule
@@ -112,7 +115,7 @@ router.get('/', (req, res) => {
             assignments[r.station_instance_id][r.day_index][r.slot_index] = r.employee_name || '';
           });
 
-          // 4. Load productivity scores for current month
+          // 4. Load productivity scores from LAST month (used to plan current month)
           const prodQuery = empIds.length
             ? `SELECT employee_id, station_key, score FROM employee_productivity WHERE month = ? AND employee_id IN (${empIds.map(() => '?').join(',')})`
             : null;
@@ -167,6 +170,7 @@ router.get('/', (req, res) => {
                   monday, shift, weekLabel: formatWeekLabel(monday),
                   dayDates: getDayDates(monday), DAYS,
                   prevWeek: addWeeks(monday, -1), nextWeek: addWeeks(monday, 1),
+                  prodMonth: month, // last month label for display
                   dept, message: req.query.message
                 });
               }

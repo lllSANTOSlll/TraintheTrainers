@@ -63,7 +63,7 @@ router.get('/', (req, res) => {
 
     if (!stIds.length) {
       return res.render('plan-optimized/index', {
-        title: 'Criticité par Poste', stations: [], critMap: {},
+        title: 'Criticité Semaine', stations: [], critMap: {},
         monday, weekLabel: formatWeekLabel(monday), dayLabels: getDayLabels(monday),
         dayISO, DAYS, prevWeek: addWeeks(monday,-1), nextWeek: addWeeks(monday,1),
         CRIT_LABELS, dept, message: req.query.message
@@ -87,7 +87,7 @@ router.get('/', (req, res) => {
         });
 
         res.render('plan-optimized/index', {
-          title: 'Criticité par Poste',
+          title: 'Criticité Semaine',
           stations, critMap,
           monday, weekLabel: formatWeekLabel(monday),
           dayLabels: getDayLabels(monday), dayISO, DAYS,
