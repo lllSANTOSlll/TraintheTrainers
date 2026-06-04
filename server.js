@@ -454,6 +454,13 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`╠════════════════════════════════════════════════╣`);
   console.log(`║   Serveur démarré sur: http://localhost:${PORT}                 ║`);
   console.log(`╚════════════════════════════════════════════════╝\n`);
+
+  // Start automatic daily database backup (02:35 AM)
+  try {
+    require('./config/backup').start();
+  } catch (e) {
+    console.error('Backup scheduler failed to start:', e.message);
+  }
 });
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
