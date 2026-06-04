@@ -95,10 +95,14 @@
     <h2 class="mb-0">
       <i class="bi bi-layout-three-columns"></i> Planification par Poste
     </h2>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
       <a href="/planification-optimisee?week=<%= monday %>" class="btn btn-outline-primary btn-sm">
-        <i class="bi bi-stars"></i> Définir criticités
+        <i class="bi bi-stars"></i> Criticité Semaine
       </a>
+      <!-- Auto-plan button -->
+      <button type="button" class="btn btn-warning btn-sm" onclick="document.getElementById('auto-form').submit()">
+        <i class="bi bi-magic"></i> Auto-Planifier
+      </button>
       <a href="/schedule?shift=<%= shift %>" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-people"></i> Vue par Opérateur
       </a>
@@ -107,6 +111,13 @@
       </button>
     </div>
   </div>
+
+  <!-- Hidden auto-plan form -->
+  <form id="auto-form" method="POST" action="/planification-postes/auto"
+        onsubmit="return confirm('Générer automatiquement le planning pour la semaine ?\n\nCeci remplacera les assignations existantes pour le quart ' + '<%= shift %>' + '.\n\nBasé sur : criticité de la semaine + productivité du mois précédent.')">
+    <input type="hidden" name="week_start" value="<%= monday %>">
+    <input type="hidden" name="shift"      value="<%= shift %>">
+  </form>
   <!-- Criticality legend -->
   <div class="d-flex gap-2 align-items-center mb-2 flex-wrap" style="font-size:0.75rem;">
     <span class="text-muted fw-semibold">Criticité :</span>

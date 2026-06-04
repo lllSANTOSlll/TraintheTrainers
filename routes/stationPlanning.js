@@ -311,4 +311,187 @@ router.post('/save', requirePermission('schedule_view'), (req, res) => {
   });
 });
 
+// ── POST /planification-postes/auto ──────────────────────────────────────────
+// Auto-plan the full week: assign best available operator per station per day
+// based on criticality (highest first) and last month's productivity scores.
+router.post('/auto', requirePermission('schedule_view'), (req, res) => {
+  const { week_start, shift } = req.body;
+
+  const dept = req.session.user.role === 'admin'
+    ? (req.session.adminDept || '')
+    : (req.session.user.department || '');
+
+  const dayISO = getDayISODates(week_start);
+
+  // Last month for productivity
+  const lm = new Date(week_start + 'T12:00:00');
+  lm.setMonth(lm.getMonth() - 1);
+  const lastMonth = lm.toISOString().slice(0, 7);
+
+  // 1. Load stations
+  let stSql = 'SELECT * FROM station_instances';
+  let stParams = [];
+  if (dept) { stSql += ' WHERE department = ?'; stParams.push(dept); }
+  stSql += ' ORDER BY station_key, name';
+
+  db.all(stSql, stParams, (err, stations) => {
+    if (err || !stations.length) return res.redirect(`/planification-postes?week=${week_start}&shift=${shift}&message=Aucun poste défini`);
+
+    const stationIds = stations.map(s => s.id);
+    const stationKeys = [...new Set(stations.map(s => s.station_key))];
+    const keyCols = stationKeys.join(', ');
+
+    // 2. Load employees (by shift + dept, with station training columns)
+    const empSql = dept
+      ? `SELECT id, nom, ${keyCols} FROM employees WHERE department = ? AND shift = ? AND (statut = 'Actif' OR statut IS NULL) ORDER BY nom`
+      : `SELECT id, nom, ${keyCols} FROM employees WHERE shift = ? AND (statut = 'Actif' OR statut IS NULL) ORDER BY nom`;
+    const empParams = dept ? [dept, shift] : [shift];
+
+    db.all(empSql, empParams, (err2, employees) => {
+      if (err2) return res.status(500).send('Erreur');
+
+      const empIds = employees.map(e => e.id);
+      if (!empIds.length) return res.redirect(`/planification-postes?week=${week_start}&shift=${shift}&message=Aucun employé trouvé`);
+
+      // 3. Load last month productivity
+      db.all(
+        `SELECT employee_id, station_key, score FROM employee_productivity
+         WHERE month = ? AND employee_id IN (${empIds.map(() => '?').join(',')})`,
+        [lastMonth, ...empIds],
+        (err3, prodRows) => {
+          const prodMap = {};
+          (prodRows || []).forEach(r => {
+            if (!prodMap[r.employee_id]) prodMap[r.employee_id] = {};
+            prodMap[r.employee_id][r.station_key] = r.score;
+          });
+
+          // 4. Load criticalities for the week
+          db.all(
+            `SELECT station_instance_id, date, criticality FROM station_criticality
+             WHERE date >= ? AND date <= ?
+               AND station_instance_id IN (${stationIds.map(() => '?').join(',')})`,
+            [dayISO[0], dayISO[6], ...stationIds],
+            (err4, critRows) => {
+              const critMap = {};
+              (critRows || []).forEach(r => {
+                if (!critMap[r.station_instance_id]) critMap[r.station_instance_id] = {};
+                critMap[r.station_instance_id][r.date] = r.criticality;
+              });
+
+              // ── GREEDY ASSIGNMENT ALGORITHM ──────────────────────────────
+              // For each day: sort stations by criticality DESC, assign best
+              // available (unassigned that day) operator per station/slot.
+              const scheduleEntries = []; // { stationId, dayIndex, slotIndex, empName }
+              const empDayMap = {};       // empName -> { dayIndex -> stationName }
+
+              for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+                const iso = dayISO[dayIdx];
+                const usedToday = new Set(); // empNames already assigned this day
+
+                // Sort stations by criticality for this day (highest first, skip Arrêt=0)
+                const sortedStations = stations
+                  .map(s => ({
+                    ...s,
+                    crit: (critMap[s.id] && critMap[s.id][iso] !== undefined)
+                      ? critMap[s.id][iso] : 1
+                  }))
+                  .filter(s => s.crit > 0) // skip Arrêt
+                  .sort((a, b) => b.crit - a.crit);
+
+                sortedStations.forEach(station => {
+                  const key = station.station_key;
+
+                  // Candidates: trained on this station, sorted by prod score DESC
+                  const candidates = employees
+                    .filter(e => (e[key] || '').trim() === 'Oui')
+                    .map(e => ({
+                      nom: e.nom,
+                      score: (prodMap[e.id] && prodMap[e.id][key] !== undefined)
+                        ? prodMap[e.id][key] : -1
+                    }))
+                    .filter(c => !usedToday.has(c.nom))
+                    .sort((a, b) => b.score - a.score);
+
+                  for (let slot = 0; slot < station.max_operators; slot++) {
+                    const pick = candidates.shift(); // best available not yet used
+                    if (!pick) break;
+                    usedToday.add(pick.nom);
+                    scheduleEntries.push({ stationId: station.id, dayIdx, slot, empName: pick.nom });
+                    // Track for schedule_weeks sync
+                    if (!empDayMap[pick.nom]) empDayMap[pick.nom] = {};
+                    if (!empDayMap[pick.nom][dayIdx]) empDayMap[pick.nom][dayIdx] = station.name;
+                  }
+                });
+              }
+
+              if (!scheduleEntries.length) {
+                return res.redirect(`/planification-postes?week=${week_start}&shift=${shift}&message=Aucune suggestion générée — vérifiez les criticités et la productivité`);
+              }
+
+              // 5. Clear existing schedule for this week+shift+stations, then insert
+              db.run(
+                `DELETE FROM station_schedule WHERE week_start = ? AND shift = ?
+                 AND station_instance_id IN (${stationIds.map(() => '?').join(',')})`,
+                [week_start, shift, ...stationIds],
+                (err5) => {
+                  if (err5) return res.status(500).send('Erreur');
+
+                  let done = 0;
+                  const total = scheduleEntries.length;
+
+                  scheduleEntries.forEach(({ stationId, dayIdx, slot, empName }) => {
+                    db.run(
+                      `INSERT INTO station_schedule (week_start, shift, station_instance_id, day_index, slot_index, employee_name)
+                       VALUES (?,?,?,?,?,?)`,
+                      [week_start, shift, stationId, dayIdx, slot, empName],
+                      () => {
+                        if (++done === total) {
+                          // 6. Sync to schedule_weeks
+                          const empNames = Object.keys(empDayMap);
+                          if (!empNames.length) return res.redirect(`/planification-postes?week=${week_start}&shift=${shift}&message=Planning auto généré!`);
+
+                          db.all(`SELECT id, nom FROM employees WHERE nom IN (${empNames.map(() => '?').join(',')})`, empNames, (e6, empRows) => {
+                            if (e6 || !empRows.length) return res.redirect(`/planification-postes?week=${week_start}&shift=${shift}&message=Planning auto généré!`);
+
+                            const DAY_COLS = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+                            let synced = 0;
+                            empRows.forEach(emp => {
+                              const days = empDayMap[emp.nom] || {};
+                              const sets = {};
+                              Object.entries(days).forEach(([di, stName]) => {
+                                const col = DAY_COLS[parseInt(di)];
+                                if (col) sets[col] = stName;
+                              });
+                              if (!Object.keys(sets).length) { synced++; if (synced === empRows.length) res.redirect(`/planification-postes?week=${week_start}&shift=${shift}&message=Planning auto généré!`); return; }
+
+                              db.get('SELECT id FROM schedule_weeks WHERE week_start = ? AND employee_id = ?', [week_start, emp.id], (e7, row) => {
+                                if (row) {
+                                  const setClauses = Object.keys(sets).map(c => `${c} = ?`).join(', ');
+                                  db.run(`UPDATE schedule_weeks SET ${setClauses} WHERE week_start = ? AND employee_id = ?`,
+                                    [...Object.values(sets), week_start, emp.id],
+                                    () => { synced++; if (synced === empRows.length) res.redirect(`/planification-postes?week=${week_start}&shift=${shift}&message=Planning auto généré — ${total} assignations!`); });
+                                } else {
+                                  const allCols = DAY_COLS;
+                                  const vals = allCols.map(c => sets[c] || '');
+                                  db.run(`INSERT INTO schedule_weeks (week_start, employee_id, ${allCols.join(',')}) VALUES (?,?,${allCols.map(() => '?').join(',')})`,
+                                    [week_start, emp.id, ...vals],
+                                    () => { synced++; if (synced === empRows.length) res.redirect(`/planification-postes?week=${week_start}&shift=${shift}&message=Planning auto généré — ${total} assignations!`); });
+                                }
+                              });
+                            });
+                          });
+                        }
+                      }
+                    );
+                  });
+                }
+              );
+            }
+          );
+        }
+      );
+    });
+  });
+});
+
 module.exports = router;
