@@ -648,6 +648,11 @@
             <i class="bi bi-layout-three-columns"></i><span class="nav-link-text"> Plan. par Poste</span>
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/planification-optimisee') ? 'active' : '' %>" href="/planification-optimisee" title="Planification Optimisée">
+            <i class="bi bi-stars"></i><span class="nav-link-text"> Plan. Optimisée</span>
+          </a>
+        </li>
         <% } %>
         <% if (user.role === 'admin' && adminDept === '') { %>
         <li class="nav-item">
