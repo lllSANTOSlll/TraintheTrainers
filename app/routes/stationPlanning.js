@@ -84,6 +84,9 @@ router.get('/', (req, res) => {
 
       // 3. Load saved assignments for this week + shift
       const stationIds = stations.map(s => s.id);
+      const empIds     = employees.map(e => e.id);
+      const month      = monday.slice(0, 7); // YYYY-MM
+
       db.all(
         `SELECT * FROM station_schedule
          WHERE week_start = ? AND shift = ?
@@ -100,6 +103,42 @@ router.get('/', (req, res) => {
             assignments[r.station_instance_id][r.day_index][r.slot_index] = r.employee_name || '';
           });
 
+          // 4. Load productivity scores for current month
+          const prodQuery = empIds.length
+            ? `SELECT employee_id, station_key, score FROM employee_productivity WHERE month = ? AND employee_id IN (${empIds.map(() => '?').join(',')})`
+            : null;
+
+          const loadProd = (cb) => {
+            if (!prodQuery) return cb({});
+            db.all(prodQuery, [month, ...empIds], (err4, prodRows) => {
+              if (err4) return cb({});
+              // prodMap[empId][stationKey] = score
+              const prodMap = {};
+              prodRows.forEach(r => {
+                if (!prodMap[r.employee_id]) prodMap[r.employee_id] = {};
+                prodMap[r.employee_id][r.station_key] = r.score;
+              });
+              cb(prodMap);
+            });
+          };
+
+          loadProd((prodMap) => {
+            // Attach score to each employee in employeesByKey
+            stationKeys.forEach(key => {
+              employeesByKey[key] = employeesByKey[key].map(e => ({
+                ...e,
+                prodScore: (prodMap[e.id] && prodMap[e.id][key] !== undefined)
+                  ? prodMap[e.id][key]
+                  : null
+              })).sort((a, b) => {
+                // Sort by score desc, then alphabetically
+                if (a.prodScore !== null && b.prodScore !== null) return b.prodScore - a.prodScore;
+                if (a.prodScore !== null) return -1;
+                if (b.prodScore !== null) return 1;
+                return a.nom.localeCompare(b.nom);
+              });
+            });
+
           res.render('station-planning/index', {
             title: 'Planification par Poste',
             stations, employeesByKey, assignments,
@@ -108,6 +147,7 @@ router.get('/', (req, res) => {
             prevWeek: addWeeks(monday, -1), nextWeek: addWeeks(monday, 1),
             dept, message: req.query.message
           });
+          }); // end loadProd
         }
       );
     });
