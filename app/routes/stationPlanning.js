@@ -47,7 +47,8 @@ function getDayISODates(mondayStr) {
 
 // ── GET /planification-postes ────────────────────────────────────────────────
 router.get('/', (req, res) => {
-  const monday = req.query.week ? getMondayOf(req.query.week) : getMondayOf(new Date());
+  const today  = new Date().toISOString().split('T')[0];
+  const monday = req.query.week ? getMondayOf(req.query.week) : getMondayOf(today);
   const shift  = req.query.shift || 'Jour';   // 'Jour' or 'Soir'
 
   const dept = req.session.user.role === 'admin'

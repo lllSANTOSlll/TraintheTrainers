@@ -44,7 +44,8 @@ function getDayLabels(monday) {
 
 // ── GET /planification-optimisee ──────────────────────────────────────────────
 router.get('/', (req, res) => {
-  const monday = req.query.week ? getMondayOf(req.query.week) : getMondayOf(new Date());
+  const today  = new Date().toISOString().split('T')[0];
+  const monday = req.query.week ? getMondayOf(req.query.week) : getMondayOf(today);
 
   const dept = req.session.user.role === 'admin'
     ? (req.session.adminDept || '') : (req.session.user.department || '');
