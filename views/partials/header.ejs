@@ -630,15 +630,15 @@
           </a>
         </li>
         <% } %>
-        <%# Planification par Opérateur — masquée temporairement (code en standby, route active)
-        <% if (canPerm('schedule_view')) { %>
+
+        <!-- Planification par Opérateur masquée (standby - code + routes intact) -->
+        <%# <% if (canPerm('schedule_view')) { %>
         <li class="nav-item">
-          <a class="nav-link <%= currentPath.startsWith('/schedule') ? 'active' : '' %>" href="/schedule" title="Planification">
+          <a class="nav-link" href="/schedule" title="Planification">
             <i class="bi bi-calendar-week"></i><span class="nav-link-text"> Planification</span>
           </a>
         </li>
-        <% } %>
-        %>
+        <% } %> %>
         <% if (canPerm('stations_edit') || canPerm('stations_view')) { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/stations') ? 'active' : '' %>" href="/stations" title="Postes de travail">
