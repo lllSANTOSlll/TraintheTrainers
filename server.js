@@ -20,9 +20,10 @@ const scheduleRoutes = require('./routes/schedule');
 const displayRoutes = require('./routes/display');
 const suiviRoutes          = require('./routes/suivi');
 const adminAnalyticsRoutes = require('./routes/adminAnalytics');
+const stationsRoutes       = require('./routes/stations');
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -107,8 +108,9 @@ app.use('/employees', employeeRoutes);
 app.use('/matrix', matrixRoutes);
 app.use('/schedule', scheduleRoutes);
 app.use('/display', displayRoutes);
-app.use('/suivi',   suiviRoutes);
-app.use('/admin',   adminAnalyticsRoutes);
+app.use('/suivi',    suiviRoutes);
+app.use('/admin',    adminAnalyticsRoutes);
+app.use('/stations', stationsRoutes);
 app.use(express.static(path.join(__dirname, 'views')));
 // Home route
 
@@ -226,6 +228,15 @@ db.serialize(() => {
 
   db.run(`ALTER TABLE training_sessions ADD COLUMN assigned_user_id INTEGER`,
     (err) => { if (err && !err.message.includes('duplicate column')) console.error('assigned_user_id col:', err); });
+
+  db.run(`CREATE TABLE IF NOT EXISTS station_instances (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL,
+    station_key   TEXT NOT NULL,
+    max_operators INTEGER NOT NULL DEFAULT 1,
+    department    TEXT NOT NULL DEFAULT 'Operations',
+    created_at    TEXT DEFAULT (datetime('now'))
+  )`, (err) => { if (err) console.error('station_instances table:', err); else console.log('✓ station_instances table ready'); });
 
   db.run(`CREATE TABLE IF NOT EXISTS schedule_weeks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

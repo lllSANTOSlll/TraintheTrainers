@@ -5,7 +5,7 @@ const db = require('./database');
 const DEFAULTS = {
   user: {
     employees_view:0, employees_edit:0, employees_import:0,
-    matrix_view:0, schedule_view:0,
+    matrix_view:0, schedule_view:0, stations_view:0, stations_edit:0,
     sessions_view_own:1, sessions_view_all:0, sessions_checklist:1,
     sessions_create:0, checklists_edit:0, checklists_import:0,
     suivi_view:0, suivi_edit:0,
@@ -14,7 +14,7 @@ const DEFAULTS = {
   },
   trainer: {
     employees_view:0, employees_edit:0, employees_import:0,
-    matrix_view:0, schedule_view:0,
+    matrix_view:0, schedule_view:0, stations_view:0, stations_edit:0,
     sessions_view_own:1, sessions_view_all:0, sessions_checklist:1,
     sessions_create:0, checklists_edit:0, checklists_import:0,
     suivi_view:0, suivi_edit:0,
@@ -23,7 +23,7 @@ const DEFAULTS = {
   },
   supervisor: {
     employees_view:1, employees_edit:1, employees_import:1,
-    matrix_view:1, schedule_view:1,
+    matrix_view:1, schedule_view:1, stations_view:1, stations_edit:1,
     sessions_view_own:1, sessions_view_all:1, sessions_checklist:1,
     sessions_create:1, checklists_edit:1, checklists_import:1,
     suivi_view:1, suivi_edit:1,
@@ -32,7 +32,7 @@ const DEFAULTS = {
   },
   admin: {
     employees_view:1, employees_edit:1, employees_import:1,
-    matrix_view:1, schedule_view:1,
+    matrix_view:1, schedule_view:1, stations_view:1, stations_edit:1,
     sessions_view_own:1, sessions_view_all:1, sessions_checklist:1,
     sessions_create:1, checklists_edit:1, checklists_import:1,
     suivi_view:1, suivi_edit:1,
@@ -43,9 +43,9 @@ const DEFAULTS = {
 
 // ── Default department extra permissions (all OFF by default) ─────────
 const DEPT_DEFAULTS = {
-  Operations:  { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:0, sessions_view_all:0, sessions_checklist:0, sessions_create:0, checklists_edit:0, checklists_import:0, suivi_view:0, suivi_edit:0, analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
-  Technicians: { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:0, sessions_view_all:0, sessions_checklist:0, sessions_create:0, checklists_edit:0, checklists_import:0, suivi_view:0, suivi_edit:0, analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
-  Logistics:   { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, sessions_view_own:0, sessions_view_all:0, sessions_checklist:0, sessions_create:0, checklists_edit:0, checklists_import:0, suivi_view:0, suivi_edit:0, analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
+  Operations:  { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, stations_view:0, stations_edit:0, sessions_view_own:0, sessions_view_all:0, sessions_checklist:0, sessions_create:0, checklists_edit:0, checklists_import:0, suivi_view:0, suivi_edit:0, analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
+  Technicians: { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, stations_view:0, stations_edit:0, sessions_view_own:0, sessions_view_all:0, sessions_checklist:0, sessions_create:0, checklists_edit:0, checklists_import:0, suivi_view:0, suivi_edit:0, analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
+  Logistics:   { employees_view:0, employees_edit:0, employees_import:0, matrix_view:0, schedule_view:0, stations_view:0, stations_edit:0, sessions_view_own:0, sessions_view_all:0, sessions_checklist:0, sessions_create:0, checklists_edit:0, checklists_import:0, suivi_view:0, suivi_edit:0, analytics_view:0, coverage_view:0, actions_view:0, actions_edit:0, admin_delete:0, admin_users:0, admin_settings:0 },
 };
 
 // ── Permission labels (display order) ─────────────────────────────────
@@ -55,6 +55,8 @@ const PERMISSION_LABELS = [
   { key:'employees_import',   label:'Importer CSV employés',              group:'EMPLOYÉS & PLANIFICATION' },
   { key:'matrix_view',        label:'Matrice de formation',               group:'EMPLOYÉS & PLANIFICATION' },
   { key:'schedule_view',      label:'Planification hebdomadaire',         group:'EMPLOYÉS & PLANIFICATION' },
+  { key:'stations_view',      label:'Voir les postes de travail',          group:'EMPLOYÉS & PLANIFICATION' },
+  { key:'stations_edit',      label:'Créer / modifier postes de travail',  group:'EMPLOYÉS & PLANIFICATION' },
   { key:'sessions_view_own',  label:'Voir ses sessions assignées',        group:'SESSIONS DE FORMATION' },
   { key:'sessions_view_all',  label:'Voir TOUTES les sessions',           group:'SESSIONS DE FORMATION' },
   { key:'sessions_checklist', label:'Cocher la checklist',                group:'SESSIONS DE FORMATION' },

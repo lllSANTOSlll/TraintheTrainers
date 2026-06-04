@@ -1,0 +1,102 @@
+<%- include('../partials/header') %>
+
+<div class="container-fluid">
+  <div class="mb-4">
+    <h2>
+      <% if (station) { %>
+        <i class="bi bi-pencil-square"></i> Modifier le Poste
+      <% } else { %>
+        <i class="bi bi-plus-circle"></i> Nouveau Poste de Travail
+      <% } %>
+    </h2>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <form method="POST" action="<%= action %>">
+
+            <!-- Station name -->
+            <div class="mb-3">
+              <label for="name" class="form-label fw-semibold">
+                Nom du poste physique <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" id="name" name="name"
+                     placeholder="Ex: IP VAV 1, IOM 2, ECBL 4/6 A..."
+                     value="<%= station ? station.name : '' %>" required>
+              <div class="form-text">Le nom exact affiché dans la planification</div>
+            </div>
+
+            <!-- Station type -->
+            <div class="mb-3">
+              <label for="station_key" class="form-label fw-semibold">
+                Type de station <span class="text-danger">*</span>
+              </label>
+              <select class="form-select" id="station_key" name="station_key" required>
+                <option value="">— Sélectionner le type —</option>
+                <% stationTypes.forEach(type => { %>
+                  <option value="<%= type.key %>"
+                    <%= station && station.station_key === type.key ? 'selected' : '' %>>
+                    <%= type.label %>
+                  </option>
+                <% }); %>
+              </select>
+              <div class="form-text">
+                Le type correspond à la compétence requise de l'employé (ex: IP VAV → employé formé en IP VAV)
+              </div>
+            </div>
+
+            <!-- Max operators -->
+            <div class="mb-3">
+              <label for="max_operators" class="form-label fw-semibold">
+                Nombre d'opérateurs maximum
+              </label>
+              <div class="d-flex align-items-center gap-3">
+                <input type="number" class="form-control" id="max_operators" name="max_operators"
+                       min="1" max="10"
+                       value="<%= station ? station.max_operators : 1 %>"
+                       style="max-width:120px;">
+                <div class="text-muted small">
+                  Combien d'opérateurs peuvent travailler à ce poste en même temps
+                </div>
+              </div>
+            </div>
+
+            <!-- Department (admin only) -->
+            <% if (user.role === 'admin') { %>
+              <div class="mb-3">
+                <label for="department" class="form-label fw-semibold">Département</label>
+                <select class="form-select" id="department" name="department">
+                  <option value="Operations"  <%= (!station || station.department === 'Operations')  ? 'selected' : '' %>>Opérations</option>
+                  <option value="Technicians" <%= (station && station.department === 'Technicians') ? 'selected' : '' %>>Techniciens</option>
+                  <option value="Logistics"   <%= (station && station.department === 'Logistics')   ? 'selected' : '' %>>Logistique</option>
+                </select>
+              </div>
+            <% } %>
+
+            <div class="d-flex justify-content-between mt-4">
+              <a href="/stations" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Retour
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i>
+                <%= station ? 'Enregistrer' : 'Créer le poste' %>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Help box -->
+      <div class="alert alert-info mt-3">
+        <i class="bi bi-lightbulb"></i>
+        <strong>Exemple:</strong> Le type <strong>IP VAV</strong> peut avoir 3 postes physiques:
+        <em>IP VAV 1</em>, <em>IP VAV 2</em>, <em>IP VAV 3</em> — chacun avec 1 ou 2 opérateurs max.
+        Dans la planification, vous assignerez un opérateur formé en IP VAV à chaque poste.
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

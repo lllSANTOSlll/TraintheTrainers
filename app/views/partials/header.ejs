@@ -632,6 +632,13 @@
           </a>
         </li>
         <% } %>
+        <% if (canPerm('stations_edit') || canPerm('stations_view')) { %>
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath.startsWith('/stations') ? 'active' : '' %>" href="/stations" title="Postes de travail">
+            <i class="bi bi-grid-3x3-gap"></i><span class="nav-link-text"> Postes de travail</span>
+          </a>
+        </li>
+        <% } %>
         <% if (user.role === 'admin' && adminDept === '') { %>
         <li class="nav-item">
           <a class="nav-link <%= currentPath.startsWith('/display') ? 'active' : '' %>" href="/display" title="Stations Display">
