@@ -22,6 +22,7 @@ const suiviRoutes          = require('./routes/suivi');
 const adminAnalyticsRoutes = require('./routes/adminAnalytics');
 const stationsRoutes          = require('./routes/stations');
 const stationPlanningRoutes   = require('./routes/stationPlanning');
+const productivityRoutes      = require('./routes/productivity');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -113,6 +114,7 @@ app.use('/suivi',    suiviRoutes);
 app.use('/admin',    adminAnalyticsRoutes);
 app.use('/stations',             stationsRoutes);
 app.use('/planification-postes', stationPlanningRoutes);
+app.use('/productivity',         productivityRoutes);
 app.use(express.static(path.join(__dirname, 'views')));
 // Home route
 
@@ -251,6 +253,16 @@ db.serialize(() => {
       createTable();
     }
   });
+
+  db.run(`CREATE TABLE IF NOT EXISTS employee_productivity (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL,
+    station_key TEXT NOT NULL,
+    month       TEXT NOT NULL,
+    score       INTEGER DEFAULT 0,
+    created_at  TEXT DEFAULT (datetime('now')),
+    UNIQUE(employee_id, station_key, month)
+  )`, (err) => { if (err) console.error('employee_productivity table:', err); else console.log('✓ employee_productivity table ready'); });
 
   db.run(`CREATE TABLE IF NOT EXISTS station_instances (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,

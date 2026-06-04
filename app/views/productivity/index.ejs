@@ -1,0 +1,198 @@
+<%- include('../partials/header') %>
+
+<style>
+.prod-table { border-collapse: collapse; width: 100%; }
+.prod-table th, .prod-table td { border: 1px solid #dee2e6; padding: 0; font-size: 0.78rem; }
+.prod-table thead tr:first-child th { background: var(--dc-navy); color: #fff; text-align: center; padding: 8px 6px; }
+.prod-table thead tr:last-child th  { background: #f0f4f8; text-align: center; padding: 4px 3px; font-size: 0.7rem; font-weight:600; color: var(--dc-navy); border-bottom: 2px solid var(--dc-navy); }
+.prod-table .emp-cell { padding: 5px 8px; background: #f8f9fa; min-width:160px; border-right: 2px solid var(--dc-navy); }
+.emp-name  { font-weight:600; color:var(--dc-navy); }
+.emp-shift { font-size:0.7rem; color:#6b7280; }
+
+.score-cell { padding: 2px; text-align:center; vertical-align:middle; }
+.score-input {
+  width: 52px; text-align:center; border:1px solid #dee2e6; border-radius:4px;
+  padding: 3px 2px; font-size:0.78rem; background:#fff;
+  transition: border-color 0.15s, background 0.15s;
+}
+.score-input:focus { outline:none; border-color:var(--dc-blue); background:#e8f4fd; }
+.score-input.has-value { background:#eafaf1; border-color:#27ae60; font-weight:600; color:#1a5e35; }
+.score-input.high      { background:#fef3c7; border-color:#d97706; font-weight:700; color:#92400e; }
+.score-input.low       { background:#fee2e2; border-color:#ef4444; }
+
+.untrained { background:#f8f9fa; }
+.untrained-dash { color:#d1d5db; font-size:1rem; }
+
+.shift-pill {
+  display:inline-flex; align-items:center; gap:5px; padding:5px 16px;
+  border-radius:50px; font-weight:600; font-size:0.85rem; cursor:pointer;
+  border:2px solid transparent; text-decoration:none; transition:all 0.15s;
+}
+.shift-pill.all  { background:#f3f4f6; color:#374151; border-color:#9ca3af; }
+.shift-pill.jour { background:#fef3c7; color:#92400e; border-color:#d97706; }
+.shift-pill.soir { background:#e0e7ff; color:#1e3a8a; border-color:#4f46e5; }
+.shift-pill.active.all  { background:#374151; color:#fff; }
+.shift-pill.active.jour { background:#d97706; color:#fff; }
+.shift-pill.active.soir { background:#4f46e5; color:#fff; }
+</style>
+
+<div class="container-fluid">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Productivité Mensuelle</h2>
+    <button type="submit" form="prod-form" class="btn btn-success btn-sm">
+      <i class="bi bi-check-circle"></i> Enregistrer
+    </button>
+  </div>
+
+  <!-- Month navigation -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <a href="/productivity?month=<%= prevMonth %>&shift=<%= shift %>" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-chevron-left"></i> Mois précédent
+    </a>
+    <strong style="font-size:1.05rem; text-transform:capitalize;"><%= monthLabel %></strong>
+    <a href="/productivity?month=<%= nextMonth %>&shift=<%= shift %>" class="btn btn-outline-secondary btn-sm">
+      Mois suivant <i class="bi bi-chevron-right"></i>
+    </a>
+  </div>
+
+  <!-- Shift filter -->
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <span class="text-muted fw-semibold" style="font-size:0.85rem;">Quart :</span>
+    <a href="/productivity?month=<%= month %>&shift=" class="shift-pill all <%= !shift ? 'active' : '' %>">
+      Tous
+    </a>
+    <a href="/productivity?month=<%= month %>&shift=Jour" class="shift-pill jour <%= shift === 'Jour' ? 'active' : '' %>">
+      <i class="bi bi-sun-fill"></i> Jour
+    </a>
+    <a href="/productivity?month=<%= month %>&shift=Soir" class="shift-pill soir <%= shift === 'Soir' ? 'active' : '' %>">
+      <i class="bi bi-moon-stars-fill"></i> Soir
+    </a>
+    <span class="text-muted ms-3" style="font-size:0.8rem;">
+      Score de 0% à 200% — remplissez chaque mois pour chaque station maîtrisée
+    </span>
+  </div>
+
+  <% if (message) { %>
+    <div class="alert alert-success alert-dismissible fade show py-2">
+      <i class="bi bi-check-circle"></i> <%= message %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <% if (!employees.length) { %>
+    <div class="alert alert-info"><i class="bi bi-info-circle"></i> Aucun employé trouvé pour ce filtre.</div>
+  <% } else { %>
+
+  <%
+    // Only show station columns where at least one employee is trained
+    const visibleStations = stations.filter(s =>
+      employees.some(e => (e[s.key] || '').trim() === 'Oui')
+    );
+  %>
+
+  <form id="prod-form" method="POST" action="/productivity/save">
+    <input type="hidden" name="month" value="<%= month %>">
+    <input type="hidden" name="shift" value="<%= shift %>">
+
+    <div class="card shadow-sm">
+      <div class="card-body p-0" style="overflow-x:auto;">
+        <table class="prod-table">
+          <thead>
+            <tr>
+              <th rowspan="2" style="text-align:left; padding-left:12px; min-width:160px;">Employé</th>
+              <th colspan="<%= visibleStations.length %>" style="font-size:0.8rem;">
+                Score Productivité par Station — <span style="text-transform:capitalize;"><%= monthLabel %></span>
+                <span style="font-size:0.72rem; opacity:0.8; font-weight:normal;"> (0% = non productif · 100% = normal · 200% = exceptionnel)</span>
+              </th>
+            </tr>
+            <tr>
+              <% visibleStations.forEach(s => { %>
+                <th title="<%= s.label %>">
+                  <%= s.label.length > 8 ? s.label.substring(0,7)+'…' : s.label %>
+                </th>
+              <% }); %>
+            </tr>
+          </thead>
+          <tbody>
+            <% let lastShift = null; %>
+            <% employees.forEach(function(emp) {
+              const empScores = scores[emp.id] || {};
+              const shiftChanged = emp.shift !== lastShift;
+              lastShift = emp.shift;
+            %>
+              <% if (shiftChanged) { %>
+                <tr>
+                  <td colspan="<%= 1 + visibleStations.length %>"
+                      style="background:#e9edf2; padding:4px 12px; font-size:0.72rem; font-weight:700; color:var(--dc-navy); text-transform:uppercase; letter-spacing:0.05em;">
+                    <% if (emp.shift === 'Jour') { %>
+                      <i class="bi bi-sun-fill me-1" style="color:#d97706;"></i>Quart de Jour
+                    <% } else if (emp.shift === 'Soir') { %>
+                      <i class="bi bi-moon-stars-fill me-1" style="color:#4f46e5;"></i>Quart de Soir
+                    <% } else { %>
+                      <i class="bi bi-person me-1"></i><%= emp.shift || 'Autre' %>
+                    <% } %>
+                  </td>
+                </tr>
+              <% } %>
+              <tr>
+                <td class="emp-cell">
+                  <div class="emp-name"><%= emp.nom %></div>
+                  <div class="emp-shift"><%= emp.shift || '' %></div>
+                </td>
+                <% visibleStations.forEach(function(s) {
+                  const trained = (emp[s.key] || '').trim() === 'Oui';
+                  const score   = trained ? (empScores[s.key] !== undefined ? empScores[s.key] : '') : null;
+                %>
+                  <% if (!trained) { %>
+                    <td class="score-cell untrained">
+                      <span class="untrained-dash">—</span>
+                    </td>
+                  <% } else { %>
+                    <td class="score-cell">
+                      <input type="number"
+                             class="score-input <%= score !== '' && score !== null && score !== undefined ? (score > 150 ? 'high has-value' : (score < 60 ? 'low has-value' : 'has-value')) : '' %>"
+                             name="score_<%= emp.id %>_<%= s.key %>"
+                             value="<%= score !== '' && score !== null && score !== undefined ? score : '' %>"
+                             min="0" max="200" placeholder="—"
+                             title="<%= emp.nom %> — <%= s.label %>"
+                             onchange="styleInput(this)">
+                    </td>
+                  <% } %>
+                <% }); %>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <div class="d-flex gap-3" style="font-size:0.8rem;">
+        <span><span class="badge" style="background:#eafaf1; color:#1a5e35; border:1px solid #27ae60;">60–150%</span> Normal</span>
+        <span><span class="badge" style="background:#fef3c7; color:#92400e; border:1px solid #d97706;">150–200%</span> Exceptionnel</span>
+        <span><span class="badge" style="background:#fee2e2; color:#991b1b; border:1px solid #ef4444;">0–59%</span> À améliorer</span>
+        <span><span class="badge" style="background:#f3f4f6; color:#6b7280; border:1px solid #d1d5db;">—</span> Non formé</span>
+      </div>
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-check-circle"></i> Enregistrer — <span style="text-transform:capitalize;"><%= monthLabel %></span>
+      </button>
+    </div>
+  </form>
+
+  <% } %>
+</div>
+
+<script>
+function styleInput(el) {
+  const v = parseInt(el.value);
+  el.classList.remove('has-value','high','low');
+  if (!isNaN(v) && el.value !== '') {
+    el.classList.add('has-value');
+    if (v > 150) el.classList.add('high');
+    else if (v < 60) el.classList.add('low');
+  }
+}
+</script>
+
+<%- include('../partials/footer') %>

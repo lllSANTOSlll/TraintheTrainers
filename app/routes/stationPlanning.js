@@ -148,15 +148,82 @@ router.post('/save', requirePermission('schedule_view'), (req, res) => {
         }
 
         let done = 0;
+        // Also collect assignments for operator planning sync
+        // { employeeName -> { dayIndex -> stationName } }
+        const empDayMap = {};
+
+        const finish = () => {
+          // Sync to schedule_weeks (operator planning)
+          if (!Object.keys(empDayMap).length) {
+            return res.redirect(`/planification-postes?week=${week_start}&shift=${activeShift}&message=Sauvegardé`);
+          }
+          const empNames = Object.keys(empDayMap);
+          db.all(
+            `SELECT id, nom FROM employees WHERE nom IN (${empNames.map(() => '?').join(',')})`,
+            empNames,
+            (err, empRows) => {
+              if (err || !empRows.length) {
+                return res.redirect(`/planification-postes?week=${week_start}&shift=${activeShift}&message=Sauvegardé`);
+              }
+              const nameToId = {};
+              empRows.forEach(e => { nameToId[e.nom] = e.id; });
+
+              const DAY_COLS = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+              let synced = 0;
+              const total = empRows.length;
+
+              empRows.forEach(emp => {
+                const days = empDayMap[emp.nom] || {};
+                db.get('SELECT * FROM schedule_weeks WHERE week_start = ? AND employee_id = ?',
+                  [week_start, emp.id], (err2, row) => {
+                    const sets = {};
+                    Object.entries(days).forEach(([di, stName]) => {
+                      const col = DAY_COLS[parseInt(di)];
+                      if (col) sets[col] = stName;
+                    });
+                    if (!Object.keys(sets).length) {
+                      synced++;
+                      if (synced === total) res.redirect(`/planification-postes?week=${week_start}&shift=${activeShift}&message=Sauvegardé`);
+                      return;
+                    }
+                    if (row) {
+                      const setClauses = Object.keys(sets).map(c => `${c} = ?`).join(', ');
+                      db.run(`UPDATE schedule_weeks SET ${setClauses} WHERE week_start = ? AND employee_id = ?`,
+                        [...Object.values(sets), week_start, emp.id],
+                        () => { synced++; if (synced === total) res.redirect(`/planification-postes?week=${week_start}&shift=${activeShift}&message=Sauvegardé`); }
+                      );
+                    } else {
+                      const allCols = DAY_COLS;
+                      const vals = allCols.map(c => sets[c] || '');
+                      db.run(`INSERT INTO schedule_weeks (week_start, employee_id, ${allCols.join(',')}) VALUES (?,?,${allCols.map(() => '?').join(',')})`,
+                        [week_start, emp.id, ...vals],
+                        () => { synced++; if (synced === total) res.redirect(`/planification-postes?week=${week_start}&shift=${activeShift}&message=Sauvegardé`); }
+                      );
+                    }
+                  }
+                );
+              });
+            }
+          );
+        };
+
         entries.forEach(([key, empName]) => {
           const [stationId, dayIndex, slotIndex] = key.split('_').map(Number);
-          db.run(
-            `INSERT OR REPLACE INTO station_schedule
-             (week_start, shift, station_instance_id, day_index, slot_index, employee_name)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [week_start, activeShift, stationId, dayIndex, slotIndex, empName],
-            () => { if (++done === entries.length) res.redirect(`/planification-postes?week=${week_start}&shift=${activeShift}&message=Sauvegardé`); }
-          );
+          // Find station name for sync
+          db.get('SELECT si.name FROM station_instances si WHERE si.id = ?', [stationId], (err, si) => {
+            if (si && empName) {
+              if (!empDayMap[empName]) empDayMap[empName] = {};
+              // Only take first slot per day per employee (avoid overwriting with slot 2)
+              if (!empDayMap[empName][dayIndex]) empDayMap[empName][dayIndex] = si.name;
+            }
+            db.run(
+              `INSERT OR REPLACE INTO station_schedule
+               (week_start, shift, station_instance_id, day_index, slot_index, employee_name)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [week_start, activeShift, stationId, dayIndex, slotIndex, empName],
+              () => { if (++done === entries.length) finish(); }
+            );
+          });
         });
       }
     );
