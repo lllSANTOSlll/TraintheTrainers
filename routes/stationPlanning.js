@@ -115,23 +115,39 @@ router.get('/', (req, res) => {
             assignments[r.station_instance_id][r.day_index][r.slot_index] = r.employee_name || '';
           });
 
-          // 4. Load productivity scores from LAST month (used to plan current month)
-          const prodQuery = empIds.length
-            ? `SELECT employee_id, station_key, score FROM employee_productivity WHERE month = ? AND employee_id IN (${empIds.map(() => '?').join(',')})`
-            : null;
-
+          // 4. Load productivity scores — prefer LAST month, fall back to the
+          //    most recent month available for that operator+station (so a
+          //    station that only has current-month data still shows a %).
           const loadProd = (cb) => {
-            if (!prodQuery) return cb({});
-            db.all(prodQuery, [month, ...empIds], (err4, prodRows) => {
-              if (err4) return cb({});
-              // prodMap[empId][stationKey] = score
-              const prodMap = {};
-              prodRows.forEach(r => {
-                if (!prodMap[r.employee_id]) prodMap[r.employee_id] = {};
-                prodMap[r.employee_id][r.station_key] = r.score;
-              });
-              cb(prodMap);
-            });
+            if (!empIds.length) return cb({});
+            db.all(
+              `SELECT employee_id, station_key, score, month FROM employee_productivity
+               WHERE employee_id IN (${empIds.map(() => '?').join(',')})
+               ORDER BY month ASC`,
+              empIds,
+              (err4, prodRows) => {
+                if (err4) return cb({});
+                // For each emp+station: keep last-month score if present,
+                // otherwise the latest month <= ... actually just latest available.
+                // prodMap[empId][stationKey] = score
+                const prodMap = {};
+                const chosenMonth = {}; // empId|key -> month chosen
+                prodRows.forEach(r => {
+                  if (!prodMap[r.employee_id]) prodMap[r.employee_id] = {};
+                  const k = r.employee_id + '|' + r.station_key;
+                  // Exact last-month match always wins
+                  if (r.month === month) {
+                    prodMap[r.employee_id][r.station_key] = r.score;
+                    chosenMonth[k] = month;
+                  } else if (chosenMonth[k] !== month) {
+                    // Otherwise take the most recent (rows are ASC, so later overwrites)
+                    prodMap[r.employee_id][r.station_key] = r.score;
+                    chosenMonth[k] = r.month;
+                  }
+                });
+                cb(prodMap);
+              }
+            );
           };
 
           loadProd((prodMap) => {
@@ -353,16 +369,25 @@ router.post('/auto', requirePermission('schedule_view'), (req, res) => {
       const empIds = employees.map(e => e.id);
       if (!empIds.length) return res.redirect(`/planification-postes?week=${week_start}&shift=${shift}&message=Aucun employé trouvé`);
 
-      // 3. Load last month productivity
+      // 3. Load productivity — prefer last month, fall back to most recent available
       db.all(
-        `SELECT employee_id, station_key, score FROM employee_productivity
-         WHERE month = ? AND employee_id IN (${empIds.map(() => '?').join(',')})`,
-        [lastMonth, ...empIds],
+        `SELECT employee_id, station_key, score, month FROM employee_productivity
+         WHERE employee_id IN (${empIds.map(() => '?').join(',')})
+         ORDER BY month ASC`,
+        empIds,
         (err3, prodRows) => {
           const prodMap = {};
+          const chosenMonth = {};
           (prodRows || []).forEach(r => {
             if (!prodMap[r.employee_id]) prodMap[r.employee_id] = {};
-            prodMap[r.employee_id][r.station_key] = r.score;
+            const k = r.employee_id + '|' + r.station_key;
+            if (r.month === lastMonth) {
+              prodMap[r.employee_id][r.station_key] = r.score;
+              chosenMonth[k] = lastMonth;
+            } else if (chosenMonth[k] !== lastMonth) {
+              prodMap[r.employee_id][r.station_key] = r.score;
+              chosenMonth[k] = r.month;
+            }
           });
 
           // 4. Load criticalities for the week
