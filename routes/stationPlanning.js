@@ -37,6 +37,14 @@ function getDayDates(mondayStr) {
   });
 }
 
+function getDayISODates(mondayStr) {
+  return DAYS.map((_, i) => {
+    const d = new Date(mondayStr + 'T12:00:00');
+    d.setDate(d.getDate() + i);
+    return d.toISOString().split('T')[0];
+  });
+}
+
 // ── GET /planification-postes ────────────────────────────────────────────────
 router.get('/', (req, res) => {
   const monday = req.query.week ? getMondayOf(req.query.week) : getMondayOf(new Date());
