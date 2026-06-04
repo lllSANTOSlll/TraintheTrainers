@@ -231,15 +231,26 @@ db.serialize(() => {
   db.run(`ALTER TABLE training_sessions ADD COLUMN assigned_user_id INTEGER`,
     (err) => { if (err && !err.message.includes('duplicate column')) console.error('assigned_user_id col:', err); });
 
-  db.run(`CREATE TABLE IF NOT EXISTS station_schedule (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-    week_start          TEXT NOT NULL,
-    station_instance_id INTEGER NOT NULL,
-    day_index           INTEGER NOT NULL,
-    slot_index          INTEGER NOT NULL DEFAULT 0,
-    employee_name       TEXT,
-    UNIQUE(week_start, station_instance_id, day_index, slot_index)
-  )`, (err) => { if (err) console.error('station_schedule table:', err); else console.log('✓ station_schedule table ready'); });
+  // Recreate station_schedule if shift column is missing (added in v2)
+  db.all("PRAGMA table_info(station_schedule)", [], (err, cols) => {
+    const hasShift = cols && cols.some(c => c.name === 'shift');
+    const createTable = () => db.run(`CREATE TABLE IF NOT EXISTS station_schedule (
+      id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+      week_start          TEXT NOT NULL,
+      shift               TEXT NOT NULL DEFAULT 'Jour',
+      station_instance_id INTEGER NOT NULL,
+      day_index           INTEGER NOT NULL,
+      slot_index          INTEGER NOT NULL DEFAULT 0,
+      employee_name       TEXT,
+      UNIQUE(week_start, shift, station_instance_id, day_index, slot_index)
+    )`, (e) => { if (e) console.error('station_schedule table:', e); else console.log('✓ station_schedule table ready'); });
+
+    if (!hasShift) {
+      db.run('DROP TABLE IF EXISTS station_schedule', () => createTable());
+    } else {
+      createTable();
+    }
+  });
 
   db.run(`CREATE TABLE IF NOT EXISTS station_instances (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,

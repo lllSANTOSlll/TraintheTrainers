@@ -9,7 +9,6 @@
 
 .sp-table .station-name-cell {
   padding: 0;
-  background: #f8f9fa;
   border-right: 2px solid var(--dc-navy);
 }
 .station-label {
@@ -29,6 +28,12 @@
   margin-top: 2px;
 }
 
+/* Shift-themed header colours */
+.shift-jour  .station-name-cell { background: #fffbeb; }
+.shift-jour thead th             { background: #b45309; }
+.shift-soir  .station-name-cell { background: #eef2ff; }
+.shift-soir thead th             { background: #1e3a8a; }
+
 .slot-cell { padding: 3px; }
 .slot-select {
   width: 100%;
@@ -42,7 +47,6 @@
 }
 .slot-select:last-child { margin-bottom: 0; }
 .slot-select.filled { background: #e8f4fd; border-color: var(--dc-blue); font-weight: 600; color: var(--dc-navy); }
-.slot-select option { font-weight: normal; }
 
 .type-group-row td {
   background: #e9edf2;
@@ -54,21 +58,50 @@
   text-transform: uppercase;
   border-bottom: 1px solid #cdd3da;
 }
+
+.shift-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 18px; border-radius: 50px; font-weight: 600;
+  font-size: 0.9rem; cursor: pointer; border: 2px solid transparent;
+  transition: all 0.15s;
+}
+.shift-pill.jour  { background: #fef3c7; color: #92400e; border-color: #d97706; }
+.shift-pill.jour.active  { background: #d97706; color: #fff; }
+.shift-pill.soir  { background: #e0e7ff; color: #1e3a8a; border-color: #4f46e5; }
+.shift-pill.soir.active  { background: #4f46e5; color: #fff; }
 </style>
 
 <div class="container-fluid">
 
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0"><i class="bi bi-grid-3x3-gap"></i> Planification par Poste</h2>
+    <h2 class="mb-0">
+      <i class="bi bi-layout-three-columns"></i> Planification par Poste
+    </h2>
     <div class="d-flex gap-2">
-      <a href="/schedule" class="btn btn-outline-secondary btn-sm">
+      <a href="/schedule?shift=<%= shift %>" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-people"></i> Vue par Opérateur
       </a>
       <button type="submit" form="sp-form" class="btn btn-success btn-sm">
         <i class="bi bi-check-circle"></i> Enregistrer
       </button>
     </div>
+  </div>
+
+  <!-- Shift filter -->
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <span class="text-muted fw-semibold" style="font-size:0.85rem;">Quart :</span>
+    <a href="/planification-postes?week=<%= monday %>&shift=Jour"
+       class="shift-pill jour <%= shift === 'Jour' ? 'active' : '' %>">
+      <i class="bi bi-sun-fill"></i> Jour
+    </a>
+    <a href="/planification-postes?week=<%= monday %>&shift=Soir"
+       class="shift-pill soir <%= shift === 'Soir' ? 'active' : '' %>">
+      <i class="bi bi-moon-stars-fill"></i> Soir
+    </a>
+    <span class="text-muted" style="font-size:0.8rem;">
+      — planification indépendante par quart
+    </span>
   </div>
 
   <% if (message) { %>
@@ -80,11 +113,11 @@
 
   <!-- Week navigation -->
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <a href="/planification-postes?week=<%= prevWeek %>" class="btn btn-outline-secondary btn-sm">
+    <a href="/planification-postes?week=<%= prevWeek %>&shift=<%= shift %>" class="btn btn-outline-secondary btn-sm">
       <i class="bi bi-chevron-left"></i> Semaine précédente
     </a>
     <strong><%= weekLabel %></strong>
-    <a href="/planification-postes?week=<%= nextWeek %>" class="btn btn-outline-secondary btn-sm">
+    <a href="/planification-postes?week=<%= nextWeek %>&shift=<%= shift %>" class="btn btn-outline-secondary btn-sm">
       Semaine suivante <i class="bi bi-chevron-right"></i>
     </a>
   </div>
@@ -100,15 +133,22 @@
   <% } else { %>
 
   <form id="sp-form" method="POST" action="/planification-postes/save">
-    <input type="hidden" name="week_start" value="<%= monday %>">
-    <input type="hidden" name="assignments" id="assignments-input">
+    <input type="hidden" name="week_start"   value="<%= monday %>">
+    <input type="hidden" name="shift"         value="<%= shift %>">
+    <input type="hidden" name="assignments"   id="assignments-input">
 
     <div class="card shadow-sm">
       <div class="card-body p-0" style="overflow-x:auto;">
-        <table class="sp-table">
+        <table class="sp-table shift-<%= shift.toLowerCase() %>">
           <thead>
             <tr>
-              <th class="col-station">Poste</th>
+              <th class="col-station">
+                Poste
+                <span style="display:block; font-size:0.7rem; font-weight:normal; opacity:0.8; margin-top:2px;">
+                  <% if (shift === 'Jour') { %><i class="bi bi-sun-fill"></i> Quart de Jour
+                  <% } else { %><i class="bi bi-moon-stars-fill"></i> Quart de Soir<% } %>
+                </span>
+              </th>
               <% DAYS.forEach(function(day, i) { %>
                 <th>
                   <%= day %>
@@ -119,7 +159,6 @@
           </thead>
           <tbody>
             <%
-              // Group stations by type label
               const STATION_TYPES = {
                 ip_vav:'IP VAV', ip_stat:'IP STAT', ip_ctrl_2:'IP CTRL 2',
                 smartvue:'Smartvue', unitouch:'Unitouch', iom:'IOM',
@@ -132,18 +171,16 @@
               let lastKey = null;
             %>
             <% stations.forEach(function(station) {
-              const typeLabel = STATION_TYPES[station.station_key] || station.station_key;
+              const typeLabel    = STATION_TYPES[station.station_key] || station.station_key;
               const stationAssign = assignments[station.id] || {};
               const qualifiedEmps = employeesByKey[station.station_key] || [];
             %>
-              <% if (station.station_key !== lastKey) {
-                lastKey = station.station_key;
-              %>
+              <% if (station.station_key !== lastKey) { lastKey = station.station_key; %>
               <tr class="type-group-row">
                 <td colspan="<%= 1 + DAYS.length %>">
                   <i class="bi bi-grid-3x3-gap-fill me-1"></i><%= typeLabel %>
                   <span class="text-muted fw-normal ms-2" style="text-transform:none; font-size:0.7rem;">
-                    (<%= qualifiedEmps.length %> opérateur(s) formé(s))
+                    (<%= qualifiedEmps.length %> opérateur(s) formé(s) — quart <%= shift %>)
                   </span>
                 </td>
               </tr>
@@ -172,10 +209,13 @@
                         <option value="">—</option>
                         <% qualifiedEmps.forEach(function(emp) { %>
                           <option value="<%= emp.nom %>" <%= val === emp.nom ? 'selected' : '' %>>
-                            <%= emp.nom %><%= emp.shift ? ' · ' + emp.shift : '' %>
+                            <%= emp.nom %>
                           </option>
                         <% }); %>
                       </select>
+                    <% } %>
+                    <% if (qualifiedEmps.length === 0) { %>
+                      <span class="text-muted" style="font-size:0.7rem; padding:3px;">Aucun</span>
                     <% } %>
                   </td>
                 <% } %>
@@ -188,7 +228,7 @@
 
     <div class="d-flex justify-content-end mt-3">
       <button type="submit" class="btn btn-success">
-        <i class="bi bi-check-circle"></i> Enregistrer la planification
+        <i class="bi bi-check-circle"></i> Enregistrer — Quart <%= shift %>
       </button>
     </div>
   </form>
@@ -200,9 +240,7 @@
 function markFilled(sel) {
   sel.classList.toggle('filled', sel.value !== '');
 }
-
-// On submit: collect all select values into a JSON object
-document.getElementById('sp-form').addEventListener('submit', function(e) {
+document.getElementById('sp-form').addEventListener('submit', function() {
   const data = {};
   document.querySelectorAll('.slot-select').forEach(sel => {
     if (sel.value) data[sel.dataset.key] = sel.value;

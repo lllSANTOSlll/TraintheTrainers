@@ -5,7 +5,7 @@ const { requirePermission } = require('../middleware/auth');
 
 router.use(requirePermission('schedule_view'));
 
-const DAYS       = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+const DAYS = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
 
 function getMondayOf(date) {
   const d = new Date(date);
@@ -39,9 +39,8 @@ function getDayDates(mondayStr) {
 
 // ── GET /planification-postes ────────────────────────────────────────────────
 router.get('/', (req, res) => {
-  const monday = req.query.week
-    ? getMondayOf(req.query.week)
-    : getMondayOf(new Date());
+  const monday = req.query.week ? getMondayOf(req.query.week) : getMondayOf(new Date());
+  const shift  = req.query.shift || 'Jour';   // 'Jour' or 'Soir'
 
   const dept = req.session.user.role === 'admin'
     ? (req.session.adminDept || '')
@@ -59,38 +58,37 @@ router.get('/', (req, res) => {
       return res.render('station-planning/index', {
         title: 'Planification par Poste',
         stations: [], employeesByKey: {}, assignments: {},
-        monday, weekLabel: formatWeekLabel(monday),
+        monday, shift, weekLabel: formatWeekLabel(monday),
         dayDates: getDayDates(monday), DAYS,
         prevWeek: addWeeks(monday, -1), nextWeek: addWeeks(monday, 1),
         dept, message: req.query.message
       });
     }
 
-    // 2. Load active employees with their station training data
+    // 2. Load active employees — filtered by shift AND station training
     const stationKeys = [...new Set(stations.map(s => s.station_key))];
     const keyCols = stationKeys.join(', ');
     const empSql = dept
-      ? `SELECT id, nom, shift, ${keyCols} FROM employees WHERE department = ? AND (statut = 'Actif' OR statut IS NULL) ORDER BY nom`
-      : `SELECT id, nom, shift, ${keyCols} FROM employees WHERE (statut = 'Actif' OR statut IS NULL) ORDER BY nom`;
-    const empParams = dept ? [dept] : [];
+      ? `SELECT id, nom, shift, ${keyCols} FROM employees WHERE department = ? AND shift = ? AND (statut = 'Actif' OR statut IS NULL) ORDER BY nom`
+      : `SELECT id, nom, shift, ${keyCols} FROM employees WHERE shift = ? AND (statut = 'Actif' OR statut IS NULL) ORDER BY nom`;
+    const empParams = dept ? [dept, shift] : [shift];
 
     db.all(empSql, empParams, (err2, employees) => {
       if (err2) return res.status(500).send('Erreur serveur');
 
-      // Build employeesByKey: { ip_vav: [{id, nom, shift}, ...], iom: [...], ... }
+      // employeesByKey: only those with 'Oui' for that station type
       const employeesByKey = {};
       stationKeys.forEach(key => {
-        employeesByKey[key] = employees.filter(e =>
-          (e[key] || '').trim() === 'Oui'
-        );
+        employeesByKey[key] = employees.filter(e => (e[key] || '').trim() === 'Oui');
       });
 
-      // 3. Load saved assignments for this week
+      // 3. Load saved assignments for this week + shift
       const stationIds = stations.map(s => s.id);
       db.all(
         `SELECT * FROM station_schedule
-         WHERE week_start = ? AND station_instance_id IN (${stationIds.map(() => '?').join(',')})`,
-        [monday, ...stationIds],
+         WHERE week_start = ? AND shift = ?
+           AND station_instance_id IN (${stationIds.map(() => '?').join(',')})`,
+        [monday, shift, ...stationIds],
         (err3, rows) => {
           if (err3) return res.status(500).send('Erreur serveur');
 
@@ -105,7 +103,7 @@ router.get('/', (req, res) => {
           res.render('station-planning/index', {
             title: 'Planification par Poste',
             stations, employeesByKey, assignments,
-            monday, weekLabel: formatWeekLabel(monday),
+            monday, shift, weekLabel: formatWeekLabel(monday),
             dayDates: getDayDates(monday), DAYS,
             prevWeek: addWeeks(monday, -1), nextWeek: addWeeks(monday, 1),
             dept, message: req.query.message
@@ -118,8 +116,8 @@ router.get('/', (req, res) => {
 
 // ── POST /planification-postes/save ──────────────────────────────────────────
 router.post('/save', requirePermission('schedule_view'), (req, res) => {
-  const { week_start, assignments } = req.body;
-  // assignments is a JSON string: { "stationId_dayIndex_slotIndex": "employee_name", ... }
+  const { week_start, shift, assignments } = req.body;
+  const activeShift = shift || 'Jour';
   let parsed = {};
   try { parsed = JSON.parse(assignments || '{}'); } catch {}
 
@@ -127,7 +125,6 @@ router.post('/save', requirePermission('schedule_view'), (req, res) => {
     ? (req.session.adminDept || '')
     : (req.session.user.department || '');
 
-  // Get station ids for this dept to scope the delete
   let stationSql    = 'SELECT id FROM station_instances';
   let stationParams = [];
   if (dept) { stationSql += ' WHERE department = ?'; stationParams.push(dept); }
@@ -135,29 +132,30 @@ router.post('/save', requirePermission('schedule_view'), (req, res) => {
   db.all(stationSql, stationParams, (err, stations) => {
     if (err) return res.status(500).send('Erreur');
     const ids = stations.map(s => s.id);
-    if (!ids.length) return res.redirect(`/planification-postes?week=${week_start}&message=Sauvegardé`);
+    if (!ids.length) return res.redirect(`/planification-postes?week=${week_start}&shift=${activeShift}&message=Sauvegardé`);
 
-    // Delete existing assignments for this week + these stations
+    // Delete only this week + this shift
     db.run(
-      `DELETE FROM station_schedule WHERE week_start = ? AND station_instance_id IN (${ids.map(() => '?').join(',')})`,
-      [week_start, ...ids],
+      `DELETE FROM station_schedule WHERE week_start = ? AND shift = ?
+       AND station_instance_id IN (${ids.map(() => '?').join(',')})`,
+      [week_start, activeShift, ...ids],
       (err2) => {
         if (err2) return res.status(500).send('Erreur');
 
-        // Insert new assignments (skip empty values)
         const entries = Object.entries(parsed).filter(([, v]) => v && v.trim() !== '');
         if (!entries.length) {
-          return res.redirect(`/planification-postes?week=${week_start}&message=Sauvegardé`);
+          return res.redirect(`/planification-postes?week=${week_start}&shift=${activeShift}&message=Sauvegardé`);
         }
 
         let done = 0;
         entries.forEach(([key, empName]) => {
           const [stationId, dayIndex, slotIndex] = key.split('_').map(Number);
           db.run(
-            `INSERT INTO station_schedule (week_start, station_instance_id, day_index, slot_index, employee_name)
-             VALUES (?, ?, ?, ?, ?)`,
-            [week_start, stationId, dayIndex, slotIndex, empName],
-            () => { if (++done === entries.length) res.redirect(`/planification-postes?week=${week_start}&message=Sauvegardé`) }
+            `INSERT OR REPLACE INTO station_schedule
+             (week_start, shift, station_instance_id, day_index, slot_index, employee_name)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [week_start, activeShift, stationId, dayIndex, slotIndex, empName],
+            () => { if (++done === entries.length) res.redirect(`/planification-postes?week=${week_start}&shift=${activeShift}&message=Sauvegardé`); }
           );
         });
       }
