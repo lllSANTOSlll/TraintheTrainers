@@ -127,13 +127,17 @@
                 ecy_4_6:'ECY 4/6', ecbos:'ECBOS', resence:'Resence',
                 horyzon:'Horyzon', ecy_2_3:'ECY 2/3', immersion:'Immersion'
               };
+              // Count how many stations share each type — only group when 2+
+              const typeCounts = {};
+              stations.forEach(s => { typeCounts[s.station_key] = (typeCounts[s.station_key] || 0) + 1; });
               let lastKey = null;
             %>
             <% stations.forEach(function(station) {
               const typeLabel = STATION_TYPES[station.station_key] || station.station_key;
               const stCrit = critMap[station.id] || {};
+              const isGroup = typeCounts[station.station_key] > 1;
             %>
-              <% if (station.station_key !== lastKey) { lastKey = station.station_key; %>
+              <% if (isGroup && station.station_key !== lastKey) { lastKey = station.station_key; %>
                 <tr class="group-row">
                   <td colspan="<%= 1 + dayISO.length %>">
                     <i class="bi bi-grid-3x3-gap-fill me-1"></i><%= typeLabel %>
@@ -142,8 +146,7 @@
               <% } %>
               <tr>
                 <td class="station-cell">
-                  <div class="station-name"><%= station.name %></div>
-                  <div class="station-type"><%= typeLabel %></div>
+                  <div class="station-name"><i class="bi bi-grid-3x3-gap me-1" style="opacity:0.5;"></i><%= station.name %></div>
                 </td>
                 <% dayISO.forEach(function(iso) {
                   const val = stCrit[iso] !== undefined ? String(stCrit[iso]) : '';
