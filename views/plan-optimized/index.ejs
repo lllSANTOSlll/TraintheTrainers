@@ -18,24 +18,24 @@
 .station-name { font-weight:600; font-size:0.85rem; color:var(--dc-navy); }
 .station-type { font-size:0.7rem; color:#6b7280; }
 
-/* ── Criticality pill cells ── */
-.crit-cell { padding:4px; text-align:center; cursor:pointer; vertical-align:middle; }
-.crit-cell:hover { background:#f0f4f8; }
+/* ── Criticality dropdown cells ── */
+.crit-cell { padding:4px; text-align:center; vertical-align:middle; }
 
-.crit-pill {
-  display:inline-flex; align-items:center; justify-content:center;
-  width:90px; padding:5px 8px; border-radius:50px;
-  font-size:0.75rem; font-weight:700; cursor:pointer;
-  border:2px solid transparent; user-select:none;
+.crit-select {
+  width:100%; min-width:88px; padding:5px 6px; border-radius:6px;
+  font-size:0.78rem; font-weight:700; cursor:pointer;
+  border:2px solid #e5e7eb; text-align:center; text-align-last:center;
   transition: all 0.12s;
 }
-/* States */
-.crit-pill[data-crit=""]  { background:#f3f4f6; color:#9ca3af; border-color:#e5e7eb; }
-.crit-pill[data-crit="0"] { background:#1f2937; color:#9ca3af; border-color:#374151; }
-.crit-pill[data-crit="1"] { background:#dcfce7; color:#15803d; border-color:#86efac; }
-.crit-pill[data-crit="2"] { background:#dbeafe; color:#1d4ed8; border-color:#93c5fd; }
-.crit-pill[data-crit="3"] { background:#fef3c7; color:#92400e; border-color:#fcd34d; }
-.crit-pill[data-crit="4"] { background:#fee2e2; color:#dc2626; border-color:#fca5a5; }
+.crit-select:focus { outline:none; box-shadow:0 0 0 2px rgba(13,110,253,0.25); }
+/* Colour by selected value */
+.crit-select[data-crit=""]  { background:#f3f4f6; color:#9ca3af; border-color:#e5e7eb; }
+.crit-select[data-crit="0"] { background:#1f2937; color:#fff;    border-color:#374151; }
+.crit-select[data-crit="1"] { background:#dcfce7; color:#15803d; border-color:#86efac; }
+.crit-select[data-crit="2"] { background:#dbeafe; color:#1d4ed8; border-color:#93c5fd; }
+.crit-select[data-crit="3"] { background:#fef3c7; color:#92400e; border-color:#fcd34d; }
+.crit-select[data-crit="4"] { background:#fee2e2; color:#dc2626; border-color:#fca5a5; }
+.crit-select option { background:#fff; color:#111; font-weight:600; }
 
 /* Group row */
 .group-row td {
@@ -76,7 +76,7 @@
 
   <!-- Legend -->
   <div class="d-flex gap-2 align-items-center mb-3 flex-wrap">
-    <span class="text-muted" style="font-size:0.8rem; font-weight:600;">Cliquer pour changer :</span>
+    <span class="text-muted" style="font-size:0.8rem; font-weight:600;">Niveaux :</span>
     <span class="legend-pill" style="background:#f3f4f6;color:#9ca3af;border:2px solid #e5e7eb;">— Non défini</span>
     <span class="legend-pill" style="background:#1f2937;color:#9ca3af;border:2px solid #374151;"><i class="bi bi-slash-circle me-1"></i>Arrêt</span>
     <span class="legend-pill" style="background:#dcfce7;color:#15803d;border:2px solid #86efac;">Faible</span>
@@ -149,11 +149,16 @@
                   const val = stCrit[iso] !== undefined ? String(stCrit[iso]) : '';
                   const fieldName = 'crit_' + station.id + '_' + iso;
                 %>
-                  <td class="crit-cell" onclick="cycleCrit(this)">
-                    <input type="hidden" name="<%= fieldName %>" value="<%= val %>" class="crit-input">
-                    <span class="crit-pill" data-crit="<%= val %>">
-                      <%= val === '' ? '—' : (val === '0' ? '🚫 Arrêt' : (val === '1' ? 'Faible' : (val === '2' ? 'Moyen' : (val === '3' ? 'Élevé' : '⚠ Critique')))) %>
-                    </span>
+                  <td class="crit-cell">
+                    <select name="<%= fieldName %>" class="crit-select" data-crit="<%= val %>"
+                            onchange="this.dataset.crit = this.value">
+                      <option value=""  <%= val === ''  ? 'selected' : '' %>>—</option>
+                      <option value="1" <%= val === '1' ? 'selected' : '' %>>Faible</option>
+                      <option value="2" <%= val === '2' ? 'selected' : '' %>>Moyen</option>
+                      <option value="3" <%= val === '3' ? 'selected' : '' %>>Élevé</option>
+                      <option value="4" <%= val === '4' ? 'selected' : '' %>>⚠ Critique</option>
+                      <option value="0" <%= val === '0' ? 'selected' : '' %>>🚫 Arrêt</option>
+                    </select>
                   </td>
                 <% }); %>
               </tr>
@@ -174,20 +179,8 @@
 </div>
 
 <script>
-// Cycle order: '' → 1 (Faible) → 2 (Moyen) → 3 (Élevé) → 4 (Critique) → 0 (Arrêt) → ''
-const CYCLE   = ['', '1', '2', '3', '4', '0'];
-const LABELS  = { '':'—', '0':'🚫 Arrêt', '1':'Faible', '2':'Moyen', '3':'Élevé', '4':'⚠ Critique' };
-
-function cycleCrit(cell) {
-  const input = cell.querySelector('.crit-input');
-  const pill  = cell.querySelector('.crit-pill');
-  const cur   = input.value;
-  const idx   = CYCLE.indexOf(cur);
-  const next  = CYCLE[(idx + 1) % CYCLE.length];
-  input.value       = next;
-  pill.dataset.crit = next;
-  pill.textContent  = LABELS[next];
-}
+// Bulk helper: set whole row or column quickly (optional convenience)
+// Colour updates automatically via the onchange handler on each <select>.
 </script>
 
 <%- include('../partials/footer') %>
