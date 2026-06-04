@@ -519,4 +519,23 @@ router.post('/auto', requirePermission('schedule_view'), (req, res) => {
   });
 });
 
+// ── POST /planification-postes/clear ─────────────────────────────────────────
+// Clear all assignments for a week + shift
+router.post('/clear', requirePermission('schedule_view'), (req, res) => {
+  const { week_start, shift } = req.body;
+
+  // Delete all station_schedule entries for this week+shift
+  db.run(
+    `DELETE FROM station_schedule WHERE week_start = ? AND shift = ?`,
+    [week_start, shift],
+    (err) => {
+      if (err) {
+        console.error('Clear week error:', err);
+        return res.redirect(`/planification-postes?week=${week_start}&shift=${shift}&message=Erreur lors de l'effacement`);
+      }
+      res.redirect(`/planification-postes?week=${week_start}&shift=${shift}&message=Semaine effacée`);
+    }
+  );
+});
+
 module.exports = router;
