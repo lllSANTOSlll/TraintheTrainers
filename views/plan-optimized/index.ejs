@@ -348,16 +348,74 @@ function setCrit(stationId, value) {
 
   if (sel0 && suggs[primaryIdx])   { sel0.value = suggs[primaryIdx].nom;   styleSelect(sel0); }
   if (sel1 && suggs[secondaryIdx]) {
-    // Don't set secondary to same as primary
     const secEmp = suggs[secondaryIdx];
     const priEmp = suggs[primaryIdx];
     sel1.value = (secEmp && priEmp && secEmp.nom !== priEmp.nom) ? secEmp.nom : '';
     styleSelect(sel1);
   }
+  syncAllDropdowns();
 }
 
-// Init styles on load
-document.querySelectorAll('.override-select').forEach(styleSelect);
+// ── Conflict detection ────────────────────────────────────────────────────────
+// All dropdowns are for the same day — no operator can appear twice
+
+function syncAllDropdowns() {
+  const allSelects = Array.from(document.querySelectorAll('.override-select'));
+
+  // Build: empName -> [selects that currently have it selected]
+  const takenBy = {};
+  allSelects.forEach(sel => {
+    if (sel.value) {
+      if (!takenBy[sel.value]) takenBy[sel.value] = [];
+      takenBy[sel.value].push(sel);
+    }
+  });
+
+  allSelects.forEach(sel => {
+    Array.from(sel.options).forEach(opt => {
+      if (!opt.value) { opt.disabled = false; opt.style.color = ''; return; }
+      const takenElsewhere = takenBy[opt.value] && takenBy[opt.value].some(s => s !== sel);
+      opt.disabled    = takenElsewhere;
+      opt.style.color = takenElsewhere ? '#9ca3af' : '';
+      // Clean then re-add indicator
+      opt.textContent = opt.textContent.replace(/\s*⛔.*$/, '').trimEnd()
+                      + (takenElsewhere ? ' ⛔ Déjà assigné' : '');
+    });
+
+    // Warn if this select's current value is a conflict (should not happen after sync, but safety)
+    const myVal = sel.value;
+    const conflict = myVal && takenBy[myVal] && takenBy[myVal].length > 1;
+    sel.style.borderColor = conflict ? '#dc2626' : '';
+    sel.title = conflict ? '⚠️ Cet opérateur est déjà assigné à un autre poste!' : '';
+  });
+}
+
+function onSelectChange(sel) {
+  styleSelect(sel);
+  syncAllDropdowns();
+}
+
+// Hook all selects
+document.querySelectorAll('.override-select').forEach(sel => {
+  sel.addEventListener('change', () => onSelectChange(sel));
+  styleSelect(sel);
+});
+
+// Block form submit if duplicates exist
+document.getElementById('apply-form').addEventListener('submit', function(e) {
+  const vals = Array.from(document.querySelectorAll('.override-select'))
+    .map(s => s.value).filter(Boolean);
+  const dupes = vals.filter((v, i) => vals.indexOf(v) !== i);
+  if (dupes.length) {
+    e.preventDefault();
+    alert('⚠️ Conflit détecté !\n\nCes opérateurs sont assignés à plus d\'un poste :\n\n'
+      + [...new Set(dupes)].join('\n')
+      + '\n\nCorrigez avant d\'appliquer.');
+  }
+});
+
+// Init
+syncAllDropdowns();
 </script>
 
 <%- include('../partials/footer') %>

@@ -205,7 +205,7 @@
                     %>
                       <select class="slot-select <%= val ? 'filled' : '' %>"
                               data-key="<%= key %>"
-                              onchange="markFilled(this)">
+                              onchange="syncDayConflicts(this)">
                         <option value="">—</option>
                         <% qualifiedEmps.forEach(function(emp) { %>
                           <option value="<%= emp.nom %>" <%= val === emp.nom ? 'selected' : '' %>>
@@ -240,13 +240,83 @@
 function markFilled(sel) {
   sel.classList.toggle('filled', sel.value !== '');
 }
-document.getElementById('sp-form').addEventListener('submit', function() {
+
+// ── Conflict detection per day column ────────────────────────────────────────
+// key format: stationId_dayIndex_slotIndex  →  parts[1] = dayIndex
+
+function syncDayConflicts(changedSel) {
+  markFilled(changedSel);
+
+  const dayIdx = changedSel.dataset.key.split('_')[1];
+
+  // All selects for this day column
+  const daySels = Array.from(document.querySelectorAll('.slot-select'))
+    .filter(s => s.dataset.key.split('_')[1] === dayIdx);
+
+  // Build taken map
+  const takenBy = {};
+  daySels.forEach(s => {
+    if (s.value) {
+      if (!takenBy[s.value]) takenBy[s.value] = [];
+      takenBy[s.value].push(s);
+    }
+  });
+
+  daySels.forEach(s => {
+    Array.from(s.options).forEach(opt => {
+      if (!opt.value) { opt.disabled = false; opt.style.color = ''; return; }
+      const takenElsewhere = takenBy[opt.value] && takenBy[opt.value].some(x => x !== s);
+      opt.disabled    = takenElsewhere;
+      opt.style.color = takenElsewhere ? '#9ca3af' : '';
+      opt.textContent = opt.textContent.replace(/\s*⛔.*$/, '').trimEnd()
+                      + (takenElsewhere ? ' ⛔' : '');
+    });
+    const conflict = s.value && takenBy[s.value] && takenBy[s.value].length > 1;
+    s.style.borderColor = conflict ? '#dc2626' : '';
+    s.title = conflict ? '⚠️ Opérateur déjà assigné ce jour!' : '';
+  });
+}
+
+// Init conflict state on page load for all days
+function initConflicts() {
+  // Process each day separately
+  const days = new Set(
+    Array.from(document.querySelectorAll('.slot-select')).map(s => s.dataset.key.split('_')[1])
+  );
+  days.forEach(dayIdx => {
+    const fakeSel = document.querySelector(`.slot-select[data-key$="_${dayIdx}_0"]`) ||
+                   document.querySelector(`.slot-select[data-key*="_${dayIdx}_"]`);
+    if (fakeSel) syncDayConflicts(fakeSel);
+  });
+}
+
+document.getElementById('sp-form').addEventListener('submit', function(e) {
+  // Check all days for conflicts before saving
+  const days = {};
+  document.querySelectorAll('.slot-select').forEach(s => {
+    if (!s.value) return;
+    const dayIdx = s.dataset.key.split('_')[1];
+    if (!days[dayIdx]) days[dayIdx] = {};
+    if (days[dayIdx][s.value]) {
+      e.preventDefault();
+      alert('⚠️ Conflit détecté !\n\n"' + s.value + '" est assigné à plusieurs postes le même jour.\n\nCorrigez avant d\'enregistrer.');
+      return;
+    }
+    days[dayIdx][s.value] = true;
+  });
+
+  if (e.defaultPrevented) return;
+
+  // Collect data normally
   const data = {};
   document.querySelectorAll('.slot-select').forEach(sel => {
     if (sel.value) data[sel.dataset.key] = sel.value;
   });
   document.getElementById('assignments-input').value = JSON.stringify(data);
 });
+
+// Init conflict highlighting on page load
+initConflicts();
 </script>
 
 <%- include('../partials/footer') %>

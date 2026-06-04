@@ -209,6 +209,15 @@ router.post('/apply', (req, res) => {
 
   if (!entries.length) return res.redirect(`/planification-optimisee?date=${date}&shift=${shift}&message=Aucune suggestion appliquée`);
 
+  // Server-side duplicate check — same operator can't be at 2 stations same day
+  const empCount = {};
+  entries.forEach(([, , empName]) => { empCount[empName] = (empCount[empName] || 0) + 1; });
+  const dupes = Object.keys(empCount).filter(n => empCount[n] > 1);
+  if (dupes.length) {
+    const msg = encodeURIComponent('Conflit: ' + dupes.join(', ') + ' assigné(s) à plusieurs postes');
+    return res.redirect(`/planification-optimisee?date=${date}&shift=${shift}&message=${msg}`);
+  }
+
   // Delete existing for this day+shift+stations, then insert
   const stationIds = [...new Set(entries.map(e => e[0]))];
   db.run(

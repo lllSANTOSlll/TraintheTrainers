@@ -147,6 +147,19 @@ router.post('/save', requirePermission('schedule_view'), (req, res) => {
           return res.redirect(`/planification-postes?week=${week_start}&shift=${activeShift}&message=Sauvegardé`);
         }
 
+        // Server-side: no operator can be at 2 stations on the same day
+        const dayEmpMap = {};
+        for (const [key, empName] of entries) {
+          const parts = key.split('_').map(Number);
+          const dayIndex = parts[1]; // stationId_dayIndex_slotIndex
+          if (!dayEmpMap[dayIndex]) dayEmpMap[dayIndex] = {};
+          if (dayEmpMap[dayIndex][empName]) {
+            const msg = encodeURIComponent(`Conflit: ${empName} assigné à plusieurs postes le même jour`);
+            return res.redirect(`/planification-postes?week=${week_start}&shift=${activeShift}&message=${msg}`);
+          }
+          dayEmpMap[dayIndex][empName] = true;
+        }
+
         let done = 0;
         // Also collect assignments for operator planning sync
         // { employeeName -> { dayIndex -> stationName } }
