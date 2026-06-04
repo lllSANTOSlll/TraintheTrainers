@@ -1,93 +1,87 @@
 <%- include('../partials/header') %>
 
 <style>
-/* ── Layout ── */
-.po-grid { display:flex; flex-direction:column; gap:16px; }
+.po-grid { display:flex; flex-direction:column; gap:14px; }
 
-/* ── Criticality badges ── */
 .crit-badge { display:inline-block; padding:3px 10px; border-radius:50px; font-size:0.75rem; font-weight:700; }
 .crit-1 { background:#f3f4f6; color:#374151; }
 .crit-2 { background:#dbeafe; color:#1d4ed8; }
 .crit-3 { background:#fef3c7; color:#92400e; }
 .crit-4 { background:#fee2e2; color:#dc2626; }
 
-/* ── Station row card ── */
-.station-card {
-  border:1px solid #e5e7eb; border-radius:10px;
-  overflow:hidden; background:#fff;
-  transition: box-shadow 0.15s;
+.station-card { border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; background:#fff; transition:box-shadow 0.15s; }
+.station-card:hover { box-shadow:0 2px 8px rgba(0,0,0,0.09); }
+.station-card.crit-4-border { border-left:4px solid #dc2626; }
+.station-card.crit-3-border { border-left:4px solid #d97706; }
+.station-card.crit-2-border { border-left:4px solid #1d4ed8; }
+.station-card.crit-1-border { border-left:4px solid #9ca3af; }
+
+.station-header { display:flex; align-items:center; gap:12px; padding:10px 14px; background:#f8f9fa; border-bottom:1px solid #e5e7eb; flex-wrap:wrap; }
+.station-title  { font-weight:700; color:var(--dc-navy); font-size:0.95rem; }
+.station-type   { font-size:0.75rem; color:#6b7280; }
+
+.station-body { padding:12px 14px; display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start; }
+
+/* Operator slots — always 2 */
+.op-slots { display:flex; gap:12px; flex-wrap:wrap; flex:1; }
+.op-slot  { display:flex; flex-direction:column; gap:5px; min-width:200px; flex:1; }
+.op-slot-label {
+  font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
+  display:flex; align-items:center; gap:5px;
 }
-.station-card.crit-4-border { border-left: 4px solid #dc2626; }
-.station-card.crit-3-border { border-left: 4px solid #d97706; }
-.station-card.crit-2-border { border-left: 4px solid #1d4ed8; }
-.station-card.crit-1-border { border-left: 4px solid #9ca3af; }
-.station-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.09); }
+.op-slot-label.primary { color:#15803d; }
+.op-slot-label.secondary { color:#6b7280; }
 
-.station-header {
-  display:flex; align-items:center; gap:12px;
-  padding:10px 14px; background:#f8f9fa;
-  border-bottom:1px solid #e5e7eb;
+/* Suggestion mini card */
+.top-card {
+  border:2px solid #e5e7eb; border-radius:8px; padding:6px 10px; background:#fff;
 }
-.station-title { font-weight:700; color:var(--dc-navy); font-size:0.95rem; }
-.station-type  { font-size:0.75rem; color:#6b7280; }
+.top-card.rank-best { border-color:#16a34a; background:#f0fdf4; }
+.top-card.rank-2nd  { border-color:#2563eb; background:#eff6ff; }
+.top-card .emp-name { font-weight:600; font-size:0.82rem; color:var(--dc-navy); }
+.score-bar  { height:4px; border-radius:2px; background:#e5e7eb; margin-top:4px; overflow:hidden; }
+.score-fill { height:100%; border-radius:2px; }
 
-.station-body { padding:10px 14px; display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
-
-/* ── Criticality selector ── */
-.crit-select {
-  padding:4px 10px; border-radius:6px; font-size:0.8rem; font-weight:600;
-  border:2px solid; cursor:pointer;
-}
-
-/* ── Suggestion cards ── */
-.suggestions-area { display:flex; gap:8px; flex-wrap:wrap; flex:1; }
-.suggestion-slot  { display:flex; flex-direction:column; gap:4px; min-width:160px; }
-.slot-label { font-size:0.68rem; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.04em; }
-
-.suggestion-card {
-  border:2px solid #e5e7eb; border-radius:8px; padding:6px 10px;
-  background:#fff; cursor:pointer; transition:all 0.15s; position:relative;
-}
-.suggestion-card.rank-1 { border-color:#16a34a; background:#f0fdf4; }
-.suggestion-card.rank-2 { border-color:#2563eb; background:#eff6ff; }
-.suggestion-card.rank-3 { border-color:#9ca3af; background:#f9fafb; }
-.suggestion-card .emp-name { font-weight:600; font-size:0.82rem; color:var(--dc-navy); }
-.suggestion-card .emp-score { font-size:0.75rem; margin-top:2px; }
-.suggestion-card .score-bar { height:4px; border-radius:2px; background:#e5e7eb; margin-top:4px; overflow:hidden; }
-.suggestion-card .score-fill { height:100%; border-radius:2px; background:linear-gradient(90deg, #16a34a, #22d3ee); }
-.suggestion-card.no-score { border-color:#d1d5db; background:#fafafa; }
-
-/* Override select */
+/* Override dropdown */
 .override-select {
-  width:100%; font-size:0.78rem; border:1px solid #d1d5db;
-  border-radius:6px; padding:4px 6px; background:#fff;
+  width:100%; font-size:0.8rem; border:1px solid #d1d5db;
+  border-radius:6px; padding:4px 8px; background:#fff;
+  transition: border-color 0.15s, background 0.15s;
 }
-.override-select.has-val { background:#e8f4fd; border-color:var(--dc-blue); font-weight:600; }
+.override-select.filled-best { background:#f0fdf4; border-color:#16a34a; font-weight:600; color:#15803d; }
+.override-select.filled-2nd  { background:#eff6ff; border-color:#2563eb; font-weight:600; color:#1e3a8a; }
+.override-select.filled-other { background:#e8f4fd; border-color:var(--dc-blue); font-weight:600; }
 
-/* Shift pills */
-.shift-pill { display:inline-flex; align-items:center; gap:5px; padding:5px 16px;
-  border-radius:50px; font-weight:600; font-size:0.85rem; border:2px solid transparent; text-decoration:none; }
+.no-candidates { font-size:0.8rem; color:#ef4444; padding:6px 10px; background:#fee2e2; border-radius:6px; }
+
+/* Crit rule hint */
+.crit-rule { font-size:0.72rem; padding:3px 8px; border-radius:4px; white-space:nowrap; }
+.crit-rule.high-rule { background:#fee2e2; color:#dc2626; }
+.crit-rule.low-rule  { background:#f3f4f6; color:#6b7280; }
+
+.shift-pill { display:inline-flex; align-items:center; gap:5px; padding:5px 16px; border-radius:50px; font-weight:600; font-size:0.85rem; border:2px solid transparent; text-decoration:none; }
 .shift-pill.jour { background:#fef3c7; color:#92400e; border-color:#d97706; }
 .shift-pill.soir { background:#e0e7ff; color:#1e3a8a; border-color:#4f46e5; }
 .shift-pill.active.jour { background:#d97706; color:#fff; }
 .shift-pill.active.soir { background:#4f46e5; color:#fff; }
-
-.no-candidates { font-size:0.8rem; color:#ef4444; padding:6px 10px; background:#fee2e2; border-radius:6px; }
 </style>
 
 <div class="container-fluid">
 
-  <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
       <h2 class="mb-0"><i class="bi bi-stars"></i> Planification Optimisée</h2>
-      <div class="text-muted" style="font-size:0.85rem;">Définissez la criticité de chaque poste — le système suggère le meilleur opérateur selon la productivité du mois</div>
+      <div class="text-muted" style="font-size:0.82rem;">
+        <span class="badge" style="background:#fee2e2;color:#dc2626;">Critique / Élevé</span> → meilleur opérateur (#1) &nbsp;|&nbsp;
+        <span class="badge" style="background:#f3f4f6;color:#374151;">Moyen / Faible</span> → 2e opérateur (#2) &nbsp;|&nbsp;
+        Chaque poste : 2 opérateurs assignables
+      </div>
     </div>
     <div class="d-flex gap-2">
       <button type="submit" form="crit-form" class="btn btn-outline-primary btn-sm">
         <i class="bi bi-save"></i> Sauvegarder criticités
       </button>
-      <button type="submit" form="apply-form" class="btn btn-success btn-sm">
+      <button type="submit" form="apply-form" class="btn btn-success">
         <i class="bi bi-check-circle"></i> Appliquer au planning
       </button>
     </div>
@@ -110,11 +104,9 @@
         <i class="bi bi-moon-stars-fill"></i> Soir
       </a>
     </div>
-    <div class="ms-auto">
-      <span class="badge fs-6" style="background:var(--dc-navy); padding:8px 16px;">
-        <i class="bi bi-calendar-day me-1"></i><%= dayLabel %> <%= date %>
-      </span>
-    </div>
+    <span class="ms-auto badge fs-6" style="background:var(--dc-navy);padding:8px 16px;">
+      <i class="bi bi-calendar-day me-1"></i><%= dayLabel %> <%= date %>
+    </span>
   </div>
 
   <% if (message) { %>
@@ -125,42 +117,24 @@
   <% } %>
 
   <% if (!stations.length) { %>
-    <div class="alert alert-info">
-      <i class="bi bi-info-circle"></i> Aucun poste défini.
-      <a href="/stations/new" class="alert-link">Créer des postes de travail</a>.
-    </div>
+    <div class="alert alert-info"><i class="bi bi-info-circle"></i> Aucun poste défini. <a href="/stations/new" class="alert-link">Créer des postes</a>.</div>
   <% } else { %>
 
-  <!-- Legend -->
-  <div class="d-flex gap-2 mb-3 flex-wrap">
-    <% CRITICALITY.forEach(c => { %>
-      <span class="crit-badge crit-<%= c.value %>">
-        <% if (c.value===4) { %><i class="bi bi-exclamation-triangle-fill me-1"></i><% } %>
-        <%= c.label %>
-      </span>
-    <% }); %>
-    <span class="ms-3 text-muted" style="font-size:0.78rem;">
-      <span class="badge bg-success me-1">#1</span> Meilleur score productivité ce mois
-      <span class="badge bg-primary ms-2 me-1">#2</span> 2e meilleur
-    </span>
-  </div>
-
-  <!-- Criticality save form (hidden inputs, submitted separately) -->
+  <!-- Criticality save form -->
   <form id="crit-form" method="POST" action="/planification-optimisee/criticality">
     <input type="hidden" name="date"  value="<%= date %>">
     <input type="hidden" name="shift" value="<%= shift %>">
     <% stations.forEach(s => { %>
-      <input type="hidden" id="crit-input-<%= s.id %>" name="crit_<%= s.id %>"
-             value="<%= criticalities[s.id] || 1 %>">
+      <input type="hidden" id="crit-input-<%= s.id %>" name="crit_<%= s.id %>" value="<%= criticalities[s.id] || 1 %>">
     <% }); %>
   </form>
 
   <!-- Apply form -->
   <form id="apply-form" method="POST" action="/planification-optimisee/apply">
-    <input type="hidden" name="date"      value="<%= date %>">
-    <input type="hidden" name="shift"     value="<%= shift %>">
+    <input type="hidden" name="date"       value="<%= date %>">
+    <input type="hidden" name="shift"      value="<%= shift %>">
     <input type="hidden" name="week_start" value="<%= weekStart %>">
-    <input type="hidden" name="day_idx"   value="<%= dayIdx %>">
+    <input type="hidden" name="day_idx"    value="<%= dayIdx %>">
 
     <%
       const STATION_TYPES = {
@@ -173,7 +147,6 @@
         horyzon:'Horyzon', ecy_2_3:'ECY 2/3', immersion:'Immersion'
       };
 
-      // Group stations by criticality (highest first)
       const sorted = [...stations].sort((a,b) => {
         const ca = criticalities[a.id] || 1;
         const cb = criticalities[b.id] || 1;
@@ -182,98 +155,132 @@
     %>
 
     <div class="po-grid">
-      <% let lastCrit = null; %>
-      <% sorted.forEach(function(station) {
-        const crit    = criticalities[station.id] || 1;
-        const critObj = CRITICALITY.find(c => c.value === crit) || CRITICALITY[0];
-        const suggs   = suggestions[station.id] || [];
-        const typeLabel = STATION_TYPES[station.station_key] || station.station_key;
-        const borderClass = 'crit-' + crit + '-border';
+    <% sorted.forEach(function(station) {
+      const crit      = criticalities[station.id] || 1;
+      const suggs     = suggestions[station.id] || [];
+      const typeLabel = STATION_TYPES[station.station_key] || station.station_key;
+      const isHigh    = crit >= 3; // Critique or Élevé
 
-        if (crit !== lastCrit) { lastCrit = crit; }
-      %>
-        <div class="station-card <%= borderClass %>" id="card-<%= station.id %>">
-          <div class="station-header">
-            <!-- Criticality selector (visual buttons) -->
-            <div class="d-flex gap-1 align-items-center">
-              <span style="font-size:0.72rem; color:#6b7280; font-weight:600; margin-right:4px;">CRITICITÉ</span>
-              <% CRITICALITY.forEach(c => { %>
-                <button type="button"
-                  class="crit-badge crit-<%= c.value %> <%= crit === c.value ? 'selected' : '' %>"
-                  style="border: 2px solid <%= crit === c.value ? c.color : 'transparent' %>; cursor:pointer; opacity:<%= crit === c.value ? '1' : '0.45' %>;"
-                  onclick="setCrit(<%= station.id %>, <%= c.value %>, this)">
-                  <% if (c.value === 4) { %><i class="bi bi-exclamation-triangle-fill"></i> <% } %>
-                  <%= c.label %>
-                </button>
-              <% }); %>
-            </div>
+      // Pre-selection index based on criticality:
+      // High (Critique/Élevé) → best (#0), second slot = #1
+      // Low  (Moyen/Faible)   → second best (#1), second slot = #2
+      const primaryIdx   = isHigh ? 0 : (suggs.length > 1 ? 1 : 0);
+      const secondaryIdx = isHigh ? 1 : (suggs.length > 2 ? 2 : (suggs.length > 1 ? 2 : 1));
 
-            <div class="ms-3">
-              <div class="station-title"><i class="bi bi-grid-3x3-gap me-1"></i><%= station.name %></div>
-              <div class="station-type"><%= typeLabel %> · <%= station.max_operators %> op. max</div>
-            </div>
-          </div>
+      const primaryEmp   = suggs[primaryIdx]   || null;
+      const secondaryEmp = suggs[secondaryIdx] || null;
+    %>
+      <div class="station-card crit-<%= crit %>-border" id="card-<%= station.id %>"
+           data-suggs='<%- JSON.stringify(suggs.map(s=>({nom:s.nom,score:s.score}))) %>'
+           data-station="<%= station.id %>">
 
-          <div class="station-body">
-            <% if (!suggs.length) { %>
-              <div class="no-candidates">
-                <i class="bi bi-exclamation-circle me-1"></i>
-                Aucun opérateur <%= shift %> formé sur <%= typeLabel %>
-              </div>
-            <% } else { %>
-              <% for (let slot = 0; slot < station.max_operators; slot++) { %>
-                <div class="suggestion-slot">
-                  <div class="slot-label">Poste <%= station.max_operators > 1 ? slot+1 : '' %></div>
-
-                  <% const top = suggs[slot]; %>
-                  <% if (top) { %>
-                    <!-- Best suggestion card -->
-                    <div class="suggestion-card rank-<%= Math.min(slot+1,3) %>">
-                      <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                          <span class="badge bg-<%= slot===0?'success':(slot===1?'primary':'secondary') %>" style="font-size:0.65rem;">#<%= slot+1 %></span>
-                          <span class="emp-name ms-1"><%= top.nom %></span>
-                        </div>
-                        <% if (top.score !== null) { %>
-                          <span class="badge" style="background:<%= top.score>=150?'#d97706':(top.score>=60?'#16a34a':'#dc2626') %>; font-size:0.72rem;">
-                            <%= top.score %>%
-                          </span>
-                        <% } else { %>
-                          <span class="badge bg-secondary" style="font-size:0.65rem;">Pas de score</span>
-                        <% } %>
-                      </div>
-                      <% if (top.score !== null) { %>
-                        <div class="score-bar mt-1">
-                          <div class="score-fill" style="width:<%= Math.min(top.score/2, 100) %>%;
-                            background:<%= top.score>=150?'#d97706':(top.score>=60?'#16a34a':'#dc2626') %>;"></div>
-                        </div>
-                      <% } %>
-                    </div>
-                  <% } %>
-
-                  <!-- Override dropdown -->
-                  <select class="override-select <%= (top && top.nom) ? 'has-val' : '' %>"
-                          name="assign_<%= station.id %>_<%= slot %>"
-                          onchange="this.classList.toggle('has-val', this.value !== '')">
-                    <option value="">— Laisser vide —</option>
-                    <% suggs.forEach(function(emp, i) { %>
-                      <option value="<%= emp.nom %>"
-                              <%= slot < suggs.length && suggs[slot] && emp.nom === suggs[slot].nom ? 'selected' : '' %>>
-                        <%= emp.nom %>
-                        <%= emp.score !== null ? '(' + emp.score + '%)' : '(—)' %>
-                        <%= i === 0 ? '★' : '' %>
-                      </option>
-                    <% }); %>
-                    <% /* also allow any other trained employees not in top 3 */
-                       const topNoms = new Set(suggs.map(s => s.nom));
-                    %>
-                  </select>
-                </div>
+        <div class="station-header">
+          <!-- Criticality buttons -->
+          <div class="d-flex gap-1 align-items-center flex-wrap">
+            <span style="font-size:0.7rem;color:#6b7280;font-weight:700;">CRITICITÉ</span>
+            <% CRITICALITY.forEach(c => { %>
+              <button type="button"
+                class="crit-badge crit-<%= c.value %>"
+                id="critbtn-<%= station.id %>-<%= c.value %>"
+                style="border:2px solid <%= crit===c.value ? c.color : 'transparent' %>; cursor:pointer; opacity:<%= crit===c.value?'1':'0.4' %>;"
+                onclick="setCrit(<%= station.id %>, <%= c.value %>)">
+                <% if (c.value===4) { %><i class="bi bi-exclamation-triangle-fill"></i> <% } %>
+                <%= c.label %>
+              </button>
+            <% }); %>
+            <span id="crit-rule-<%= station.id %>" class="crit-rule <%= isHigh ? 'high-rule' : 'low-rule' %>">
+              <% if (isHigh) { %>
+                <i class="bi bi-arrow-up-circle-fill"></i> Meilleur opérateur assigné
+              <% } else { %>
+                <i class="bi bi-arrow-right-circle"></i> 2e opérateur assigné
               <% } %>
-            <% } %>
+            </span>
+          </div>
+          <div class="ms-2">
+            <div class="station-title"><i class="bi bi-grid-3x3-gap me-1"></i><%= station.name %></div>
+            <div class="station-type"><%= typeLabel %></div>
           </div>
         </div>
-      <% }); %>
+
+        <div class="station-body">
+          <% if (!suggs.length) { %>
+            <div class="no-candidates"><i class="bi bi-exclamation-circle me-1"></i>Aucun opérateur <%= shift %> formé sur <%= typeLabel %></div>
+          <% } else { %>
+          <div class="op-slots">
+
+            <!-- Slot 0 — Opérateur Principal -->
+            <div class="op-slot">
+              <div class="op-slot-label primary">
+                <i class="bi bi-star-fill" style="color:#16a34a;"></i> Opérateur Principal
+              </div>
+              <% if (primaryEmp) { %>
+                <div class="top-card rank-best">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="emp-name"><%= primaryEmp.nom %></span>
+                    <% if (primaryEmp.score !== null) { %>
+                      <span class="badge" style="background:<%= primaryEmp.score>=150?'#d97706':(primaryEmp.score>=60?'#16a34a':'#dc2626') %>; font-size:0.7rem;"><%= primaryEmp.score %>%</span>
+                    <% } else { %>
+                      <span class="badge bg-secondary" style="font-size:0.68rem;">—</span>
+                    <% } %>
+                  </div>
+                  <% if (primaryEmp.score !== null) { %>
+                    <div class="score-bar"><div class="score-fill" style="width:<%= Math.min(primaryEmp.score/2,100) %>%; background:<%= primaryEmp.score>=150?'#d97706':(primaryEmp.score>=60?'#16a34a':'#dc2626') %>;"></div></div>
+                  <% } %>
+                </div>
+              <% } %>
+              <select class="override-select" id="sel-<%= station.id %>-0"
+                      name="assign_<%= station.id %>_0"
+                      onchange="styleSelect(this)">
+                <option value="">— Aucun —</option>
+                <% suggs.forEach(function(emp, i) { %>
+                  <option value="<%= emp.nom %>"
+                    <%= primaryEmp && emp.nom === primaryEmp.nom ? 'selected' : '' %>>
+                    <%= emp.nom %> <%= emp.score !== null ? '('+emp.score+'%)' : '(—)' %>
+                    <%= i===0 ? ' ★' : '' %>
+                  </option>
+                <% }); %>
+              </select>
+            </div>
+
+            <!-- Slot 1 — Opérateur Secondaire -->
+            <div class="op-slot">
+              <div class="op-slot-label secondary">
+                <i class="bi bi-person-plus" style="color:#6b7280;"></i> Opérateur Secondaire
+              </div>
+              <% if (secondaryEmp && secondaryEmp.nom !== (primaryEmp && primaryEmp.nom)) { %>
+                <div class="top-card rank-2nd">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="emp-name"><%= secondaryEmp.nom %></span>
+                    <% if (secondaryEmp.score !== null) { %>
+                      <span class="badge" style="background:<%= secondaryEmp.score>=150?'#d97706':(secondaryEmp.score>=60?'#16a34a':'#dc2626') %>; font-size:0.7rem;"><%= secondaryEmp.score %>%</span>
+                    <% } else { %>
+                      <span class="badge bg-secondary" style="font-size:0.68rem;">—</span>
+                    <% } %>
+                  </div>
+                  <% if (secondaryEmp.score !== null) { %>
+                    <div class="score-bar"><div class="score-fill" style="width:<%= Math.min(secondaryEmp.score/2,100) %>%; background:<%= secondaryEmp.score>=150?'#d97706':(secondaryEmp.score>=60?'#16a34a':'#dc2626') %>;"></div></div>
+                  <% } %>
+                </div>
+              <% } %>
+              <select class="override-select" id="sel-<%= station.id %>-1"
+                      name="assign_<%= station.id %>_1"
+                      onchange="styleSelect(this)">
+                <option value="">— Aucun —</option>
+                <% suggs.forEach(function(emp, i) { %>
+                  <option value="<%= emp.nom %>"
+                    <%= (secondaryEmp && emp.nom === secondaryEmp.nom && secondaryEmp.nom !== (primaryEmp && primaryEmp.nom)) ? 'selected' : '' %>>
+                    <%= emp.nom %> <%= emp.score !== null ? '('+emp.score+'%)' : '(—)' %>
+                    <%= i===0 ? ' ★' : '' %>
+                  </option>
+                <% }); %>
+              </select>
+            </div>
+
+          </div>
+          <% } %>
+        </div>
+      </div>
+    <% }); %>
     </div>
 
     <div class="d-flex justify-content-end gap-2 mt-4">
@@ -281,7 +288,7 @@
         <i class="bi bi-save"></i> Sauvegarder criticités
       </button>
       <button type="submit" class="btn btn-success btn-lg">
-        <i class="bi bi-check-circle"></i> Appliquer les suggestions au planning
+        <i class="bi bi-check-circle"></i> Appliquer au planning — <%= dayLabel %> <%= shift %>
       </button>
     </div>
   </form>
@@ -290,22 +297,67 @@
 </div>
 
 <script>
-function setCrit(stationId, value, btn) {
+const CRITICALITY_COLORS = { 1:'#9ca3af', 2:'#1d4ed8', 3:'#d97706', 4:'#dc2626' };
+
+function styleSelect(sel) {
+  sel.classList.remove('filled-best','filled-2nd','filled-other');
+  if (!sel.value) return;
+  // Check if it's the first or second suggestion
+  const card  = sel.closest('.station-card');
+  const suggs = JSON.parse(card.dataset.suggs || '[]');
+  const idx   = suggs.findIndex(s => s.nom === sel.value);
+  if (idx === 0) sel.classList.add('filled-best');
+  else if (idx === 1) sel.classList.add('filled-2nd');
+  else sel.classList.add('filled-other');
+}
+
+function setCrit(stationId, value) {
   // Update hidden input
   document.getElementById('crit-input-' + stationId).value = value;
 
-  // Update button styles in this group
-  const card = document.getElementById('card-' + stationId);
-  card.querySelectorAll('[onclick*="setCrit(' + stationId + '"]').forEach(b => {
-    const bVal = parseInt(b.getAttribute('onclick').match(/setCrit\(\d+,\s*(\d)/)[1]);
-    b.style.opacity = bVal === value ? '1' : '0.45';
-    b.style.borderColor = bVal === value ? getComputedStyle(b).color : 'transparent';
+  // Update button opacities
+  [1,2,3,4].forEach(v => {
+    const btn = document.getElementById('critbtn-' + stationId + '-' + v);
+    if (!btn) return;
+    btn.style.opacity = v === value ? '1' : '0.4';
+    btn.style.borderColor = v === value ? CRITICALITY_COLORS[v] : 'transparent';
   });
 
-  // Update card border class
+  // Update card border
+  const card = document.getElementById('card-' + stationId);
   [1,2,3,4].forEach(v => card.classList.remove('crit-'+v+'-border'));
   card.classList.add('crit-' + value + '-border');
+
+  // Update rule hint
+  const ruleEl = document.getElementById('crit-rule-' + stationId);
+  const isHigh = value >= 3;
+  ruleEl.className = 'crit-rule ' + (isHigh ? 'high-rule' : 'low-rule');
+  ruleEl.innerHTML = isHigh
+    ? '<i class="bi bi-arrow-up-circle-fill"></i> Meilleur opérateur assigné'
+    : '<i class="bi bi-arrow-right-circle"></i> 2e opérateur assigné';
+
+  // Auto-update dropdown selections based on new criticality
+  const suggs = JSON.parse(card.dataset.suggs || '[]');
+  if (!suggs.length) return;
+
+  const primaryIdx   = isHigh ? 0 : (suggs.length > 1 ? 1 : 0);
+  const secondaryIdx = isHigh ? 1 : (suggs.length > 2 ? 2 : (suggs.length > 1 ? 2 : 1));
+
+  const sel0 = document.getElementById('sel-' + stationId + '-0');
+  const sel1 = document.getElementById('sel-' + stationId + '-1');
+
+  if (sel0 && suggs[primaryIdx])   { sel0.value = suggs[primaryIdx].nom;   styleSelect(sel0); }
+  if (sel1 && suggs[secondaryIdx]) {
+    // Don't set secondary to same as primary
+    const secEmp = suggs[secondaryIdx];
+    const priEmp = suggs[primaryIdx];
+    sel1.value = (secEmp && priEmp && secEmp.nom !== priEmp.nom) ? secEmp.nom : '';
+    styleSelect(sel1);
+  }
 }
+
+// Init styles on load
+document.querySelectorAll('.override-select').forEach(styleSelect);
 </script>
 
 <%- include('../partials/footer') %>

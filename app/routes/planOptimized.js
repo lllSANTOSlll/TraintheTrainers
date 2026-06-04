@@ -144,8 +144,8 @@ router.get('/', (req, res) => {
                     return a.nom.localeCompare(b.nom);
                   });
 
-                // Take top N based on max_operators
-                suggestions[station.id] = candidates.slice(0, Math.max(station.max_operators, 3));
+                // Take top N — need at least 4 to support 2-slot view with high/low crit offset
+                suggestions[station.id] = candidates.slice(0, Math.max(station.max_operators + 2, 4));
               });
 
               res.render('plan-optimized/index', {
@@ -234,24 +234,24 @@ router.post('/apply', (req, res) => {
               if (++done === entries.length) {
                 // Sync to schedule_weeks
                 const empNames = Object.keys(empDayMap);
-                if (!empNames.length) return res.redirect(`/planification-optimisee?date=${date}&shift=${shift}&message=Planning appliqué!`);
+                if (!empNames.length) return res.redirect(`/planification-optimisee?date=${date}&shift=${shift}&message=Planning appliqué — Plan. par Poste et Plan. par Opérateur mis à jour!`);
                 db.all(`SELECT id, nom FROM employees WHERE nom IN (${empNames.map(() => '?').join(',')})`, empNames, (e2, empRows) => {
-                  if (e2 || !empRows.length) return res.redirect(`/planification-optimisee?date=${date}&shift=${shift}&message=Planning appliqué!`);
+                  if (e2 || !empRows.length) return res.redirect(`/planification-optimisee?date=${date}&shift=${shift}&message=Planning appliqué — Plan. par Poste et Plan. par Opérateur mis à jour!`);
                   let synced = 0;
                   empRows.forEach(emp => {
                     const stName = (empDayMap[emp.nom] || {})[dayIndex];
-                    if (!stName) { synced++; if (synced === empRows.length) res.redirect(`/planification-optimisee?date=${date}&shift=${shift}&message=Planning appliqué!`); return; }
+                    if (!stName) { synced++; if (synced === empRows.length) res.redirect(`/planification-optimisee?date=${date}&shift=${shift}&message=Planning appliqué — Plan. par Poste et Plan. par Opérateur mis à jour!`); return; }
                     const col = DAY_COLS[dayIndex];
                     db.get('SELECT id FROM schedule_weeks WHERE week_start = ? AND employee_id = ?', [week_start, emp.id], (e3, row) => {
                       if (row) {
                         db.run(`UPDATE schedule_weeks SET ${col} = ? WHERE week_start = ? AND employee_id = ?`, [stName, week_start, emp.id],
-                          () => { synced++; if (synced === empRows.length) res.redirect(`/planification-optimisee?date=${date}&shift=${shift}&message=Planning appliqué!`); });
+                          () => { synced++; if (synced === empRows.length) res.redirect(`/planification-optimisee?date=${date}&shift=${shift}&message=Planning appliqué — Plan. par Poste et Plan. par Opérateur mis à jour!`); });
                       } else {
                         const allCols = DAY_COLS;
                         const vals = allCols.map(c => c === col ? stName : '');
                         db.run(`INSERT INTO schedule_weeks (week_start, employee_id, ${allCols.join(',')}) VALUES (?,?,${allCols.map(() => '?').join(',')})`,
                           [week_start, emp.id, ...vals],
-                          () => { synced++; if (synced === empRows.length) res.redirect(`/planification-optimisee?date=${date}&shift=${shift}&message=Planning appliqué!`); });
+                          () => { synced++; if (synced === empRows.length) res.redirect(`/planification-optimisee?date=${date}&shift=${shift}&message=Planning appliqué — Plan. par Poste et Plan. par Opérateur mis à jour!`); });
                       }
                     });
                   });
