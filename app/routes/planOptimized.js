@@ -7,6 +7,7 @@ router.use(isAuthenticated);
 router.use(requirePermission('schedule_view'));
 
 const CRITICALITY = [
+  { value: 0, label: 'Arrêt',    color: '#374151', bg: '#1f2937' },  // 0 = not running
   { value: 1, label: 'Faible',   color: '#6b7280', bg: '#f3f4f6' },
   { value: 2, label: 'Moyen',    color: '#1d4ed8', bg: '#dbeafe' },
   { value: 3, label: 'Élevé',    color: '#d97706', bg: '#fef3c7' },
@@ -195,13 +196,22 @@ router.post('/apply', (req, res) => {
   const { date, shift, week_start, day_idx } = req.body;
   const dayIndex = parseInt(day_idx);
 
-  // assignments: assign_stationId_slotIndex = employee_name
+  // Collect stopped stations (criticality = 0) — skip their assignments
+  const stoppedStations = new Set();
+  Object.entries(req.body).forEach(([key, val]) => {
+    if (key.startsWith('crit_') && parseInt(val) === 0) {
+      stoppedStations.add(parseInt(key.replace('crit_', '')));
+    }
+  });
+
+  // assignments: assign_stationId_slotIndex = employee_name (skip stopped stations)
   const entries = [];
   Object.entries(req.body).forEach(([key, val]) => {
     if (!key.startsWith('assign_')) return;
     const parts = key.split('_');
     const stationId = parseInt(parts[1]);
     const slotIndex = parseInt(parts[2]);
+    if (stoppedStations.has(stationId)) return; // skip — station not running
     if (!isNaN(stationId) && !isNaN(slotIndex) && val && val.trim()) {
       entries.push([stationId, slotIndex, val.trim()]);
     }

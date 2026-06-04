@@ -4,6 +4,7 @@
 .po-grid { display:flex; flex-direction:column; gap:14px; }
 
 .crit-badge { display:inline-block; padding:3px 10px; border-radius:50px; font-size:0.75rem; font-weight:700; }
+.crit-0 { background:#1f2937; color:#fff; }
 .crit-1 { background:#f3f4f6; color:#374151; }
 .crit-2 { background:#dbeafe; color:#1d4ed8; }
 .crit-3 { background:#fef3c7; color:#92400e; }
@@ -11,10 +12,16 @@
 
 .station-card { border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; background:#fff; transition:box-shadow 0.15s; }
 .station-card:hover { box-shadow:0 2px 8px rgba(0,0,0,0.09); }
+.station-card.crit-0-border { border-left:4px solid #374151; opacity:0.55; }
 .station-card.crit-4-border { border-left:4px solid #dc2626; }
 .station-card.crit-3-border { border-left:4px solid #d97706; }
 .station-card.crit-2-border { border-left:4px solid #1d4ed8; }
 .station-card.crit-1-border { border-left:4px solid #9ca3af; }
+.station-stopped .station-body { display:none !important; }
+.station-stopped .station-header { background:#1f2937 !important; }
+.station-stopped .station-title  { color:#9ca3af !important; }
+.station-stopped .station-type   { color:#6b7280 !important; }
+.stopped-tag { font-size:0.75rem; font-weight:700; color:#9ca3af; background:#374151; padding:2px 10px; border-radius:50px; margin-left:8px; }
 
 .station-header { display:flex; align-items:center; gap:12px; padding:10px 14px; background:#f8f9fa; border-bottom:1px solid #e5e7eb; flex-wrap:wrap; }
 .station-title  { font-weight:700; color:var(--dc-navy); font-size:0.95rem; }
@@ -148,15 +155,19 @@
       };
 
       const sorted = [...stations].sort((a,b) => {
-        const ca = criticalities[a.id] || 1;
-        const cb = criticalities[b.id] || 1;
+        const ca = criticalities[a.id] !== undefined ? criticalities[a.id] : 1;
+        const cb = criticalities[b.id] !== undefined ? criticalities[b.id] : 1;
+        // Stopped (0) go to bottom, then sort by criticality desc
+        if (ca === 0 && cb !== 0) return 1;
+        if (cb === 0 && ca !== 0) return -1;
         return cb - ca || a.name.localeCompare(b.name);
       });
     %>
 
     <div class="po-grid">
     <% sorted.forEach(function(station) {
-      const crit      = criticalities[station.id] || 1;
+      const crit      = criticalities[station.id] !== undefined ? criticalities[station.id] : 1;
+      const isStopped = crit === 0;
       const suggs     = suggestions[station.id] || [];
       const typeLabel = STATION_TYPES[station.station_key] || station.station_key;
       const isHigh    = crit >= 3; // Critique or Élevé
@@ -170,7 +181,8 @@
       const primaryEmp   = suggs[primaryIdx]   || null;
       const secondaryEmp = suggs[secondaryIdx] || null;
     %>
-      <div class="station-card crit-<%= crit %>-border" id="card-<%= station.id %>"
+      <div class="station-card crit-<%= crit %>-border <%= isStopped ? 'station-stopped' : '' %>"
+           id="card-<%= station.id %>"
            data-suggs='<%- JSON.stringify(suggs.map(s=>({nom:s.nom,score:s.score}))) %>'
            data-station="<%= station.id %>">
 
@@ -184,12 +196,14 @@
                 id="critbtn-<%= station.id %>-<%= c.value %>"
                 style="border:2px solid <%= crit===c.value ? c.color : 'transparent' %>; cursor:pointer; opacity:<%= crit===c.value?'1':'0.4' %>;"
                 onclick="setCrit(<%= station.id %>, <%= c.value %>)">
+                <% if (c.value===0) { %><i class="bi bi-slash-circle"></i> <% } %>
                 <% if (c.value===4) { %><i class="bi bi-exclamation-triangle-fill"></i> <% } %>
                 <%= c.label %>
               </button>
             <% }); %>
-            <span id="crit-rule-<%= station.id %>" class="crit-rule <%= isHigh ? 'high-rule' : 'low-rule' %>">
-              <% if (isHigh) { %>
+            <span id="crit-rule-<%= station.id %>" class="crit-rule <%= isStopped ? 'd-none' : (isHigh ? 'high-rule' : 'low-rule') %>">
+              <% if (isStopped) { %>
+              <% } else if (isHigh) { %>
                 <i class="bi bi-arrow-up-circle-fill"></i> Meilleur opérateur assigné
               <% } else { %>
                 <i class="bi bi-arrow-right-circle"></i> 2e opérateur assigné
@@ -197,10 +211,16 @@
             </span>
           </div>
           <div class="ms-2">
-            <div class="station-title"><i class="bi bi-grid-3x3-gap me-1"></i><%= station.name %></div>
+            <div class="station-title">
+              <i class="bi bi-grid-3x3-gap me-1"></i><%= station.name %>
+              <% if (isStopped) { %><span class="stopped-tag"><i class="bi bi-slash-circle me-1"></i>Non actif</span><% } %>
+            </div>
             <div class="station-type"><%= typeLabel %></div>
           </div>
         </div>
+
+        <!-- Hidden crit field also sent in apply form so server knows which are stopped -->
+        <input type="hidden" name="crit_<%= station.id %>" value="<%= crit %>">
 
         <div class="station-body">
           <% if (!suggs.length) { %>
@@ -297,7 +317,7 @@
 </div>
 
 <script>
-const CRITICALITY_COLORS = { 1:'#9ca3af', 2:'#1d4ed8', 3:'#d97706', 4:'#dc2626' };
+const CRITICALITY_COLORS = { 0:'#374151', 1:'#9ca3af', 2:'#1d4ed8', 3:'#d97706', 4:'#dc2626' };
 
 function styleSelect(sel) {
   sel.classList.remove('filled-best','filled-2nd','filled-other');
@@ -323,15 +343,27 @@ function setCrit(stationId, value) {
     btn.style.borderColor = v === value ? CRITICALITY_COLORS[v] : 'transparent';
   });
 
-  // Update card border
+  // Update card border + stopped state
   const card = document.getElementById('card-' + stationId);
-  [1,2,3,4].forEach(v => card.classList.remove('crit-'+v+'-border'));
+  [0,1,2,3,4].forEach(v => card.classList.remove('crit-'+v+'-border'));
   card.classList.add('crit-' + value + '-border');
+  card.classList.toggle('station-stopped', value === 0);
+
+  // Clear both operator selects when stopped
+  if (value === 0) {
+    const s0 = document.getElementById('sel-' + stationId + '-0');
+    const s1 = document.getElementById('sel-' + stationId + '-1');
+    if (s0) { s0.value = ''; styleSelect(s0); }
+    if (s1) { s1.value = ''; styleSelect(s1); }
+    syncAllDropdowns();
+    return;
+  }
 
   // Update rule hint
   const ruleEl = document.getElementById('crit-rule-' + stationId);
   const isHigh = value >= 3;
   ruleEl.className = 'crit-rule ' + (isHigh ? 'high-rule' : 'low-rule');
+  ruleEl.classList.remove('d-none');
   ruleEl.innerHTML = isHigh
     ? '<i class="bi bi-arrow-up-circle-fill"></i> Meilleur opérateur assigné'
     : '<i class="bi bi-arrow-right-circle"></i> 2e opérateur assigné';
@@ -360,7 +392,9 @@ function setCrit(stationId, value) {
 // All dropdowns are for the same day — no operator can appear twice
 
 function syncAllDropdowns() {
-  const allSelects = Array.from(document.querySelectorAll('.override-select'));
+  // Skip selects inside stopped (non-running) station cards
+  const allSelects = Array.from(document.querySelectorAll('.override-select'))
+    .filter(s => !s.closest('.station-stopped'));
 
   // Build: empName -> [selects that currently have it selected]
   const takenBy = {};
