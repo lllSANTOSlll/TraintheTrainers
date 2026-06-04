@@ -34,6 +34,23 @@
 .shift-soir  .station-name-cell { background: #eef2ff; }
 .shift-soir thead th             { background: #1e3a8a; }
 
+/* Criticality cell colours */
+.crit-bg-0 { background: #1f2937 !important; }   /* Arrêt    — dark */
+.crit-bg-1 { background: #dcfce7 !important; }   /* Faible   — green */
+.crit-bg-2 { background: #dbeafe !important; }   /* Moyen    — blue */
+.crit-bg-3 { background: #fef3c7 !important; }   /* Élevé    — orange */
+.crit-bg-4 { background: #fee2e2 !important; }   /* Critique — red */
+
+.crit-tag {
+  display:block; text-align:center; font-size:0.6rem; font-weight:700;
+  padding:1px 0 2px; letter-spacing:0.04em; opacity:0.75;
+}
+.crit-bg-0 .crit-tag { color:#9ca3af; }
+.crit-bg-1 .crit-tag { color:#15803d; }
+.crit-bg-2 .crit-tag { color:#1d4ed8; }
+.crit-bg-3 .crit-tag { color:#92400e; }
+.crit-bg-4 .crit-tag { color:#dc2626; }
+
 .slot-cell { padding: 3px; }
 .slot-select {
   width: 100%;
@@ -79,6 +96,9 @@
       <i class="bi bi-layout-three-columns"></i> Planification par Poste
     </h2>
     <div class="d-flex gap-2">
+      <a href="/planification-optimisee?week=<%= monday %>" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-stars"></i> Définir criticités
+      </a>
       <a href="/schedule?shift=<%= shift %>" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-people"></i> Vue par Opérateur
       </a>
@@ -86,6 +106,16 @@
         <i class="bi bi-check-circle"></i> Enregistrer
       </button>
     </div>
+  </div>
+  <!-- Criticality legend -->
+  <div class="d-flex gap-2 align-items-center mb-2 flex-wrap" style="font-size:0.75rem;">
+    <span class="text-muted fw-semibold">Criticité :</span>
+    <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:50px;font-weight:700;">Faible</span>
+    <span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:50px;font-weight:700;">Moyen</span>
+    <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:50px;font-weight:700;">Élevé</span>
+    <span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:50px;font-weight:700;">⚠ Critique</span>
+    <span style="background:#1f2937;color:#9ca3af;padding:2px 8px;border-radius:50px;font-weight:700;">🚫 Arrêt</span>
+    <span class="text-muted ms-2">— Défini dans <a href="/planification-optimisee?week=<%= monday %>">Plan. Optimisée</a></span>
   </div>
 
   <!-- Shift filter -->
@@ -197,26 +227,36 @@
                 </td>
                 <% for (let d = 0; d < 7; d++) {
                   const dayAssign = stationAssign[d] || {};
+                  const iso = dayISO ? dayISO[d] : null;
+                  const crit = (iso && critMap && critMap[station.id]) ? critMap[station.id][iso] : undefined;
+                  const critClass = crit !== undefined ? 'crit-bg-' + crit : '';
+                  const critLabel = crit === 0 ? 'ARRÊT' : crit === 1 ? 'FAIBLE' : crit === 2 ? 'MOYEN' : crit === 3 ? 'ÉLEVÉ' : crit === 4 ? '⚠ CRITIQUE' : '';
                 %>
-                  <td class="slot-cell">
-                    <% for (let s = 0; s < station.max_operators; s++) {
-                      const val = dayAssign[s] || '';
-                      const key = station.id + '_' + d + '_' + s;
-                    %>
-                      <select class="slot-select <%= val ? 'filled' : '' %>"
-                              data-key="<%= key %>"
-                              onchange="syncDayConflicts(this)">
-                        <option value="">—</option>
-                        <% qualifiedEmps.forEach(function(emp) { %>
-                          <option value="<%= emp.nom %>" <%= val === emp.nom ? 'selected' : '' %>>
-                            <%= emp.nom %>
-                            <% if (emp.prodScore !== null) { %> — <%= emp.prodScore %>%<% } %>
-                          </option>
-                        <% }); %>
-                      </select>
-                    <% } %>
-                    <% if (qualifiedEmps.length === 0) { %>
-                      <span class="text-muted" style="font-size:0.7rem; padding:3px;">Aucun</span>
+                  <td class="slot-cell <%= critClass %>">
+                    <% if (critLabel) { %><span class="crit-tag"><%= critLabel %></span><% } %>
+                    <% if (crit === 0) { %>
+                      <div style="text-align:center; padding:6px 0; font-size:0.72rem; color:#6b7280;">
+                        <i class="bi bi-slash-circle"></i> Non actif
+                      </div>
+                    <% } else { %>
+                      <% for (let s = 0; s < station.max_operators; s++) {
+                        const val = dayAssign[s] || '';
+                        const key = station.id + '_' + d + '_' + s;
+                      %>
+                        <select class="slot-select <%= val ? 'filled' : '' %>"
+                                data-key="<%= key %>"
+                                onchange="syncDayConflicts(this)">
+                          <option value="">—</option>
+                          <% qualifiedEmps.forEach(function(emp) { %>
+                            <option value="<%= emp.nom %>" <%= val === emp.nom ? 'selected' : '' %>>
+                              <%= emp.nom %><% if (emp.prodScore !== null) { %> — <%= emp.prodScore %>%<% } %>
+                            </option>
+                          <% }); %>
+                        </select>
+                      <% } %>
+                      <% if (qualifiedEmps.length === 0) { %>
+                        <span class="text-muted" style="font-size:0.7rem; padding:3px;">Aucun</span>
+                      <% } %>
                     <% } %>
                   </td>
                 <% } %>

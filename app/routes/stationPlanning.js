@@ -131,7 +131,6 @@ router.get('/', (req, res) => {
                   ? prodMap[e.id][key]
                   : null
               })).sort((a, b) => {
-                // Sort by score desc, then alphabetically
                 if (a.prodScore !== null && b.prodScore !== null) return b.prodScore - a.prodScore;
                 if (a.prodScore !== null) return -1;
                 if (b.prodScore !== null) return 1;
@@ -139,14 +138,30 @@ router.get('/', (req, res) => {
               });
             });
 
-          res.render('station-planning/index', {
-            title: 'Planification par Poste',
-            stations, employeesByKey, assignments,
-            monday, shift, weekLabel: formatWeekLabel(monday),
-            dayDates: getDayDates(monday), DAYS,
-            prevWeek: addWeeks(monday, -1), nextWeek: addWeeks(monday, 1),
-            dept, message: req.query.message
-          });
+            // 5. Load criticalities for this week
+            const dayISO = getDayISODates(monday);
+            db.all(
+              `SELECT station_instance_id, date, criticality FROM station_criticality
+               WHERE date >= ? AND date <= ?
+                 AND station_instance_id IN (${stationIds.map(() => '?').join(',')})`,
+              [dayISO[0], dayISO[6], ...stationIds],
+              (err5, critRows) => {
+                const critMap = {};
+                (critRows || []).forEach(r => {
+                  if (!critMap[r.station_instance_id]) critMap[r.station_instance_id] = {};
+                  critMap[r.station_instance_id][r.date] = r.criticality;
+                });
+
+                res.render('station-planning/index', {
+                  title: 'Planification par Poste',
+                  stations, employeesByKey, assignments, critMap, dayISO,
+                  monday, shift, weekLabel: formatWeekLabel(monday),
+                  dayDates: getDayDates(monday), DAYS,
+                  prevWeek: addWeeks(monday, -1), nextWeek: addWeeks(monday, 1),
+                  dept, message: req.query.message
+                });
+              }
+            );
           }); // end loadProd
         }
       );
